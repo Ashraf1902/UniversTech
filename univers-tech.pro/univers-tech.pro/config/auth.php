@@ -50,6 +50,10 @@ return [
             'provider' => 'api_admins',
             'hash' => false,
         ],
+        'web-admin' => [
+            'driver' => 'session',
+            'provider' => 'api_admins',
+        ],
     ],
 
 

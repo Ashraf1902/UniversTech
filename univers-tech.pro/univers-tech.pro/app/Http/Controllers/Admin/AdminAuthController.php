@@ -6,7 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AdminLoginRequest;
 use App\Models\Admin;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class AdminAuthController extends Controller
 {
@@ -18,24 +21,49 @@ class AdminAuthController extends Controller
             return SendResponse(401, 'Invalid credentials.');
         }
 
+        $adminData = [
+            'id' => $admin->id,
+            'name' => $admin->name,
+            'email' => $admin->email,
+            'is_super_admin' => $admin->is_super_admin,
+            'roles' => $admin->roles ?? [],
+        ];
+
+        if (EnsureFrontendRequestsAreStateful::fromFrontend($request)) {
+            Auth::guard('web-admin')->login($admin);
+            $request->session()->regenerate();
+
+            return SendResponse(200, 'Logged in successfully.', ['user' => $adminData]);
+        }
+
         $token = $admin->createToken('admin-token')->plainTextToken;
 
         return SendResponse(200, 'Logged in successfully.', [
             'access_token' => $token,
             'token_type' => 'Bearer',
-            'user' => [
-                'id' => $admin->id,
-                'name' => $admin->name,
-                'email' => $admin->email,
-                'is_super_admin' => $admin->is_super_admin,
-                'roles' => $admin->roles ?? [],
-            ],
+            'user' => $adminData,
         ]);
     }
 
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        $admin = $request->user();
+
+        if ($admin) {
+            $token = $admin->currentAccessToken();
+
+            if ($token instanceof PersonalAccessToken) {
+                $token->delete();
+            }
+        }
+
+        Auth::guard('web-admin')->logout();
+        Auth::guard('web')->logout();
+
+        if ($request->hasSession()) {
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
 
         return SendResponse(200, 'Logged out successfully.');
     }

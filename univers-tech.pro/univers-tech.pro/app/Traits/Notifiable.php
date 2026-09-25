@@ -2,9 +2,9 @@
 
 namespace App\Traits;
 
+use App\Jobs\FanOutNotification;
 use App\Models\Notification;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
 
 trait Notifiable
 {
@@ -61,19 +61,21 @@ trait Notifiable
         $studentIds = User::where('type', User::TYPE_STUDENT)->pluck('id');
         $adminId = $adminId ?? request()->user()?->id;
 
-        $rows = $studentIds->map(fn (int $id) => [
-            'student_id' => $id,
-            'title' => $title,
-            'content' => $content,
-            'admin_id' => $adminId,
-            'type' => Notification::TYPE_EVENT,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ])->toArray();
-
-        if (! empty($rows)) {
-            DB::table('notifications')->insert($rows);
+        if ($studentIds->isEmpty()) {
+            return;
         }
+
+        FanOutNotification::dispatch(
+            $studentIds->map(fn (int $id) => [
+                'student_id' => $id,
+                'title' => $title,
+                'content' => $content,
+                'admin_id' => $adminId,
+                'type' => Notification::TYPE_EVENT,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ])->toArray()
+        );
     }
 
     /**
@@ -81,18 +83,20 @@ trait Notifiable
      */
     protected function notifyStudents(array $studentIds, string $title, string $content, ?int $professorId = null): void
     {
-        $rows = array_map(fn (int $id) => [
-            'student_id' => $id,
-            'professor_id' => $professorId,
-            'title' => $title,
-            'content' => $content,
-            'type' => Notification::TYPE_NOTIFICATION,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ], $studentIds);
-
-        if (! empty($rows)) {
-            DB::table('notifications')->insert($rows);
+        if (empty($studentIds)) {
+            return;
         }
+
+        FanOutNotification::dispatch(
+            array_map(fn (int $id) => [
+                'student_id' => $id,
+                'professor_id' => $professorId,
+                'title' => $title,
+                'content' => $content,
+                'type' => Notification::TYPE_NOTIFICATION,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ], $studentIds)
+        );
     }
 }

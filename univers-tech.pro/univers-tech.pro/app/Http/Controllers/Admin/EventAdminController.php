@@ -11,6 +11,7 @@ use App\Traits\File\UpdateFile;
 use App\Traits\File\UploadFile;
 use App\Traits\Notifiable;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class EventAdminController extends Controller
 {
@@ -41,23 +42,25 @@ class EventAdminController extends Controller
     {
         $image = $this->uploadFile($request, 'image', 'events');
 
-        $event = Event::create([
-            'title' => $request->title,
-            'content' => $request->content,
-            'admin_id' => $request->user()->id,
-            'image' => $image,
-        ]);
+        DB::transaction(function () use ($request, $image) {
+            $event = Event::create([
+                'title' => $request->title,
+                'content' => $request->content,
+                'admin_id' => $request->user()->id,
+                'image' => $image,
+            ]);
 
-        $this->notifyAllStudents(
-            $event->title,
-            $event->content,
-            $request->user()->id
-        );
+            $this->notifyAllStudents(
+                $event->title,
+                $event->content,
+                $request->user()->id
+            );
 
-        $this->notifyAdmin(
-            'New event created',
-            '"' . $event->title . '" event has been published to all students.'
-        );
+            $this->notifyAdmin(
+                'New event created',
+                '"' . $event->title . '" event has been published to all students.'
+            );
+        });
 
         return SendResponse(201, 'Event created successfully.');
     }

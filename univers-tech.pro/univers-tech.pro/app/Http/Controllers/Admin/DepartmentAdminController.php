@@ -15,7 +15,8 @@ class DepartmentAdminController extends Controller
 
     public function index(Request $request)
     {
-        $departments = Department::orderByDesc('created_at')
+        $departments = ($request->boolean('deleted') ? Department::onlyTrashed() : Department::query())
+            ->orderByDesc('created_at')
             ->with('admin')
             ->paginate(15)
             ->through(fn (Department $department) => [
@@ -25,6 +26,7 @@ class DepartmentAdminController extends Controller
                 'created_by' => $department->admin?->name,
                 'created_at' => $department->created_at,
                 'updated_at' => $department->updated_at,
+                'deleted_at' => $department->deleted_at,
             ]);
 
         return SendResponse(200, 'Departments fetched successfully.', $departments);
@@ -65,16 +67,39 @@ class DepartmentAdminController extends Controller
             return SendResponse(404, 'Department not found.');
         }
 
-        $hasUsers = $department->users()->exists();
-        $hasCourses = $department->courses()->exists();
-
-        if ($hasUsers || $hasCourses) {
-            return SendResponse(409, 'Cannot delete department with associated users or courses. Reassign them first.');
-        }
-
         $department->delete();
 
-        return SendResponse(200, 'Department deleted successfully.');
+        return SendResponse(200, 'Department archived, can be restored later.');
+    }
+
+    public function restore(Request $request, $id)
+    {
+        $department = Department::onlyTrashed()->find($id);
+
+        if (! $department) {
+            return SendResponse(404, 'Archived department not found.');
+        }
+
+        $department->restore();
+
+        return SendResponse(200, 'Department restored successfully.');
+    }
+
+    public function purge(Request $request, $id)
+    {
+        if (! $request->user()->isSuperAdmin()) {
+            return SendResponse(403, 'Only a super admin can permanently delete departments.');
+        }
+
+        $department = Department::withTrashed()->find($id);
+
+        if (! $department) {
+            return SendResponse(404, 'Department not found.');
+        }
+
+        $department->forceDelete();
+
+        return SendResponse(200, 'Department permanently deleted.');
     }
 
     public function update(AdminUpdateDepartmentRequest $request)

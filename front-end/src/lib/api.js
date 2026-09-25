@@ -35,6 +35,29 @@ function handleUnauthorized() {
   window.dispatchEvent(new CustomEvent('ut:unauthorized'))
 }
 
+function readCookie(name) {
+  const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'))
+  if (!match) return null
+  try {
+    return decodeURIComponent(match[1])
+  } catch {
+    return match[1]
+  }
+}
+
+async function ensureCsrf() {
+  if (readCookie('XSRF-TOKEN')) return
+  await refreshCsrf()
+}
+
+export async function refreshCsrf() {
+  try {
+    await fetch(API_BASE + '/sanctum/csrf-cookie', { method: 'GET', credentials: 'include' })
+  } catch {
+    /* will surface as a network error on the actual request */
+  }
+}
+
 export async function request(path, { method = 'GET', data, formData, headers: extra } = {}) {
   const opts = {
     method,
@@ -42,6 +65,7 @@ export async function request(path, { method = 'GET', data, formData, headers: e
       Accept: 'application/json',
       ...(extra || {}),
     },
+    credentials: 'include',
   }
 
   const token = getToken()
@@ -52,6 +76,13 @@ export async function request(path, { method = 'GET', data, formData, headers: e
   } else if (data !== undefined) {
     opts.headers['Content-Type'] = 'application/json'
     opts.body = JSON.stringify(data)
+  }
+
+  const isMutating = !['GET', 'HEAD', 'OPTIONS'].includes(method.toUpperCase())
+  if (isMutating) {
+    await ensureCsrf()
+    const xsrf = readCookie('XSRF-TOKEN')
+    if (xsrf) opts.headers['X-XSRF-TOKEN'] = xsrf
   }
 
   let res

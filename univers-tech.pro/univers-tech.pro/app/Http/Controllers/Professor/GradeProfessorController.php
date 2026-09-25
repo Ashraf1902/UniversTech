@@ -37,14 +37,18 @@ class GradeProfessorController extends Controller
 
         $data['semester_id'] = $data['semester_id'] ?? Semester::where('is_active', true)->value('id');
 
-        $grade = Grade::updateOrCreate(
-            [
-                'student_id' => $data['student_id'],
-                'course_id' => $course->id,
-                'semester_id' => $data['semester_id'],
-            ],
-            $data
-        );
+        $grade = Grade::withTrashed()
+            ->where('student_id', $data['student_id'])
+            ->where('course_id', $course->id)
+            ->where('semester_id', $data['semester_id'])
+            ->first();
+
+        if ($grade !== null) {
+            $grade->restore();
+            $grade->update($data);
+        } else {
+            $grade = Grade::create($data);
+        }
 
         return SendResponse(200, 'Grade saved successfully.', ['grade_id' => $grade->id]);
     }
@@ -92,6 +96,6 @@ class GradeProfessorController extends Controller
 
         $grade->delete();
 
-        return SendResponse(200, 'Grade deleted successfully.');
+        return SendResponse(200, 'Grade archived.');
     }
 }

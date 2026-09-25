@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Payment;
 use App\Traits\Notifiable;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Stripe\Exception\ApiErrorException;
 use Stripe\Exception\StripeException;
@@ -23,19 +24,29 @@ class PaymentController extends Controller
 
         $type = $request->input('type');
 
-        $payment = Payment::create([
-            'user_id' => auth()->id(),
-            'amount' => Payment::priceFor($type),
-            'type' => $type,
-            'status' => Payment::STATUS_PAID,
-        ]);
+        $demoMode = config('services.stripe.demo_mode') && ! config('services.stripe.secret');
 
-        $this->notifyAdmin(
-            'New payment received',
-            auth()->user()->name . ' paid ' . number_format($payment->amount, 2) . ' for ' . $payment->type . '.'
-        );
+        if (app()->isProduction() && $demoMode) {
+            return SendResponse(503, 'Payments are not configured in this environment.');
+        }
 
-        if (config('services.stripe.demo_mode') || ! config('services.stripe.secret')) {
+        $payment = DB::transaction(function () use ($type) {
+            $created = Payment::create([
+                'user_id' => auth()->id(),
+                'amount' => Payment::priceFor($type),
+                'type' => $type,
+                'status' => Payment::STATUS_PAID,
+            ]);
+
+            $this->notifyAdmin(
+                'New payment received',
+                auth()->user()->name . ' paid ' . number_format($created->amount, 2) . ' for ' . $created->type . '.'
+            );
+
+            return $created;
+        });
+
+        if ($demoMode) {
             return SendResponse(200, 'Payment successful (demo mode).', [
                 'payment' => $this->formatPayment($payment),
             ]);

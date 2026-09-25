@@ -8,6 +8,7 @@ use App\Models\AccessRequest;
 use App\Models\User;
 use App\Traits\Notifiable;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AccessRequestAdminController extends Controller
 {
@@ -45,27 +46,31 @@ class AccessRequestAdminController extends Controller
                 return SendResponse(409, 'A user with this email already exists.');
             }
 
-            $user = User::create([
-                'name' => $accessRequest->name,
-                'email' => $accessRequest->email,
-                'password' => $accessRequest->password,
-                'gender' => $accessRequest->gender,
-                'nationalid' => $accessRequest->national_id,
-                'phone' => $accessRequest->phone,
-                'type' => User::TYPE_STUDENT,
-                'department_id' => $accessRequest->department_id,
-                'level_id' => $accessRequest->level_id,
-                'admin_id' => $request->user()->id,
-            ]);
+            $userId = DB::transaction(function () use ($accessRequest, $request) {
+                $user = User::create([
+                    'name' => $accessRequest->name,
+                    'email' => $accessRequest->email,
+                    'password' => $accessRequest->password,
+                    'gender' => $accessRequest->gender,
+                    'nationalid' => $accessRequest->national_id,
+                    'phone' => $accessRequest->phone,
+                    'type' => User::TYPE_STUDENT,
+                    'department_id' => $accessRequest->department_id,
+                    'level_id' => $accessRequest->level_id,
+                    'admin_id' => $request->user()->id,
+                ]);
 
-            $accessRequest->update([
-                'status' => AccessRequest::STATUS_ACCEPTED,
-                'decided_at' => now(),
-                'admin_id' => $request->user()->id,
-            ]);
+                $accessRequest->update([
+                    'status' => AccessRequest::STATUS_ACCEPTED,
+                    'decided_at' => now(),
+                    'admin_id' => $request->user()->id,
+                ]);
+
+                return $user->id;
+            });
 
             $this->notifyStudent(
-                $user->id,
+                $userId,
                 'Welcome to UniversTech',
                 'Your registration request was accepted. Sign in with the password you chose.'
             );
@@ -76,7 +81,7 @@ class AccessRequestAdminController extends Controller
             );
 
             return SendResponse(200, 'Request accepted. A student account was created.', [
-                'user_id' => $user->id,
+                'user_id' => $userId,
             ]);
         }
 

@@ -19,7 +19,8 @@ class CourseAdminController extends Controller
 
     public function index(Request $request)
     {
-        $courses = Course::orderByDesc('created_at')
+        $courses = ($request->boolean('deleted') ? Course::onlyTrashed() : Course::query())
+            ->orderByDesc('created_at')
             ->with(['admin', 'department', 'professor', 'lectures', 'semester'])
             ->paginate(15)
             ->through(fn (Course $course) => [
@@ -35,6 +36,7 @@ class CourseAdminController extends Controller
                 'created_by' => $course->admin?->name,
                 'updated_at' => $course->updated_at,
                 'created_at' => $course->created_at,
+                'deleted_at' => $course->deleted_at,
             ]);
 
         return SendResponse(200, 'Courses fetched successfully.', $courses);
@@ -81,11 +83,39 @@ class CourseAdminController extends Controller
             return SendResponse(404, 'Course not found.');
         }
 
-        $this->deleteFile($course->cover_image);
-
         $course->delete();
 
-        return SendResponse(200, 'Course deleted successfully.');
+        return SendResponse(200, 'Course archived, can be restored later.');
+    }
+
+    public function restore(Request $request, $courseId)
+    {
+        $course = Course::onlyTrashed()->find($courseId);
+
+        if (! $course) {
+            return SendResponse(404, 'Archived course not found.');
+        }
+
+        $course->restore();
+
+        return SendResponse(200, 'Course restored successfully.');
+    }
+
+    public function purge(Request $request, $courseId)
+    {
+        if (! $request->user()->isSuperAdmin()) {
+            return SendResponse(403, 'Only a super admin can permanently delete courses.');
+        }
+
+        $course = Course::withTrashed()->find($courseId);
+
+        if (! $course) {
+            return SendResponse(404, 'Course not found.');
+        }
+
+        $course->forceDelete();
+
+        return SendResponse(200, 'Course permanently deleted.');
     }
 
     public function getCourseById(Request $request, $id)

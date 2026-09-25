@@ -1,0 +1,11 @@
+export { AdminAccounts } from './Accounts.jsx'
+export { AdminAccessRequests } from './AccessRequests.jsx'
+export { AdminAdmins } from './Admins.jsx'
+export { AdminCourses } from './Courses.jsx'
+export { AdminDepartments } from './Departments.jsx'
+export { AdminEvents } from './Events.jsx'
+export { AdminGrades } from './Grades.jsx'
+export { AdminHome } from './Home.jsx'
+export { AdminSchedules } from './Schedules.jsx'
+export { AdminSemesters } from './Semesters.jsx'
+

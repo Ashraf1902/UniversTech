@@ -17,6 +17,7 @@ use App\Models\StudentCourse;
 use App\Models\StudentLecture;
 use App\Traits\Notifiable;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class CoursesController extends Controller
 {
@@ -46,36 +47,38 @@ class CoursesController extends Controller
         $newlyRegistered = [];
         $rejected = [];
 
-        foreach ($data['course_ids'] as $courseId) {
-            $course = Course::find($courseId);
+        DB::transaction(function () use ($user, $data, $activeSemester, &$alreadyRegistered, &$newlyRegistered, &$rejected) {
+            foreach ($data['course_ids'] as $courseId) {
+                $course = Course::find($courseId);
 
-            $inDepartment = $course->department_id === $user->department_id
-                || ($user->department_id && $course->department_id === null)
-                || (! $user->department_id && $course->department_id === null);
+                $inDepartment = $course->department_id === $user->department_id
+                    || ($user->department_id && $course->department_id === null)
+                    || (! $user->department_id && $course->department_id === null);
 
-            $inSemester = $course->semester_id === null
-                || ($activeSemester && $course->semester_id === $activeSemester->id);
+                $inSemester = $course->semester_id === null
+                    || ($activeSemester && $course->semester_id === $activeSemester->id);
 
-            if (! $inDepartment || ! $inSemester) {
-                $rejected[] = $course->course_name;
-                continue;
+                if (! $inDepartment || ! $inSemester) {
+                    $rejected[] = $course->course_name;
+                    continue;
+                }
+
+                $exists = StudentCourse::where('student_id', auth()->id())
+                    ->where('course_id', $courseId)
+                    ->exists();
+
+                if ($exists) {
+                    $alreadyRegistered[] = $courseId;
+                    continue;
+                }
+
+                StudentCourse::create([
+                    'student_id' => auth()->id(),
+                    'course_id' => $courseId,
+                ]);
+                $newlyRegistered[] = $courseId;
             }
-
-            $exists = StudentCourse::where('student_id', auth()->id())
-                ->where('course_id', $courseId)
-                ->exists();
-
-            if ($exists) {
-                $alreadyRegistered[] = $courseId;
-                continue;
-            }
-
-            StudentCourse::create([
-                'student_id' => auth()->id(),
-                'course_id' => $courseId,
-            ]);
-            $newlyRegistered[] = $courseId;
-        }
+        });
 
         $message = 'Courses registration completed.';
 
@@ -170,10 +173,12 @@ class CoursesController extends Controller
 
         $totalLectures = $enrollment->course->lectures->count();
 
-        $enrollment->update([
-            'progress' => $progress,
-            'last_lecture_id' => $data['lecture_id'],
-        ]);
+        DB::transaction(function () use ($enrollment, $data, $progress) {
+            $enrollment->update([
+                'progress' => $progress,
+                'last_lecture_id' => $data['lecture_id'],
+            ]);
+        });
 
         return SendResponse(200, 'Progress updated successfully.', [
             'progress' => $progress,

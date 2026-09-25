@@ -31,15 +31,15 @@ use Illuminate\Support\Facades\Route;
 
 // Authentication
 Route::prefix('auth')->group(function () {
-    Route::post('login', [UserAuthController::class, 'login']);
+    Route::post('login', [UserAuthController::class, 'login'])->middleware('throttle:5,1');
 });
 
 Route::prefix('prof/auth')->group(function () {
-    Route::post('login', [ProfessorAuthController::class, 'login']);
+    Route::post('login', [ProfessorAuthController::class, 'login'])->middleware('throttle:5,1');
 });
 
 Route::prefix('admin/auth')->group(function () {
-    Route::post('login', [AdminAuthController::class, 'login']);
+    Route::post('login', [AdminAuthController::class, 'login'])->middleware('throttle:5,1');
 });
 
 // Public routes
@@ -79,6 +79,8 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
         Route::get('user/single/{id}', [AccountAdminController::class, 'getUserById']);
         Route::put('user/update', [AccountAdminController::class, 'update']);
         Route::delete('user/delete/{id}', [AccountAdminController::class, 'delete']);
+        Route::post('user/restore/{id}', [AccountAdminController::class, 'restore']);
+        Route::delete('user/purge/{id}', [AccountAdminController::class, 'purge']);
     });
 
     // Departments
@@ -88,6 +90,8 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
         Route::post('department/store', [DepartmentAdminController::class, 'store']);
         Route::delete('department/delete/{id}', [DepartmentAdminController::class, 'delete']);
         Route::put('department/update', [DepartmentAdminController::class, 'update']);
+        Route::post('department/restore/{id}', [DepartmentAdminController::class, 'restore']);
+        Route::delete('department/purge/{id}', [DepartmentAdminController::class, 'purge']);
     });
 
     // Courses
@@ -97,6 +101,8 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
         Route::delete('course/delete/{id}', [CourseAdminController::class, 'delete']);
         Route::get('course/single/{id}', [CourseAdminController::class, 'getCourseById']);
         Route::post('course/update', [CourseAdminController::class, 'update']);
+        Route::post('course/restore/{id}', [CourseAdminController::class, 'restore']);
+        Route::delete('course/purge/{id}', [CourseAdminController::class, 'purge']);
     });
 
     // Semesters
@@ -121,6 +127,8 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
         Route::post('grade/update', [GradeAdminController::class, 'update']);
         Route::get('grade/get/all', [GradeAdminController::class, 'index']);
         Route::delete('grade/delete/{id}', [GradeAdminController::class, 'delete']);
+        Route::post('grade/restore/{id}', [GradeAdminController::class, 'restore']);
+        Route::delete('grade/purge/{id}', [GradeAdminController::class, 'purge']);
         Route::get('semester-card', [GradeAdminController::class, 'semesterCard']);
     });
 

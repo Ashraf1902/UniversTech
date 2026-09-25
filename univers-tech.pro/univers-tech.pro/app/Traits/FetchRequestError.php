@@ -13,7 +13,7 @@ trait FetchRequestError{
             SendResponse(
                 data: $validator->errors(),
                 message: "error in body request",
-                status: 420
+                status: 422
             )
         );
     }//end failedValidation   

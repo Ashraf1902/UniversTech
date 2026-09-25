@@ -80,11 +80,9 @@ class NotifyLectureReminders extends Command
         }
 
         if (! empty($rows)) {
-            foreach (array_chunk($rows, 500) as $chunk) {
-                \Illuminate\Support\Facades\DB::table('notifications')->insert($chunk);
-            }
+            \App\Jobs\FanOutNotification::dispatch($rows);
 
-            $this->info('Sent ' . count($rows) . ' lecture reminder notifications.');
+            $this->info('Queued ' . count($rows) . ' lecture reminder notifications.');
         } else {
             $this->info('No matching students for today\'s lectures.');
         }

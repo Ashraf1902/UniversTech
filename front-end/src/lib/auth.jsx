@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { LOGIN_PATHS, LOGOUT_PATHS, clearSession, getSession, request, setSession } from './api'
+import { LOGIN_PATHS, LOGOUT_PATHS, clearSession, getSession, refreshCsrf, request, setSession } from './api'
 
 const AuthContext = createContext(null)
 
@@ -18,13 +18,12 @@ export function AuthProvider({ children }) {
       data: { email, password },
     })
     const next = {
-      access_token: data.access_token,
-      token_type: data.token_type || 'Bearer',
       role,
       user: data.user || {},
     }
     setSession(next)
     setSessionState(next)
+    await refreshCsrf()
     return next
   }, [])
 
@@ -39,6 +38,7 @@ export function AuthProvider({ children }) {
     }
     clearSession()
     setSessionState(null)
+    await refreshCsrf()
   }, [])
 
   const value = useMemo(
@@ -46,7 +46,7 @@ export function AuthProvider({ children }) {
       session,
       user: session?.user || null,
       role: session?.role || null,
-      isAuthed: Boolean(session?.access_token),
+      isAuthed: Boolean(session?.role),
       login,
       logout,
       setProfile: (extra) => {

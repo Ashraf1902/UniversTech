@@ -17,7 +17,7 @@ class AccountAdminController extends Controller
 
     public function getDoctors(Request $request)
     {
-        $doctors = User::where('type', User::TYPE_PROFESSOR)
+        $doctors = $this->userQuery(User::TYPE_PROFESSOR, $request->boolean('deleted'))
             ->orderByDesc('created_at')
             ->with('admin')
             ->paginate(15)
@@ -28,13 +28,20 @@ class AccountAdminController extends Controller
 
     public function getStudents(Request $request)
     {
-        $students = User::where('type', User::TYPE_STUDENT)
+        $students = $this->userQuery(User::TYPE_STUDENT, $request->boolean('deleted'))
             ->orderByDesc('created_at')
             ->with(['admin', 'department', 'level'])
             ->paginate(15)
             ->through(fn (User $user) => $this->formatUser($user, false));
 
         return SendResponse(200, 'Students fetched successfully.', $students);
+    }
+
+    private function userQuery(int $type, bool $deleted)
+    {
+        return $deleted
+            ? User::onlyTrashed()->where('type', $type)
+            : User::where('type', $type);
     }
 
     public function store(AdminStoreAccountRequest $request)
@@ -84,7 +91,37 @@ class AccountAdminController extends Controller
 
         $user->delete();
 
-        return SendResponse(200, 'User deleted successfully.');
+        return SendResponse(200, 'User archived, can be restored later.');
+    }
+
+    public function restore(Request $request, $id)
+    {
+        $user = User::onlyTrashed()->find($id);
+
+        if (! $user) {
+            return SendResponse(404, 'Archived user not found.');
+        }
+
+        $user->restore();
+
+        return SendResponse(200, 'User restored successfully.');
+    }
+
+    public function purge(Request $request, $id)
+    {
+        if (! $request->user()->isSuperAdmin()) {
+            return SendResponse(403, 'Only a super admin can permanently delete accounts.');
+        }
+
+        $user = User::withTrashed()->find($id);
+
+        if (! $user) {
+            return SendResponse(404, 'User not found.');
+        }
+
+        $user->forceDelete();
+
+        return SendResponse(200, 'User permanently deleted.');
     }
 
     public function update(AdminUpdateUserRequest $request)
@@ -131,6 +168,7 @@ class AccountAdminController extends Controller
             'type' => $user->type,
             'created_at' => $user->created_at,
             'updated_at' => $user->updated_at,
+            'deleted_at' => $user->deleted_at,
             'created_by' => $user->admin?->name,
         ];
 

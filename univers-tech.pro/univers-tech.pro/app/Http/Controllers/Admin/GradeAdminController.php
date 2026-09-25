@@ -20,7 +20,8 @@ class GradeAdminController extends Controller
             'semester_id' => 'nullable|exists:semesters,id',
         ]);
 
-        $grades = Grade::with(['student', 'course', 'semester'])
+        $grades = ($request->boolean('deleted') ? Grade::onlyTrashed() : Grade::query())
+            ->with(['student', 'course', 'semester'])
             ->when($request->filled('student_id'), fn ($q) => $q->where('student_id', $request->student_id))
             ->when($request->filled('course_id'), fn ($q) => $q->where('course_id', $request->course_id))
             ->when($request->filled('semester_id'), fn ($q) => $q->where('semester_id', $request->semester_id))
@@ -35,16 +36,27 @@ class GradeAdminController extends Controller
     {
         $data = $this->validatedInput($request);
 
-        $grade = Grade::updateOrCreate(
-            [
-                'student_id' => $data['student_id'],
-                'course_id' => $data['course_id'],
-                'semester_id' => $data['semester_id'],
-            ],
-            $data
-        );
+        $grade = $this->upsertGrade($data);
 
         return SendResponse(200, 'Grade saved successfully.', $this->formatGrade($grade->load(['student', 'course', 'semester'])));
+    }
+
+    private function upsertGrade(array $data): Grade
+    {
+        $existing = Grade::withTrashed()
+            ->where('student_id', $data['student_id'])
+            ->where('course_id', $data['course_id'])
+            ->where('semester_id', $data['semester_id'])
+            ->first();
+
+        if ($existing !== null) {
+            $existing->restore();
+            $existing->update($data);
+
+            return $existing;
+        }
+
+        return Grade::create($data);
     }
 
     public function update(Request $request)
@@ -67,7 +79,37 @@ class GradeAdminController extends Controller
 
         $grade->delete();
 
-        return SendResponse(200, 'Grade deleted successfully.');
+        return SendResponse(200, 'Grade archived, can be restored later.');
+    }
+
+    public function restore(Request $request, $id)
+    {
+        $grade = Grade::onlyTrashed()->find($id);
+
+        if (! $grade) {
+            return SendResponse(404, 'Archived grade not found.');
+        }
+
+        $grade->restore();
+
+        return SendResponse(200, 'Grade restored successfully.');
+    }
+
+    public function purge(Request $request, $id)
+    {
+        if (! $request->user()->isSuperAdmin()) {
+            return SendResponse(403, 'Only a super admin can permanently delete grades.');
+        }
+
+        $grade = Grade::withTrashed()->find($id);
+
+        if (! $grade) {
+            return SendResponse(404, 'Grade not found.');
+        }
+
+        $grade->forceDelete();
+
+        return SendResponse(200, 'Grade permanently deleted.');
     }
 
     public function semesterCard(Request $request)
@@ -211,6 +253,7 @@ class GradeAdminController extends Controller
             'letter_grade' => $gradeRow['letter_grade'],
             'created_at' => $grade->created_at,
             'updated_at' => $grade->updated_at,
+            'deleted_at' => $grade->deleted_at,
         ];
     }
 }

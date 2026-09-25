@@ -4,11 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 
 class Course extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $guarded = [];
 
@@ -26,6 +27,10 @@ class Course extends Model
     protected static function booted(): void
     {
         static::deleting(function (Course $course) {
+            if (! $course->isForceDeleting()) {
+                return;
+            }
+
             Storage::disk('files')->delete($course->cover_image);
 
             foreach ($course->lectures as $lecture) {

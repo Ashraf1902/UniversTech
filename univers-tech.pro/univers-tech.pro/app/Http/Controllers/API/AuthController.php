@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
 use Illuminate\Support\Facades\Auth;
+use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 
 class AuthController extends Controller
 {
@@ -17,7 +18,25 @@ class AuthController extends Controller
         $user = Auth::user();
 
         if (! $user->isStudent()) {
+            Auth::logout();
+
+            if ($request->hasSession()) {
+                $request->session()->invalidate();
+            }
+
             return SendResponse(403, 'This account is not a student account.');
+        }
+
+        if (EnsureFrontendRequestsAreStateful::fromFrontend($request)) {
+            $request->session()->regenerate();
+
+            return SendResponse(200, 'Logged in successfully.', [
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                ],
+            ]);
         }
 
         $token = $user->createToken('student-token')->plainTextToken;
