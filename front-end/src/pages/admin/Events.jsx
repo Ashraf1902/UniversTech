@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { request } from '../../lib/api'
 import { Btn, Field, Pager, useToast } from '../../lib/ui'
-import { DataTable, FormModal, Head, useList } from './_shared'
+import { DataTable, FormModal, Head, useFieldErrors, useList } from './_shared'
 export function AdminEvents() {
   const [page, setPage] = useState(1)
   const toast = useToast()
@@ -10,6 +10,7 @@ export function AdminEvents() {
   const [editId, setEditId] = useState(null)
   const [form, setForm] = useState({ title: '', content: '', image: null })
   const [busy, setBusy] = useState(false)
+  const { errors, clear: clearErrors, apply: applyErrors } = useFieldErrors()
 
   const submit = async () => {
     setBusy(true)
@@ -22,9 +23,10 @@ export function AdminEvents() {
       await request(editId ? '/api/event/update' : '/api/event/store', { method: 'POST', formData: fd })
       toast.success('Event saved and shared with students.')
       setOpen(false)
+      clearErrors()
       run().catch(() => {})
     } catch (e) {
-      toast.error(e.message)
+      if (!applyErrors(e)) toast.error(e.message)
     } finally {
       setBusy(false)
     }
@@ -57,10 +59,10 @@ export function AdminEvents() {
         onDelete={remove}
       />
       <Pager page={paged.page} last={paged.last_page} onPage={setPage} />
-      <FormModal open={open} onClose={() => setOpen(false)} title={editId ? 'Edit event' : 'New event'} onSubmit={submit} busy={busy}>
-        <Field label="Title"><input className="input" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></Field>
-        <Field label="Content"><textarea className="textarea" rows={4} value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} /></Field>
-        <Field label={editId ? 'Replace image (optional)' : 'Image'}>
+<FormModal open={open} onClose={() => setOpen(false)} title={editId ? 'Edit event' : 'New event'} onSubmit={submit} busy={busy} errors={errors} onFormClose={clearErrors}>
+        <Field label="Title" error={errors?.title?.[0]}><input className="input" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></Field>
+        <Field label="Content" error={errors?.content?.[0]}><textarea className="textarea" rows={4} value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} /></Field>
+        <Field label={editId ? 'Replace image (optional)' : 'Image'} error={errors?.image?.[0]}>
           <input className="input" type="file" accept="image/*" onChange={(e) => setForm({ ...form, image: e.target.files?.[0] || null })} />
         </Field>
       </FormModal>

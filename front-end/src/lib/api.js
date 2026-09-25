@@ -120,6 +120,12 @@ export async function request(path, { method = 'GET', data, formData, headers: e
   return (json && json.data !== undefined ? json.data : json) ?? null
 }
 
+export function getFieldErrors(err) {
+  const data = err?.payload?.data
+  if (data && typeof data === 'object' && !Array.isArray(data)) return data
+  return null
+}
+
 export function normalizePage(res) {
   if (!res) return { items: [], page: 1, per_page: 15, last_page: 1, total: 0, from: 0, to: 0, next_url: null }
   if (Array.isArray(res)) {

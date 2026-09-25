@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { request } from '../../lib/api'
 import { Badge, Btn, Field, Pager, useToast } from '../../lib/ui'
-import { DataTable, FormModal, Head, useList } from './_shared'
+import { DataTable, FormModal, Head, useFieldErrors, useList } from './_shared'
 export function AdminSemesters() {
   const [page, setPage] = useState(1)
   const toast = useToast()
@@ -10,6 +10,7 @@ export function AdminSemesters() {
   const [editId, setEditId] = useState(null)
   const [form, setForm] = useState({ name: '', academic_year: '', is_active: false, grading_system: 'gpa' })
   const [busy, setBusy] = useState(false)
+  const { errors, clear: clearErrors, apply: applyErrors } = useFieldErrors()
 
   const submit = async () => {
     setBusy(true)
@@ -21,9 +22,10 @@ export function AdminSemesters() {
       }
       toast.success('Semester saved.')
       setOpen(false)
+      clearErrors()
       run().catch(() => {})
     } catch (e) {
-      toast.error(e.message)
+      if (!applyErrors(e)) toast.error(e.message)
     } finally {
       setBusy(false)
     }
@@ -67,12 +69,12 @@ export function AdminSemesters() {
         onDelete={remove}
       />
       <Pager page={paged.page} last={paged.last_page} onPage={setPage} />
-      <FormModal open={open} onClose={() => setOpen(false)} title={editId ? 'Edit semester' : 'New semester'} onSubmit={submit} busy={busy}>
+<FormModal open={open} onClose={() => setOpen(false)} title={editId ? 'Edit semester' : 'New semester'} onSubmit={submit} busy={busy} errors={errors} onFormClose={clearErrors}>
         <div className="grid grid-2" style={{ gap: 14 }}>
-          <Field label="Name"><input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Fall" /></Field>
-          <Field label="Academic year"><input className="input" value={form.academic_year} onChange={(e) => setForm({ ...form, academic_year: e.target.value })} placeholder="e.g. 2026/2027" /></Field>
+          <Field label="Name" error={errors?.name?.[0]}><input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Fall" /></Field>
+          <Field label="Academic year" error={errors?.academic_year?.[0]}><input className="input" value={form.academic_year} onChange={(e) => setForm({ ...form, academic_year: e.target.value })} placeholder="e.g. 2026/2027" /></Field>
         </div>
-        <Field label="Grading system">
+        <Field label="Grading system" error={errors?.grading_system?.[0]}>
           <div className="radio-row">
             <button type="button" className={`chip ${form.grading_system === 'gpa' ? 'on' : ''}`} onClick={() => setForm({ ...form, grading_system: 'gpa' })}>Credit-Hour (GPA)</button>
             <button type="button" className={`chip ${form.grading_system === 'fixed_term' ? 'on' : ''}`} onClick={() => setForm({ ...form, grading_system: 'fixed_term' })}>Fixed-Term (%)</button>

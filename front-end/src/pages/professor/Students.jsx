@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { buildQuery, request } from '../../lib/api'
 import { useAsync } from '../../lib/hooks'
 import { Badge, Btn, Empty, Field, Modal, Spinner, useToast } from '../../lib/ui'
-import { CourseSelect, Head, useMyCourses } from './_shared'
+import { CourseSelect, Head, useFieldErrors, useMyCourses } from './_shared'
 export function ProfessorStudents() {
   const [params, setParams] = useSearchParams()
   const { courses, loading: cLoading } = useMyCourses()
@@ -15,6 +15,7 @@ export function ProfessorStudents() {
   const [target, setTarget] = useState(null)
   const [form, setForm] = useState({ lecture_id: '', date: new Date().toISOString().slice(0, 10), status: true, reason: '' })
   const [busy, setBusy] = useState(false)
+  const { errors, clear: clearErrors, apply: applyErrors } = useFieldErrors()
 
   const list = Array.isArray(students.data) ? students.data : []
   const lectureList = Array.isArray(lectures.data) ? lectures.data : []
@@ -30,8 +31,9 @@ export function ProfessorStudents() {
       })
       toast.success(`Attendance recorded for ${target.name}.`)
       setTarget(null)
+      clearErrors()
     } catch (e) {
-      toast.error(e.message)
+      if (!applyErrors(e)) toast.error(e.message)
     } finally {
       setBusy(false)
     }
@@ -68,7 +70,7 @@ export function ProfessorStudents() {
                       <Badge tone={att.length - present ? 'red' : ''}>{att.length - present} absent</Badge>
                     </td>
                     <td style={{ textAlign: 'right' }}>
-                      <Btn size="sm" icon="check" onClick={() => { setTarget(s); setForm((f) => ({ ...f, lecture_id: lectureList[0]?.id || '' })) }}>Attendance</Btn>
+                      <Btn size="sm" icon="check" onClick={() => { clearErrors(); setTarget(s); setForm((f) => ({ ...f, lecture_id: lectureList[0]?.id || '' })) }}>Attendance</Btn>
                     </td>
                   </tr>
                 )
@@ -93,13 +95,13 @@ export function ProfessorStudents() {
       >
         {lectureList.length ? (
           <>
-            <Field label="Lecture">
+<Field label="Lecture" error={errors?.lecture_id?.[0]}>
               <select className="select" value={form.lecture_id} onChange={(e) => setForm({ ...form, lecture_id: e.target.value })}>
                 <option value="">— Select lecture —</option>
                 {lectureList.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
               </select>
             </Field>
-            <Field label="Date">
+            <Field label="Date" error={errors?.date?.[0]}>
               <input className="input" type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
             </Field>
             <Field label="Status">
@@ -109,7 +111,7 @@ export function ProfessorStudents() {
               </div>
             </Field>
             {!form.status ? (
-              <Field label="Reason (optional)">
+              <Field label="Reason (optional)" error={errors?.reason?.[0]}>
                 <textarea className="textarea" value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} placeholder="Reason for absence" />
               </Field>
             ) : null}

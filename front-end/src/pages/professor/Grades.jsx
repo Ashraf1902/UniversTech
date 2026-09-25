@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { buildQuery, normalizePage, request } from '../../lib/api'
 import { useAsync } from '../../lib/hooks'
 import { Btn, Empty, Field, Modal, Pager, Prog, RateBadge, Spinner, useToast } from '../../lib/ui'
-import { CourseSelect, Head, useMyCourses } from './_shared'
+import { CourseSelect, Head, useFieldErrors, useMyCourses } from './_shared'
 export function ProfessorGrades() {
   const [params, setParams] = useSearchParams()
   const { courses, loading: cLoading } = useMyCourses()
@@ -13,9 +13,10 @@ export function ProfessorGrades() {
   const grades = useAsync(() => (courseId ? request(buildQuery('/api/professor/grade/get/all', { course_id: courseId, page })) : Promise.resolve(null)), [courseId, page])
   const paged = normalizePage(grades.data)
   const students = useAsync(() => (courseId ? request(buildQuery('/api/professors/course/student', { course_id: courseId })) : Promise.resolve(null)), [courseId])
-  const [open, setOpen] = useState(false)
+const [open, setOpen] = useState(false)
   const [form, setForm] = useState({ student_id: '', marks: '', max_marks: '100' })
   const [busy, setBusy] = useState(false)
+  const { errors, clear: clearErrors, apply: applyErrors } = useFieldErrors()
 
   const studentList = Array.isArray(students.data) ? students.data : []
 
@@ -33,10 +34,11 @@ export function ProfessorGrades() {
       })
       toast.success('Grade saved.')
       setOpen(false)
+      clearErrors()
       setForm({ student_id: '', marks: '', max_marks: '100' })
       grades.run().catch(() => {})
     } catch (e) {
-      toast.error(e.message)
+      if (!applyErrors(e)) toast.error(e.message)
     } finally {
       setBusy(false)
     }
@@ -99,20 +101,20 @@ export function ProfessorGrades() {
       )}
 
       <Modal
-        open={open}
+open={open}
         onClose={() => setOpen(false)}
         title="Add / update grade"
         footer={<><Btn variant="ghost" onClick={() => setOpen(false)}>Cancel</Btn><Btn loading={busy} onClick={submit} icon="check" disabled={!form.student_id}>Save grade</Btn></>}
       >
-        <Field label="Student">
+        <Field label="Student" error={errors?.student_id?.[0]}>
           <select className="select" value={form.student_id} onChange={(e) => setForm({ ...form, student_id: e.target.value })}>
             <option value="">— Select student —</option>
             {studentList.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
         </Field>
         <div className="grid grid-2" style={{ gap: 14 }}>
-          <Field label="Marks"><input className="input" type="number" min="0" value={form.marks} onChange={(e) => setForm({ ...form, marks: e.target.value })} /></Field>
-          <Field label="Max marks"><input className="input" type="number" min="1" value={form.max_marks} onChange={(e) => setForm({ ...form, max_marks: e.target.value })} /></Field>
+          <Field label="Marks" error={errors?.marks?.[0]}><input className="input" type="number" min="0" value={form.marks} onChange={(e) => setForm({ ...form, marks: e.target.value })} /></Field>
+          <Field label="Max marks" error={errors?.max_marks?.[0]}><input className="input" type="number" min="1" value={form.max_marks} onChange={(e) => setForm({ ...form, max_marks: e.target.value })} /></Field>
         </div>
       </Modal>
     </>

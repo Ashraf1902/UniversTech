@@ -1,5 +1,5 @@
-import { useMemo } from 'react'
-import { normalizePage, request } from '../../lib/api'
+import { useMemo, useState } from 'react'
+import { getFieldErrors, normalizePage, request } from '../../lib/api'
 import { useAsync } from '../../lib/hooks'
 import { Btn, CourseLoader, Empty, Modal } from '../../lib/ui'
 export function Head({ kicker, title, sub, actions }) {
@@ -24,6 +24,20 @@ export function useOptions(path, map) {
   const { data } = useAsync(() => request(path))
   const items = normalizePage(data).items
   return useMemo(() => items.map(map), [data]) // eslint-disable-line react-hooks/exhaustive-deps
+}
+
+export function useFieldErrors() {
+  const [errors, setErrors] = useState({})
+  const clear = () => setErrors({})
+  const apply = (err) => {
+    const fe = getFieldErrors(err)
+    if (fe && Object.keys(fe).length) {
+      setErrors(fe)
+      return true
+    }
+    return false
+  }
+  return { errors, setErrors, clear, apply }
 }
 
 export function DataTable({ columns, rows, loading, onEdit, onDelete, onRestore, onPurge, empty }) {
@@ -67,11 +81,14 @@ export function DataTable({ columns, rows, loading, onEdit, onDelete, onRestore,
   )
 }
 
-export function FormModal({ open, onClose, title, children, onSubmit, busy, submitLabel = 'Save' }) {
+export function FormModal({ open, onClose, title, children, onSubmit, busy, submitLabel = 'Save', errors, onFormClose }) {
   return (
     <Modal
       open={open}
-      onClose={onClose}
+      onClose={() => {
+        onFormClose?.()
+        onClose()
+      }}
       title={title}
       size="lg"
       footer={
@@ -81,6 +98,11 @@ export function FormModal({ open, onClose, title, children, onSubmit, busy, subm
         </>
       }
     >
+      {errors && Object.keys(errors).length ? (
+        <div className="form-alert" role="alert">
+          Please fix the highlighted fields below.
+        </div>
+      ) : null}
       {children}
     </Modal>
   )

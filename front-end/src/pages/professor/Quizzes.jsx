@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { normalizePage, request } from '../../lib/api'
 import { useAsync } from '../../lib/hooks'
 import { Btn, Empty, Field, I, Modal, Pager, Reveal, Spinner, useToast } from '../../lib/ui'
-import { CourseSelect, Head, useMyCourses } from './_shared'
+import { CourseSelect, Head, useFieldErrors, useMyCourses } from './_shared'
 export function ProfessorQuizzes() {
   const [params, setParams] = useSearchParams()
   const { courses, loading: cLoading } = useMyCourses()
@@ -12,12 +12,16 @@ export function ProfessorQuizzes() {
   const toast = useToast()
   const quizzes = useAsync(() => (courseId ? request(`/api/quiz/get/all/${courseId}?page=${page}`) : Promise.resolve(null)), [courseId, page])
   const paged = normalizePage(quizzes.data)
-  const [open, setOpen] = useState(false)
+const [open, setOpen] = useState(false)
   const [form, setForm] = useState({ name: '', due_at: '', pdf: null })
   const [busy, setBusy] = useState(false)
+  const { errors, setErrors, clear: clearErrors, apply: applyErrors } = useFieldErrors()
 
   const submit = async () => {
-    if (!form.name || !form.pdf) return toast.error('Name and PDF are required.')
+    if (!form.name || !form.pdf) {
+      setErrors({ name: !form.name ? ['Quiz name is required.'] : [], pdf: !form.pdf ? ['Please choose a PDF file.'] : [] })
+      return
+    }
     setBusy(true)
     try {
       const fd = new FormData()
@@ -28,10 +32,11 @@ export function ProfessorQuizzes() {
       await request('/api/quiz/store', { method: 'POST', formData: fd })
       toast.success('Quiz uploaded.')
       setOpen(false)
+      clearErrors()
       setForm({ name: '', due_at: '', pdf: null })
       quizzes.run().catch(() => {})
     } catch (e) {
-      toast.error(e.message)
+      if (!applyErrors(e)) toast.error(e.message)
     } finally {
       setBusy(false)
     }
@@ -90,9 +95,9 @@ export function ProfessorQuizzes() {
         title="Upload quiz"
         footer={<><Btn variant="ghost" onClick={() => setOpen(false)}>Cancel</Btn><Btn loading={busy} onClick={submit} icon="upload">Upload</Btn></>}
       >
-        <Field label="Quiz name"><input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Midterm Quiz" /></Field>
-        <Field label="Due date (optional)"><input className="input" type="datetime-local" value={form.due_at} onChange={(e) => setForm({ ...form, due_at: e.target.value })} /></Field>
-        <Field label="PDF file"><input className="input" type="file" accept="application/pdf" onChange={(e) => setForm({ ...form, pdf: e.target.files?.[0] || null })} /></Field>
+<Field label="Quiz name" error={errors?.name?.[0]}><input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Midterm Quiz" /></Field>
+        <Field label="Due date (optional)" error={errors?.due_at?.[0]}><input className="input" type="datetime-local" value={form.due_at} onChange={(e) => setForm({ ...form, due_at: e.target.value })} /></Field>
+        <Field label="PDF file" error={errors?.pdf?.[0]}><input className="input" type="file" accept="application/pdf" onChange={(e) => setForm({ ...form, pdf: e.target.files?.[0] || null })} /></Field>
       </Modal>
     </>
   )

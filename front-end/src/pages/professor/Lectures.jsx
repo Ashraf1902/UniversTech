@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { request } from '../../lib/api'
 import { useAsync } from '../../lib/hooks'
 import { Btn, Empty, Field, I, Modal, Reveal, Spinner, useToast } from '../../lib/ui'
-import { CourseSelect, Head, useMyCourses } from './_shared'
+import { CourseSelect, Head, useFieldErrors, useMyCourses } from './_shared'
 export function ProfessorLectures() {
   const [params, setParams] = useSearchParams()
   const { courses, loading: cLoading } = useMyCourses()
@@ -13,11 +13,15 @@ export function ProfessorLectures() {
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState({ name: '', pdf: null })
   const [busy, setBusy] = useState(false)
+  const { errors, setErrors, clear: clearErrors, apply: applyErrors } = useFieldErrors()
 
   const list = Array.isArray(lectures.data) ? lectures.data : []
 
   const submit = async () => {
-    if (!form.name || !form.pdf) return toast.error('Name and PDF are required.')
+    if (!form.name || !form.pdf) {
+      setErrors({ name: !form.name ? ['Lecture name is required.'] : [], pdf: !form.pdf ? ['Please choose a PDF file.'] : [] })
+      return
+    }
     setBusy(true)
     try {
       const fd = new FormData()
@@ -27,10 +31,11 @@ export function ProfessorLectures() {
       await request('/api/lecture/store', { method: 'POST', formData: fd })
       toast.success('Lecture uploaded.')
       setOpen(false)
+      clearErrors()
       setForm({ name: '', pdf: null })
       lectures.run().catch(() => {})
     } catch (e) {
-      toast.error(e.message)
+      if (!applyErrors(e)) toast.error(e.message)
     } finally {
       setBusy(false)
     }
@@ -75,8 +80,8 @@ export function ProfessorLectures() {
         title="Upload lecture"
         footer={<><Btn variant="ghost" onClick={() => setOpen(false)}>Cancel</Btn><Btn loading={busy} onClick={submit} icon="upload">Upload</Btn></>}
       >
-        <Field label="Lecture name"><input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Introduction to Algorithms" /></Field>
-        <Field label="PDF file"><input className="input" type="file" accept="application/pdf" onChange={(e) => setForm({ ...form, pdf: e.target.files?.[0] || null })} /></Field>
+<Field label="Lecture name" error={errors?.name?.[0]}><input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Introduction to Algorithms" /></Field>
+        <Field label="PDF file" error={errors?.pdf?.[0]}><input className="input" type="file" accept="application/pdf" onChange={(e) => setForm({ ...form, pdf: e.target.files?.[0] || null })} /></Field>
       </Modal>
     </>
   )

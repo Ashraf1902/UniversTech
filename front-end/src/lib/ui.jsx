@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState } from 'react'
+import { createContext, cloneElement, isValidElement, useContext, useEffect, useId, useRef, useState } from 'react'
 
 /* ---------------- ICONS ---------------- */
 const PATHS = {
@@ -531,23 +531,53 @@ export function CourseLoader({ label = 'Loading courses…' }) {
 
 /* ---------------- MODAL ---------------- */
 export function Modal({ open, onClose, title, children, footer, size }) {
+  const titleId = useId()
+  const panelRef = useRef(null)
+  const lastFocus = useRef(null)
+
   useEffect(() => {
     if (!open) return
-    const onKey = (e) => e.key === 'Escape' && onClose?.()
-    window.addEventListener('keydown', onKey)
+    lastFocus.current = document.activeElement
+    const panel = panelRef.current
+    if (panel) {
+      const focusables = panel.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
+      if (focusables.length) focusables[0].focus()
+    }
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation()
+        onClose?.()
+        return
+      }
+      if (e.key !== 'Tab' || !panel) return
+      const focusables = Array.from(panel.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])').values()).filter((el) => !el.disabled)
+      if (!focusables.length) return
+      const first = focusables[0]
+      const last = focusables[focusables.length - 1]
+      const active = document.activeElement
+      if (e.shiftKey && (active === first || !panel.contains(active))) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && (active === last || !panel.contains(active))) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+    window.addEventListener('keydown', onKey, true)
     document.body.style.overflow = 'hidden'
     return () => {
-      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('keydown', onKey, true)
       document.body.style.overflow = ''
+      lastFocus.current?.focus?.()
     }
   }, [open, onClose])
 
   if (!open) return null
   return (
     <div className="modal-back" onMouseDown={(e) => e.target === e.currentTarget && onClose?.()}>
-      <div className={`modal ${size === 'lg' ? 'modal-lg' : ''}`}>
+      <div className={`modal ${size === 'lg' ? 'modal-lg' : ''}`} role="dialog" aria-modal="true" aria-labelledby={titleId} ref={panelRef}>
         <div className="modal-head">
-          <h3>{title}</h3>
+          <h3 id={titleId}>{title}</h3>
           <button className="icon-btn" onClick={onClose} aria-label="Close">
             <I name="x" size={18} />
           </button>
@@ -581,9 +611,9 @@ export function ToastProvider({ children }) {
   return (
     <ToastContext.Provider value={api}>
       {children}
-      <div className="toasts">
+      <div className="toasts" aria-live="polite" role="status">
         {items.map((t) => (
-          <div key={t.id} className={`toast ${t.type}`} role="status">
+          <div key={t.id} className={`toast ${t.type}`}>
             <span className="tic">
               <I name={t.type === 'success' ? 'check' : t.type === 'error' ? 'x' : 'info'} size={15} />
             </span>
@@ -602,11 +632,18 @@ export function useToast() {
 }
 
 /* ---------------- FORM ---------------- */
-export function Field({ label, hint, children, className = '' }) {
+export function Field({ label, hint, error, children, className = '' }) {
+  const fid = useId()
+  const child =
+    isValidElement(children)
+      ? cloneElement(children, { id: children.props.id || fid, 'aria-invalid': error ? 'true' : undefined })
+      : children
+  const id = isValidElement(child) ? child.props.id : undefined
   return (
-    <div className={`field ${className}`}>
-      {label ? <label>{label}</label> : null}
-      {children}
+    <div className={`field ${error ? 'has-error' : ''} ${className}`}>
+      {label ? <label htmlFor={id}>{label}</label> : null}
+      {child}
+      {error ? <small className="field-msg" role="alert">{typeof error === 'string' ? error : Array.isArray(error) ? error[0] : 'This field is invalid.'}</small> : null}
       {hint ? <small style={{ color: 'var(--faint)', fontSize: '0.78rem' }}>{hint}</small> : null}
     </div>
   )

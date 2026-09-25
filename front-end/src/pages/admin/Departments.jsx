@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { request } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 import { Badge, Btn, Field, Pager, useToast } from '../../lib/ui'
-import { DataTable, FormModal, Head, useList } from './_shared'
+import { DataTable, FormModal, Head, useFieldErrors, useList } from './_shared'
 export function AdminDepartments() {
   const [page, setPage] = useState(1)
   const [archived, setArchived] = useState(false)
@@ -14,6 +14,7 @@ export function AdminDepartments() {
   const [editId, setEditId] = useState(null)
   const [form, setForm] = useState({ name: '', abbrevation: '' })
   const [busy, setBusy] = useState(false)
+  const { errors, clear: clearErrors, apply: applyErrors } = useFieldErrors()
 
   const submit = async () => {
     setBusy(true)
@@ -22,9 +23,10 @@ export function AdminDepartments() {
       else await request('/api/department/store', { method: 'POST', data: form })
       toast.success('Department saved.')
       setOpen(false)
+      clearErrors()
       run().catch(() => {})
     } catch (e) {
-      toast.error(e.message)
+      if (!applyErrors(e)) toast.error(e.message)
     } finally {
       setBusy(false)
     }
@@ -85,9 +87,9 @@ export function AdminDepartments() {
         onPurge={archived && isSuper ? purge : undefined}
       />
       <Pager page={paged.page} last={paged.last_page} onPage={setPage} />
-      <FormModal open={open} onClose={() => setOpen(false)} title={editId ? 'Edit department' : 'New department'} onSubmit={submit} busy={busy}>
-        <Field label="Name"><input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field>
-        <Field label="Abbreviation"><input className="input" value={form.abbrevation} onChange={(e) => setForm({ ...form, abbrevation: e.target.value })} /></Field>
+      <FormModal open={open} onClose={() => setOpen(false)} title={editId ? 'Edit department' : 'New department'} onSubmit={submit} busy={busy} errors={errors} onFormClose={clearErrors}>
+        <Field label="Name" error={errors?.name?.[0]}><input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field>
+        <Field label="Abbreviation" error={errors?.abbreviation?.[0]}><input className="input" value={form.abbrevation} onChange={(e) => setForm({ ...form, abbrevation: e.target.value })} /></Field>
       </FormModal>
     </>
   )

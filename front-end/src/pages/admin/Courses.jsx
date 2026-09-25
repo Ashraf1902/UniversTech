@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { request } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 import { Badge, Btn, Field, Pager, useToast } from '../../lib/ui'
-import { DataTable, FormModal, Head, useList, useOptions } from './_shared'
+import { DataTable, FormModal, Head, useFieldErrors, useList, useOptions } from './_shared'
 export function AdminCourses() {
   const [page, setPage] = useState(1)
   const [archived, setArchived] = useState(false)
@@ -17,7 +17,8 @@ export function AdminCourses() {
   const [open, setOpen] = useState(false)
   const [editId, setEditId] = useState(null)
   const [form, setForm] = useState({ course_name: '', no_of_hours: '', course_code: '', department_id: '', professor_id: '', semester_id: '', cover_image: null })
-  const [busy, setBusy] = useState(false)
+const [busy, setBusy] = useState(false)
+  const { errors, clear: clearErrors, apply: applyErrors } = useFieldErrors()
 
   const openEdit = async (row) => {
     try {
@@ -48,9 +49,10 @@ export function AdminCourses() {
       await request(editId ? '/api/course/update' : '/api/course/store', { method: 'POST', formData: fd })
       toast.success('Course saved.')
       setOpen(false)
+      clearErrors()
       run().catch(() => {})
     } catch (e) {
-      toast.error(e.message)
+      if (!applyErrors(e)) toast.error(e.message)
     } finally {
       setBusy(false)
     }
@@ -115,14 +117,14 @@ const remove = async (row) => {
         onPurge={archived && isSuper ? purge : undefined}
       />
       <Pager page={paged.page} last={paged.last_page} onPage={setPage} />
-      <FormModal open={open} onClose={() => setOpen(false)} title={editId ? 'Edit course' : 'New course'} onSubmit={submit} busy={busy}>
+<FormModal open={open} onClose={() => setOpen(false)} title={editId ? 'Edit course' : 'New course'} onSubmit={submit} busy={busy} errors={errors} onFormClose={clearErrors}>
         <div className="grid grid-2" style={{ gap: 14 }}>
-          <Field label="Course name"><input className="input" value={form.course_name} onChange={(e) => setForm({ ...form, course_name: e.target.value })} /></Field>
-          <Field label="Course code"><input className="input" value={form.course_code} onChange={(e) => setForm({ ...form, course_code: e.target.value })} /></Field>
+          <Field label="Course name" error={errors?.course_name?.[0]}><input className="input" value={form.course_name} onChange={(e) => setForm({ ...form, course_name: e.target.value })} /></Field>
+          <Field label="Course code" error={errors?.course_code?.[0]}><input className="input" value={form.course_code} onChange={(e) => setForm({ ...form, course_code: e.target.value })} /></Field>
         </div>
         <div className="grid grid-2" style={{ gap: 14 }}>
-          <Field label="Credit hours"><input className="input" type="number" min="1" value={form.no_of_hours} onChange={(e) => setForm({ ...form, no_of_hours: e.target.value })} /></Field>
-          <Field label="Professor">
+          <Field label="Credit hours" error={errors?.no_of_hours?.[0]}><input className="input" type="number" min="1" value={form.no_of_hours} onChange={(e) => setForm({ ...form, no_of_hours: e.target.value })} /></Field>
+          <Field label="Professor" error={errors?.professor_id?.[0]}>
             <select className="select" value={form.professor_id} onChange={(e) => setForm({ ...form, professor_id: e.target.value })}>
               <option value="">â€” Select professor â€”</option>
               {profs.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -130,20 +132,20 @@ const remove = async (row) => {
           </Field>
         </div>
         <div className="grid grid-2" style={{ gap: 14 }}>
-          <Field label="Department (optional)">
+          <Field label="Department (optional)" error={errors?.department_id?.[0]}>
             <select className="select" value={form.department_id} onChange={(e) => setForm({ ...form, department_id: e.target.value })}>
               <option value="">â€” General (all) â€”</option>
               {depts.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </Field>
-          <Field label="Semester (optional)">
+          <Field label="Semester (optional)" error={errors?.semester_id?.[0]}>
             <select className="select" value={form.semester_id} onChange={(e) => setForm({ ...form, semester_id: e.target.value })}>
               <option value="">â€” Any â€”</option>
               {sems.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </Field>
         </div>
-        <Field label="Cover image"><input className="input" type="file" accept="image/*" onChange={(e) => setForm({ ...form, cover_image: e.target.files?.[0] || null })} /></Field>
+        <Field label="Cover image" error={errors?.cover_image?.[0]}><input className="input" type="file" accept="image/*" onChange={(e) => setForm({ ...form, cover_image: e.target.files?.[0] || null })} /></Field>
       </FormModal>
     </>
   )

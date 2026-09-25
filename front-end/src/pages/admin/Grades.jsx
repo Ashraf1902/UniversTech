@@ -3,7 +3,7 @@ import { buildQuery, normalizePage, request } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 import { useAsync } from '../../lib/hooks'
 import { Badge, Btn, Empty, Field, Pager, Prog, RateBadge, Reveal, Spinner, useToast } from '../../lib/ui'
-import { DataTable, FormModal, Head, useOptions } from './_shared'
+import { DataTable, FormModal, Head, useFieldErrors, useOptions } from './_shared'
 function SemesterCardExplorer({ students, sems }) {
   const [studentId, setStudentId] = useState('')
   const [semesterId, setSemesterId] = useState('')
@@ -94,9 +94,10 @@ export function AdminGrades() {
   const list = useAsync(() => request(`/api/grade/get/all${query}`), [query])
   const paged = normalizePage(list.data)
 
-  const [open, setOpen] = useState(false)
+const [open, setOpen] = useState(false)
   const [form, setForm] = useState({ student_id: '', course_id: '', semester_id: '', marks: '', max_marks: '100' })
   const [busy, setBusy] = useState(false)
+  const { errors, clear: clearErrors, apply: applyErrors } = useFieldErrors()
 
   const submit = async () => {
     setBusy(true)
@@ -111,9 +112,10 @@ export function AdminGrades() {
       })
       toast.success('Grade saved.')
       setOpen(false)
+      clearErrors()
       list.run().catch(() => {})
     } catch (e) {
-      toast.error(e.message)
+      if (!applyErrors(e)) toast.error(e.message)
     } finally {
       setBusy(false)
     }
@@ -210,15 +212,15 @@ const remove = async (row) => {
         <SemesterCardExplorer students={students} sems={sems} />
       )}
 
-      <FormModal open={open} onClose={() => setOpen(false)} title="Add / update grade" onSubmit={submit} busy={busy}>
+<FormModal open={open} onClose={() => setOpen(false)} title="Add / update grade" onSubmit={submit} busy={busy} errors={errors} onFormClose={clearErrors}>
         <div className="grid grid-2" style={{ gap: 14 }}>
-          <Field label="Student">
+          <Field label="Student" error={errors?.student_id?.[0]}>
             <select className="select" value={form.student_id} onChange={(e) => setForm({ ...form, student_id: e.target.value })}>
               <option value="">â€” Select â€”</option>
               {students.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </Field>
-          <Field label="Course">
+          <Field label="Course" error={errors?.course_id?.[0]}>
             <select className="select" value={form.course_id} onChange={(e) => setForm({ ...form, course_id: e.target.value })}>
               <option value="">â€” Select â€”</option>
               {courses.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -226,10 +228,10 @@ const remove = async (row) => {
           </Field>
         </div>
         <div className="grid grid-2" style={{ gap: 14 }}>
-          <Field label="Marks"><input className="input" type="number" min="0" value={form.marks} onChange={(e) => setForm({ ...form, marks: e.target.value })} /></Field>
-          <Field label="Max marks"><input className="input" type="number" min="1" value={form.max_marks} onChange={(e) => setForm({ ...form, max_marks: e.target.value })} /></Field>
+          <Field label="Marks" error={errors?.marks?.[0]}><input className="input" type="number" min="0" value={form.marks} onChange={(e) => setForm({ ...form, marks: e.target.value })} /></Field>
+          <Field label="Max marks" error={errors?.max_marks?.[0]}><input className="input" type="number" min="1" value={form.max_marks} onChange={(e) => setForm({ ...form, max_marks: e.target.value })} /></Field>
         </div>
-        <Field label="Semester (optional â€” defaults to active)">
+        <Field label="Semester (optional â€” defaults to active)" error={errors?.semester_id?.[0]}>
           <select className="select" value={form.semester_id} onChange={(e) => setForm({ ...form, semester_id: e.target.value })}>
             <option value="">â€” Active semester â€”</option>
             {sems.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}

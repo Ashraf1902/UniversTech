@@ -4,7 +4,7 @@ import { useAuth } from '../../lib/auth'
 import { useI18n } from '../../lib/i18n'
 import { useAsync } from '../../lib/hooks'
 import { Badge, Btn, CourseLoader, Empty, Field, I, useToast } from '../../lib/ui'
-import { FormModal, Head } from './_shared'
+import { FormModal, Head, useFieldErrors } from './_shared'
 const ADMIN_ROLES = [
   ['accounts', 'roleAccounts', 'users'],
   ['access_requests', 'roleAccessRequests', 'mail'],
@@ -26,6 +26,7 @@ export function AdminAdmins() {
   const [editId, setEditId] = useState(null)
   const [form, setForm] = useState({ name: '', email: '', password: '', roles: [] })
   const [busyId, setBusyId] = useState(null)
+  const { errors, clear: clearErrors, apply: applyErrors } = useFieldErrors()
 
   const isSuper = Boolean(user?.is_super_admin)
   const admins = normalizePage(data).items || []
@@ -63,10 +64,11 @@ export function AdminAdmins() {
         })
         toast.success(t('adminCreated'))
       }
-      setOpen(false)
+setOpen(false)
+      clearErrors()
       run().catch(() => {})
     } catch (e) {
-      toast.error(e.message)
+      if (!applyErrors(e)) toast.error(e.message)
     } finally {
       setBusy(false)
     }
@@ -160,31 +162,33 @@ export function AdminAdmins() {
         </div>
       )}
 
-      <FormModal
+<FormModal
         open={open}
         onClose={() => setOpen(false)}
         title={editId ? t('editAdmin') : t('newAdmin')}
         onSubmit={submit}
         busy={busy}
         submitLabel={editId ? t('saveChanges') || 'Save' : t('addAdmin')}
+        errors={errors}
+        onFormClose={clearErrors}
       >
         <div className="grid grid-2" style={{ gap: 12 }}>
-          <Field label={t('adminFieldsName')}>
+          <Field label={t('adminFieldsName')} error={errors?.name?.[0]}>
             <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
           </Field>
           {!editId ? (
-            <Field label={t('adminFieldsEmail')}>
+            <Field label={t('adminFieldsEmail')} error={errors?.email?.[0]}>
               <input className="input" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
             </Field>
           ) : null}
         </div>
         <div className="grid grid-2" style={{ gap: 12 }}>
           {!editId ? (
-            <Field label={t('adminFieldsPassword')}>
+            <Field label={t('adminFieldsPassword')} error={errors?.password?.[0]}>
               <input className="input" type="text" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} minLength={6} required={!editId} placeholder="Min 6 characters" />
             </Field>
           ) : (
-            <Field label={t('adminFieldsPasswordKeep')}>
+            <Field label={t('adminFieldsPasswordKeep')} error={errors?.password?.[0]}>
               <input className="input" type="text" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Leave blank to keep" />
             </Field>
           )}

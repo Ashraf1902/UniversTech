@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { request } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 import { Btn, Field, Pager, useToast } from '../../lib/ui'
-import { DataTable, FormModal, Head, useList, useOptions } from './_shared'
+import { DataTable, FormModal, Head, useFieldErrors, useList, useOptions } from './_shared'
 const emptyAccount = { name: '', email: '', password: '', gender: 0, nationalid: '', phone: '', credit_points: '', semester: '', type: 0, department_id: '', level_id: '', job_title: '' }
 
 export function AdminAccounts() {
@@ -20,6 +20,7 @@ export function AdminAccounts() {
   const [editId, setEditId] = useState(null)
   const [form, setForm] = useState(emptyAccount)
   const [busy, setBusy] = useState(false)
+  const { errors, clear: clearErrors, apply: applyErrors } = useFieldErrors()
 
   const openCreate = () => {
     setEditId(null)
@@ -66,10 +67,11 @@ export function AdminAccounts() {
         await request('/api/user/store', { method: 'POST', data: payload })
         toast.success('Account created.')
       }
-      setOpen(false)
+setOpen(false)
+      clearErrors()
       run().catch(() => {})
     } catch (e) {
-      toast.error(e.message)
+      if (!applyErrors(e)) toast.error(e.message)
     } finally {
       setBusy(false)
     }
@@ -151,23 +153,23 @@ onEdit={archived ? undefined : openEdit}
       />
       <Pager page={paged.page} last={paged.last_page} onPage={setPage} />
 
-      <FormModal open={open} onClose={() => setOpen(false)} title={editId ? 'Edit account' : 'Create account'} onSubmit={submit} busy={busy}>
+<FormModal open={open} onClose={() => setOpen(false)} title={editId ? 'Edit account' : 'Create account'} onSubmit={submit} busy={busy} errors={errors} onFormClose={clearErrors}>
         <div className="grid grid-2" style={{ gap: 14 }}>
-          <Field label="Full name"><input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field>
-          <Field label="Email"><input className="input" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></Field>
+          <Field label="Full name" error={errors?.name?.[0]}><input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field>
+          <Field label="Email" error={errors?.email?.[0]}><input className="input" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></Field>
         </div>
         <div className="grid grid-2" style={{ gap: 14 }}>
-          <Field label={editId ? 'New password (optional)' : 'Password'}><input className="input" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} /></Field>
-          <Field label="National ID (14 digits)"><input className="input" maxLength={14} value={form.nationalid} onChange={(e) => setForm({ ...form, nationalid: e.target.value })} /></Field>
+          <Field label={editId ? 'New password (optional)' : 'Password'} error={errors?.password?.[0]}><input className="input" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} /></Field>
+          <Field label="National ID (14 digits)" error={errors?.nationalid?.[0]}><input className="input" maxLength={14} value={form.nationalid} onChange={(e) => setForm({ ...form, nationalid: e.target.value })} /></Field>
         </div>
         <div className="grid grid-2" style={{ gap: 14 }}>
-          <Field label="Role">
+          <Field label="Role" error={errors?.type?.[0]}>
             <div className="radio-row">
               <button type="button" className={`chip ${form.type === 0 ? 'on' : ''}`} onClick={() => setForm({ ...form, type: 0 })}>Student</button>
               <button type="button" className={`chip ${form.type === 1 ? 'on' : ''}`} onClick={() => setForm({ ...form, type: 1 })}>Professor</button>
             </div>
           </Field>
-          <Field label="Gender">
+          <Field label="Gender" error={errors?.gender?.[0]}>
             <div className="radio-row">
               <button type="button" className={`chip ${form.gender === 0 ? 'on' : ''}`} onClick={() => setForm({ ...form, gender: 0 })}>Male</button>
               <button type="button" className={`chip ${form.gender === 1 ? 'on' : ''}`} onClick={() => setForm({ ...form, gender: 1 })}>Female</button>
@@ -175,24 +177,24 @@ onEdit={archived ? undefined : openEdit}
           </Field>
         </div>
         <div className="grid grid-2" style={{ gap: 14 }}>
-          <Field label="Phone (11 digits)"><input className="input" maxLength={11} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></Field>
-          <Field label="Credit points"><input className="input" type="number" value={form.credit_points} onChange={(e) => setForm({ ...form, credit_points: e.target.value })} /></Field>
+          <Field label="Phone (11 digits)" error={errors?.phone?.[0]}><input className="input" maxLength={11} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></Field>
+          <Field label="Credit points" error={errors?.credit_points?.[0]}><input className="input" type="number" value={form.credit_points} onChange={(e) => setForm({ ...form, credit_points: e.target.value })} /></Field>
         </div>
         <div className="grid grid-2" style={{ gap: 14 }}>
-          <Field label="Department">
+          <Field label="Department" error={errors?.department_id?.[0]}>
             <select className="select" value={form.department_id} onChange={(e) => setForm({ ...form, department_id: e.target.value })}>
               <option value="">â€” None (General) â€”</option>
               {departments.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </Field>
           {form.type === 1 ? (
-            <Field label="Job title"><input className="input" value={form.job_title} onChange={(e) => setForm({ ...form, job_title: e.target.value })} /></Field>
+            <Field label="Job title" error={errors?.job_title?.[0]}><input className="input" value={form.job_title} onChange={(e) => setForm({ ...form, job_title: e.target.value })} /></Field>
           ) : (
-            <Field label="Level ID"><input className="input" type="number" min="1" value={form.level_id} onChange={(e) => setForm({ ...form, level_id: e.target.value })} placeholder="e.g. 1" /></Field>
+            <Field label="Level ID" error={errors?.level_id?.[0]}><input className="input" type="number" min="1" value={form.level_id} onChange={(e) => setForm({ ...form, level_id: e.target.value })} placeholder="e.g. 1" /></Field>
           )}
         </div>
         {form.type === 0 ? (
-          <Field label="Semester">
+          <Field label="Semester" error={errors?.semester?.[0]}>
             <select className="select" value={form.semester} onChange={(e) => setForm({ ...form, semester: e.target.value })}>
               <option value="">â€” None â€”</option>
               <option value="first">First</option>

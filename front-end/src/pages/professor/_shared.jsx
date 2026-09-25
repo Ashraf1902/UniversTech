@@ -1,6 +1,25 @@
-import { normalizePage, request } from '../../lib/api'
+import { useState } from 'react'
+import { getFieldErrors, normalizePage, request } from '../../lib/api'
 import { useAsync } from '../../lib/hooks'
 import { Field } from '../../lib/ui'
+
+export function useFieldErrors() {
+  const [errors, setErrors] = useState({})
+  return {
+    errors,
+    setErrors,
+    clear: () => setErrors({}),
+    apply: (err) => {
+      const fe = getFieldErrors(err)
+      if (fe && Object.keys(fe).length) {
+        setErrors(fe)
+        return true
+      }
+      return false
+    },
+  }
+}
+
 export function Head({ kicker, title, sub, actions }) {
   return (
     <div className="page-head">

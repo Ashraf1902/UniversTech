@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { request } from '../../lib/api'
 import { Badge, Btn, Field, Pager, useToast } from '../../lib/ui'
-import { DataTable, FormModal, Head, useList, useOptions } from './_shared'
+import { DataTable, FormModal, Head, useFieldErrors, useList, useOptions } from './_shared'
 const DAYS = ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
 const emptySched = { level_id: '', semester_id: '', department_id: '', course_id: '', day_of_week: 'Saturday', start_time: '', end_time: '', section_type: 'lecture', image: null }
 
@@ -17,6 +17,7 @@ export function AdminSchedules() {
   const [editId, setEditId] = useState(null)
   const [form, setForm] = useState(emptySched)
   const [busy, setBusy] = useState(false)
+  const { errors, clear: clearErrors, apply: applyErrors } = useFieldErrors()
 
   const openEdit = (row) => {
     setEditId(row.id)
@@ -49,11 +50,12 @@ export function AdminSchedules() {
         if (form.image) fd.append('image', form.image)
         await request('/api/schedule/store', { method: 'POST', formData: fd })
       }
-      toast.success('Schedule saved.')
+toast.success('Schedule saved.')
       setOpen(false)
+      clearErrors()
       run().catch(() => {})
     } catch (e) {
-      toast.error(e.message)
+      if (!applyErrors(e)) toast.error(e.message)
     } finally {
       setBusy(false)
     }
@@ -89,10 +91,10 @@ export function AdminSchedules() {
         onDelete={remove}
       />
       <Pager page={paged.page} last={paged.last_page} onPage={setPage} />
-      <FormModal open={open} onClose={() => setOpen(false)} title={editId ? 'Edit schedule entry' : 'New schedule entry'} onSubmit={submit} busy={busy}>
+<FormModal open={open} onClose={() => setOpen(false)} title={editId ? 'Edit schedule entry' : 'New schedule entry'} onSubmit={submit} busy={busy} errors={errors} onFormClose={clearErrors}>
         <div className="grid grid-2" style={{ gap: 14 }}>
-          <Field label="Level ID" hint="Numeric id from the levels table"><input className="input" type="number" min="1" value={form.level_id} onChange={(e) => setForm({ ...form, level_id: e.target.value })} placeholder="e.g. 1" /></Field>
-          <Field label="Semester">
+          <Field label="Level ID" hint="Numeric id from the levels table" error={errors?.level_id?.[0]}><input className="input" type="number" min="1" value={form.level_id} onChange={(e) => setForm({ ...form, level_id: e.target.value })} placeholder="e.g. 1" /></Field>
+          <Field label="Semester" error={errors?.semester_id?.[0]}>
             <select className="select" value={form.semester_id} onChange={(e) => setForm({ ...form, semester_id: e.target.value })}>
               <option value="">â€” Select â€”</option>
               {sems.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -100,13 +102,13 @@ export function AdminSchedules() {
           </Field>
         </div>
         <div className="grid grid-2" style={{ gap: 14 }}>
-          <Field label="Course">
+          <Field label="Course" error={errors?.course_id?.[0]}>
             <select className="select" value={form.course_id} onChange={(e) => setForm({ ...form, course_id: e.target.value })}>
               <option value="">â€” Select â€”</option>
               {courses.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </Field>
-          <Field label="Department (optional)">
+          <Field label="Department (optional)" error={errors?.department_id?.[0]}>
             <select className="select" value={form.department_id} onChange={(e) => setForm({ ...form, department_id: e.target.value })}>
               <option value="">â€” General â€”</option>
               {depts.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -114,12 +116,12 @@ export function AdminSchedules() {
           </Field>
         </div>
         <div className="grid grid-2" style={{ gap: 14 }}>
-          <Field label="Day">
+          <Field label="Day" error={errors?.day_of_week?.[0]}>
             <select className="select" value={form.day_of_week} onChange={(e) => setForm({ ...form, day_of_week: e.target.value })}>
               {DAYS.map((d) => <option key={d} value={d}>{d}</option>)}
             </select>
           </Field>
-          <Field label="Section type">
+          <Field label="Section type" error={errors?.section_type?.[0]}>
             <select className="select" value={form.section_type} onChange={(e) => setForm({ ...form, section_type: e.target.value })}>
               <option value="lecture">Lecture</option>
               <option value="seminar">Seminar</option>
@@ -128,10 +130,10 @@ export function AdminSchedules() {
           </Field>
         </div>
         <div className="grid grid-2" style={{ gap: 14 }}>
-          <Field label="Start time"><input className="input" type="time" value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} /></Field>
-          <Field label="End time"><input className="input" type="time" value={form.end_time} onChange={(e) => setForm({ ...form, end_time: e.target.value })} /></Field>
+          <Field label="Start time" error={errors?.start_time?.[0]}><input className="input" type="time" value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} /></Field>
+          <Field label="End time" error={errors?.end_time?.[0]}><input className="input" type="time" value={form.end_time} onChange={(e) => setForm({ ...form, end_time: e.target.value })} /></Field>
         </div>
-        {!editId ? <Field label="Timetable image (optional)"><input className="input" type="file" accept="image/*" onChange={(e) => setForm({ ...form, image: e.target.files?.[0] || null })} /></Field> : null}
+        {!editId ? <Field label="Timetable image (optional)" error={errors?.image?.[0]}><input className="input" type="file" accept="image/*" onChange={(e) => setForm({ ...form, image: e.target.files?.[0] || null })} /></Field> : null}
       </FormModal>
     </>
   )
