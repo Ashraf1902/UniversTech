@@ -1,0 +1,14 @@
+# Unrelated folders not part of the UniversTech app
+courierx-copy/
+finals/
+
+# User-uploaded files (not source)
+public_html/uploads/
+univers-tech.pro/univers-tech.pro/public/uploads/
+
+# Scratch / artifacts
+*.log
+.DS_Store
+Thumbs.db
+front-end/_acc_schema.php
+univers-tech.pro/univers-tech.pro/where
