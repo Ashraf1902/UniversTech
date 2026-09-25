@@ -9,6 +9,7 @@ use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Traits\Notifiable;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class AccountAdminController extends Controller
@@ -19,7 +20,7 @@ class AccountAdminController extends Controller
     {
         $doctors = $this->userQuery(User::TYPE_PROFESSOR, $request->boolean('deleted'))
             ->orderByDesc('created_at')
-            ->with('admin')
+            ->with(['admin', 'student', 'professor.department'])
             ->paginate(15)
             ->through(fn (User $user) => $this->formatUser($user, true));
 
@@ -30,7 +31,7 @@ class AccountAdminController extends Controller
     {
         $students = $this->userQuery(User::TYPE_STUDENT, $request->boolean('deleted'))
             ->orderByDesc('created_at')
-            ->with(['admin', 'department', 'level'])
+            ->with(['admin', 'student.department', 'student.level'])
             ->paginate(15)
             ->through(fn (User $user) => $this->formatUser($user, false));
 
@@ -46,33 +47,44 @@ class AccountAdminController extends Controller
 
     public function store(AdminStoreAccountRequest $request)
     {
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'gender' => $request->gender,
-            'nationalid' => $request->nationalid,
-            'phone' => $request->phone,
-            'credit_points' => $request->credit_points,
-            'semester' => $request->semester,
-            'type' => $request->type,
-            'department_id' => $request->department_id,
-            'level_id' => $request->level_id,
-            'admin_id' => $request->user()->id,
-            'job_title' => $request->job_title,
-        ]);
+        DB::transaction(function () use ($request) {
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+                'gender' => $request->gender,
+                'nationalid' => $request->nationalid,
+                'phone' => $request->phone,
+                'type' => $request->type,
+                'admin_id' => $request->user()->id,
+            ]);
 
-        $this->notifyAdmin(
-            'Account created',
-            'Account "' . $user->name . '" has been created (' . ($user->isProfessor() ? 'professor' : 'student') . ').'
-        );
+            if ($user->isStudent()) {
+                $user->student()->create([
+                    'department_id' => $request->department_id,
+                    'level_id' => $request->level_id,
+                    'semester' => $request->semester,
+                    'credit_points' => $request->credit_points,
+                ]);
+            } else {
+                $user->professor()->create([
+                    'department_id' => $request->department_id,
+                    'job_title' => $request->job_title,
+                ]);
+            }
+
+            $this->notifyAdmin(
+                'Account created',
+                'Account "' . $user->name . '" has been created (' . ($user->isProfessor() ? 'professor' : 'student') . ').'
+            );
+        });
 
         return SendResponse(201, 'Account created successfully.');
     }
 
     public function getUserById(Request $request, $id)
     {
-        $user = User::with(['admin', 'department', 'level'])->find($id);
+        $user = User::with(['admin', 'student.department', 'student.level', 'professor.department'])->find($id);
 
         if (! $user) {
             return SendResponse(404, 'User not found.');
@@ -132,25 +144,36 @@ class AccountAdminController extends Controller
             return SendResponse(404, 'User not found.');
         }
 
-        $data = [
-            'name' => $request->input('name', $user->name),
-            'email' => $request->input('email', $user->email),
-            'gender' => $request->input('gender', $user->gender),
-            'nationalid' => $request->input('nationalid', $user->nationalid),
-            'phone' => $request->input('phone', $user->phone),
-            'credit_points' => $request->input('credit_points', $user->credit_points),
-            'semester' => $request->input('semester', $user->semester),
-            'type' => $request->input('type', $user->type),
-            'department_id' => $request->input('department_id', $user->department_id),
-            'level_id' => $request->input('level_id', $user->level_id),
-            'job_title' => $request->input('job_title', $user->job_title),
-        ];
+        DB::transaction(function () use ($request, $user) {
+            $data = [
+                'name' => $request->input('name', $user->name),
+                'email' => $request->input('email', $user->email),
+                'gender' => $request->input('gender', $user->gender),
+                'nationalid' => $request->input('nationalid', $user->nationalid),
+                'phone' => $request->input('phone', $user->phone),
+                'type' => $request->input('type', $user->type),
+            ];
 
-        if ($request->filled('password')) {
-            $data['password'] = Hash::make($request->password);
-        }
+            if ($request->filled('password')) {
+                $data['password'] = Hash::make($request->password);
+            }
 
-        $user->update($data);
+            $user->update($data);
+
+            if ($user->isStudent()) {
+                $user->student()->updateOrCreate([], [
+                    'department_id' => $request->input('department_id', $user->student?->department_id),
+                    'level_id' => $request->input('level_id', $user->student?->level_id),
+                    'semester' => $request->input('semester', $user->student?->semester),
+                    'credit_points' => $request->input('credit_points', $user->student?->credit_points),
+                ]);
+            } else {
+                $user->professor()->updateOrCreate([], [
+                    'department_id' => $request->input('department_id', $user->professor?->department_id),
+                    'job_title' => $request->input('job_title', $user->professor?->job_title),
+                ]);
+            }
+        });
 
         return SendResponse(200, 'User updated successfully.');
     }
@@ -164,7 +187,7 @@ class AccountAdminController extends Controller
             'gender' => $user->gender ? 'Female' : 'Male',
             'nationalid' => $user->nationalid,
             'phone' => $user->phone,
-            'credit_points' => $user->credit_points,
+            'credit_points' => $user->student?->credit_points,
             'type' => $user->type,
             'created_at' => $user->created_at,
             'updated_at' => $user->updated_at,
@@ -173,13 +196,13 @@ class AccountAdminController extends Controller
         ];
 
         if ($isProfessor) {
-            return $base + ['job_title' => $user->job_title];
+            return $base + ['job_title' => $user->professor?->job_title];
         }
 
         return $base + [
-            'semester' => $user->semester,
-            'department' => $user->department?->name,
-            'level' => $user->level?->name,
+            'semester' => $user->student?->semester,
+            'department' => $user->student?->department?->name,
+            'level' => $user->student?->level?->name,
         ];
     }
 }

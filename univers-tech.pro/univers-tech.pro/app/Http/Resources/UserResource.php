@@ -8,7 +8,14 @@ class UserResource extends JsonResource
 {
     public function toArray($request)
     {
-        $user = $this->resource->loadMissing(['admin', 'department', 'level']);
+        $user = $this->resource->loadMissing([
+            'admin',
+            'student.department',
+            'student.level',
+            'professor.department',
+        ]);
+
+        $profile = $user->student ?? $user->professor;
 
         return [
             'id' => $user->id,
@@ -17,18 +24,18 @@ class UserResource extends JsonResource
             'national_id' => $user->nationalid,
             'gender' => $user->gender ? 'Female' : 'Male',
             'phone' => $user->phone,
-            'credit_points' => $user->credit_points,
-            'semester' => $user->semester,
+            'credit_points' => $user->student?->credit_points,
+            'semester' => $user->student?->semester,
             'type' => $user->type,
-            'job_title' => $user->job_title,
+            'job_title' => $user->professor?->job_title,
             'admin' => $user->admin?->name,
-            'department' => $user->department ? [
-                'id' => $user->department->id,
-                'name' => $user->department->name,
+            'department' => $profile?->department ? [
+                'id' => $profile->department->id,
+                'name' => $profile->department->name,
             ] : null,
-            'level' => $user->level ? [
-                'id' => $user->level->id,
-                'name' => $user->level->name,
+            'level' => $user->student?->level ? [
+                'id' => $user->student->level->id,
+                'name' => $user->student->level->name,
             ] : null,
         ];
     }

@@ -51,9 +51,9 @@ class CoursesController extends Controller
             foreach ($data['course_ids'] as $courseId) {
                 $course = Course::find($courseId);
 
-                $inDepartment = $course->department_id === $user->department_id
-                    || ($user->department_id && $course->department_id === null)
-                    || (! $user->department_id && $course->department_id === null);
+                $inDepartment = $course->department_id === $user->student?->department_id
+                    || ($user->student?->department_id && $course->department_id === null)
+                    || (! $user->student?->department_id && $course->department_id === null);
 
                 $inSemester = $course->semester_id === null
                     || ($activeSemester && $course->semester_id === $activeSemester->id);
@@ -194,17 +194,17 @@ class CoursesController extends Controller
 
         $activeSemester = Semester::where('is_active', true)->first();
 
-        $query = Schedule::where('level_id', $user->level_id)
+        $query = Schedule::where('level_id', $user->student?->level_id)
             ->with('course');
 
         if ($activeSemester) {
             $query->where('semester_id', $activeSemester->id);
         }
 
-        if ($user->department_id) {
+        if ($user->student?->department_id) {
             $query->where(function ($q) use ($user) {
                 $q->whereNull('department_id')
-                    ->orWhere('department_id', $user->department_id);
+                    ->orWhere('department_id', $user->student?->department_id);
             });
         }
 
@@ -361,10 +361,10 @@ class CoursesController extends Controller
 
         $query = Course::with('professor')->orderBy('course_name');
 
-        if ($user->department_id) {
+        if ($user->student?->department_id) {
             $query->where(function ($q) use ($user) {
                 $q->whereNull('department_id')
-                    ->orWhere('department_id', $user->department_id);
+                    ->orWhere('department_id', $user->student?->department_id);
             });
         } else {
             $query->whereNull('department_id');

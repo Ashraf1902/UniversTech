@@ -3,13 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, Notifiable, SoftDeletes;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     public const TYPE_STUDENT = 0;
     public const TYPE_PROFESSOR = 1;
@@ -35,6 +36,26 @@ class User extends Authenticatable
     public function isStudent(): bool
     {
         return $this->type === self::TYPE_STUDENT;
+    }
+
+    public function student()
+    {
+        return $this->hasOne(Student::class);
+    }
+
+    public function professor()
+    {
+        return $this->hasOne(Professor::class);
+    }
+
+    public function scopeStudents($query)
+    {
+        return $query->where('type', self::TYPE_STUDENT);
+    }
+
+    public function scopeProfessors($query)
+    {
+        return $query->where('type', self::TYPE_PROFESSOR);
     }
 
     public function admin()

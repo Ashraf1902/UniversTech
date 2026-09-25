@@ -30,7 +30,7 @@ class AuthController extends Controller
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
-            'job_title' => $user->job_title,
+            'job_title' => $user->professor?->job_title,
         ];
 
         if (EnsureFrontendRequestsAreStateful::fromFrontend($request)) {

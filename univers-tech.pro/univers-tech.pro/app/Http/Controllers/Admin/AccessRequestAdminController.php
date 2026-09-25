@@ -55,9 +55,12 @@ class AccessRequestAdminController extends Controller
                     'nationalid' => $accessRequest->national_id,
                     'phone' => $accessRequest->phone,
                     'type' => User::TYPE_STUDENT,
+                    'admin_id' => $request->user()->id,
+                ]);
+
+                $user->student()->create([
                     'department_id' => $accessRequest->department_id,
                     'level_id' => $accessRequest->level_id,
-                    'admin_id' => $request->user()->id,
                 ]);
 
                 $accessRequest->update([

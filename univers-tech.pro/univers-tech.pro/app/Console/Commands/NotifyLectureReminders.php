@@ -39,7 +39,7 @@ class NotifyLectureReminders extends Command
         }
 
         $students = User::where('type', User::TYPE_STUDENT)
-            ->with('studentCourses')
+            ->with(['studentCourses', 'student'])
             ->get();
 
         $rows = [];
@@ -52,13 +52,13 @@ class NotifyLectureReminders extends Command
                     continue;
                 }
 
-                if ($student->department_id !== null
+                if ($student->student?->department_id !== null
                     && $schedule->department_id !== null
-                    && $schedule->department_id !== $student->department_id) {
+                    && $schedule->department_id !== $student->student?->department_id) {
                     continue;
                 }
 
-                if ($student->level_id !== null && $schedule->level_id !== $student->level_id) {
+                if ($student->student?->level_id !== null && $schedule->level_id !== $student->student?->level_id) {
                     continue;
                 }
 
