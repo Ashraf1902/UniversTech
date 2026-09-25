@@ -5,11 +5,15 @@ RUN apk add --no-cache \
         libzip-dev \
         icu-dev \
         oniguruma-dev \
+        libpq \
+        postgresql-dev \
         libcurl \
         curl \
     && docker-php-ext-install \
         pdo \
         pdo_mysql \
+        pgsql \
+        pdo_pgsql \
         mbstring \
         curl \
         zip \
