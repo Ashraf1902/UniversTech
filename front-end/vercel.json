@@ -1,0 +1,7 @@
+{
+  "rewrites": [
+    { "source": "/api/:path*",     "destination": "https://universtech-api.wasmer.app/api/:path*" },
+    { "source": "/uploads/:path*", "destination": "https://universtech-api.wasmer.app/uploads/:path*" },
+    { "source": "/(.*)",           "destination": "/index.html" }
+  ]
+}

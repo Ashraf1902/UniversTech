@@ -29,6 +29,9 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
+// Health check
+Route::get('/health', fn () => response()->json(['status' => 'ok']));
+
 // Authentication
 Route::prefix('auth')->group(function () {
     Route::post('login', [UserAuthController::class, 'login'])->middleware('throttle:5,1');
