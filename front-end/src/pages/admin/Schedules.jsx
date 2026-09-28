@@ -79,12 +79,12 @@ toast.success('Schedule saved.')
         loading={loading}
         rows={paged.items}
         columns={[
-          { key: 'course', label: 'Course', main: true, render: (r) => r.course?.course_name || 'â€”' },
-          { key: 'level', label: 'Level', render: (r) => r.level?.name || r.level_id || 'â€”' },
-          { key: 'semester', label: 'Semester', render: (r) => r.semester?.name || 'â€”' },
+          { key: 'course', label: 'Course', main: true, render: (r) => r.course?.course_name || '—' },
+          { key: 'level', label: 'Level', render: (r) => r.level?.name || r.level_id || '—' },
+          { key: 'semester', label: 'Semester', render: (r) => r.semester?.name || '—' },
           { key: 'department', label: 'Department', render: (r) => r.department?.name || 'General' },
           { key: 'day_of_week', label: 'Day', render: (r) => <Badge tone="vio">{r.day_of_week}</Badge> },
-          { key: 'time', label: 'Time', render: (r) => `${(r.start_time || '').slice(0, 5)} â€“ ${(r.end_time || '').slice(0, 5)}` },
+          { key: 'time', label: 'Time', render: (r) => `${(r.start_time || '').slice(0, 5)} – ${(r.end_time || '').slice(0, 5)}` },
           { key: 'section_type', label: 'Type', render: (r) => <Badge tone="cy">{r.section_type}</Badge> },
         ]}
         onEdit={openEdit}
@@ -96,7 +96,7 @@ toast.success('Schedule saved.')
           <Field label="Level ID" hint="Numeric id from the levels table" error={errors?.level_id?.[0]}><input className="input" type="number" min="1" value={form.level_id} onChange={(e) => setForm({ ...form, level_id: e.target.value })} placeholder="e.g. 1" /></Field>
           <Field label="Semester" error={errors?.semester_id?.[0]}>
             <select className="select" value={form.semester_id} onChange={(e) => setForm({ ...form, semester_id: e.target.value })}>
-              <option value="">â€” Select â€”</option>
+              <option value="">— Select —</option>
               {sems.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </Field>
@@ -104,13 +104,13 @@ toast.success('Schedule saved.')
         <div className="grid grid-2" style={{ gap: 14 }}>
           <Field label="Course" error={errors?.course_id?.[0]}>
             <select className="select" value={form.course_id} onChange={(e) => setForm({ ...form, course_id: e.target.value })}>
-              <option value="">â€” Select â€”</option>
+              <option value="">— Select —</option>
               {courses.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </Field>
           <Field label="Department (optional)" error={errors?.department_id?.[0]}>
             <select className="select" value={form.department_id} onChange={(e) => setForm({ ...form, department_id: e.target.value })}>
-              <option value="">â€” General â€”</option>
+              <option value="">— General —</option>
               {depts.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </Field>

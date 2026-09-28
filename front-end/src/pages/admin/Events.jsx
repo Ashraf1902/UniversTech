@@ -52,8 +52,8 @@ export function AdminEvents() {
         columns={[
           { key: 'title', label: 'Event', main: true },
           { key: 'content', label: 'Details', render: (r) => <span style={{ display: 'inline-block', maxWidth: 340, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.content}</span> },
-          { key: 'created_by', label: 'Published by', render: (r) => r.created_by || 'â€”' },
-          { key: 'created_at', label: 'Date', render: (r) => (r.created_at ? new Date(r.created_at).toLocaleDateString() : 'â€”') },
+          { key: 'created_by', label: 'Published by', render: (r) => r.created_by || '—' },
+          { key: 'created_at', label: 'Date', render: (r) => (r.created_at ? new Date(r.created_at).toLocaleDateString() : '—') },
         ]}
         onEdit={(row) => { setEditId(row.id); setForm({ title: row.title || '', content: row.content || '', image: null }); setOpen(true) }}
         onDelete={remove}

@@ -77,9 +77,9 @@ export function AdminDepartments() {
         rows={paged.items}
         columns={[
           { key: 'name', label: 'Name', main: true },
-          { key: 'abbreviation', label: 'Abbreviation', render: (r) => <Badge tone="vio">{r.abbreviation || 'â€”'}</Badge> },
-          { key: 'created_by', label: 'Created by', render: (r) => r.created_by || 'â€”' },
-          ...(archived ? [{ key: 'deleted_at', label: 'Archived on', render: (r) => (r.deleted_at ? new Date(r.deleted_at).toLocaleDateString() : 'â€”') }] : [{ key: 'created_at', label: 'Created', render: (r) => (r.created_at ? new Date(r.created_at).toLocaleDateString() : 'â€”') }]),
+          { key: 'abbreviation', label: 'Abbreviation', render: (r) => <Badge tone="vio">{r.abbreviation || '—'}</Badge> },
+          { key: 'created_by', label: 'Created by', render: (r) => r.created_by || '—' },
+          ...(archived ? [{ key: 'deleted_at', label: 'Archived on', render: (r) => (r.deleted_at ? new Date(r.deleted_at).toLocaleDateString() : '—') }] : [{ key: 'created_at', label: 'Created', render: (r) => (r.created_at ? new Date(r.created_at).toLocaleDateString() : '—') }]),
         ]}
         onEdit={archived ? undefined : (row) => { setEditId(row.id); setForm({ name: row.name || '', abbrevation: row.abbreviation || '' }); setOpen(true) }}
         onDelete={archived ? undefined : remove}

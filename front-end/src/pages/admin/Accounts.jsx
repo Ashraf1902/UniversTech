@@ -135,15 +135,15 @@ const remove = async (row) => {
             ? [
                 { key: 'name', label: 'Name', main: true },
                 { key: 'email', label: 'Email' },
-                { key: 'level', label: 'Level', render: (r) => r.level || 'â€”' },
+                { key: 'level', label: 'Level', render: (r) => r.level || '—' },
                 { key: 'department', label: 'Department', render: (r) => r.department || 'General' },
-                { key: 'created_at', label: 'Joined', render: (r) => (r.created_at ? new Date(r.created_at).toLocaleDateString() : 'â€”') },
+                { key: 'created_at', label: 'Joined', render: (r) => (r.created_at ? new Date(r.created_at).toLocaleDateString() : '—') },
               ]
             : [
                 { key: 'name', label: 'Name', main: true },
                 { key: 'email', label: 'Email' },
-                { key: 'job_title', label: 'Title', render: (r) => r.job_title || 'â€”' },
-                { key: 'created_at', label: 'Joined', render: (r) => (r.created_at ? new Date(r.created_at).toLocaleDateString() : 'â€”') },
+                { key: 'job_title', label: 'Title', render: (r) => r.job_title || '—' },
+                { key: 'created_at', label: 'Joined', render: (r) => (r.created_at ? new Date(r.created_at).toLocaleDateString() : '—') },
               ]
         }
 onEdit={archived ? undefined : openEdit}
@@ -183,7 +183,7 @@ onEdit={archived ? undefined : openEdit}
         <div className="grid grid-2" style={{ gap: 14 }}>
           <Field label="Department" error={errors?.department_id?.[0]}>
             <select className="select" value={form.department_id} onChange={(e) => setForm({ ...form, department_id: e.target.value })}>
-              <option value="">â€” None (General) â€”</option>
+              <option value="">— None (General) —</option>
               {departments.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </Field>
@@ -196,7 +196,7 @@ onEdit={archived ? undefined : openEdit}
         {form.type === 0 ? (
           <Field label="Semester" error={errors?.semester?.[0]}>
             <select className="select" value={form.semester} onChange={(e) => setForm({ ...form, semester: e.target.value })}>
-              <option value="">â€” None â€”</option>
+              <option value="">— None —</option>
               <option value="first">First</option>
               <option value="second">Second</option>
             </select>

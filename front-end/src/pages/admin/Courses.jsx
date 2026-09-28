@@ -104,12 +104,12 @@ const remove = async (row) => {
         columns={[
           { key: 'course_name', label: 'Course', main: true, render: (r) => (<div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><span className="av" style={{ width: 36, height: 36, borderRadius: 10, background: r.cover_image && !r.cover_image.endsWith('default.jpg') ? `center/cover url(${r.cover_image})` : 'var(--grad)', fontSize: '0.7rem' }} />{r.course_name}</div>) },
           { key: 'course_code', label: 'Code', render: (r) => <Badge tone="vio">{r.course_code}</Badge> },
-          { key: 'professor', label: 'Professor', render: (r) => r.professor || 'â€”' },
+          { key: 'professor', label: 'Professor', render: (r) => r.professor || '—' },
           { key: 'department', label: 'Department', render: (r) => r.department || 'General' },
-          { key: 'semester', label: 'Semester', render: (r) => r.semester || 'â€”' },
+          { key: 'semester', label: 'Semester', render: (r) => r.semester || '—' },
           { key: 'no_of_hours', label: 'Hours' },
 { key: 'lecture_count', label: 'Lectures' },
-          ...(archived ? [{ key: 'deleted_at', label: 'Archived on', render: (r) => (r.deleted_at ? new Date(r.deleted_at).toLocaleDateString() : 'â€”') }] : []),
+          ...(archived ? [{ key: 'deleted_at', label: 'Archived on', render: (r) => (r.deleted_at ? new Date(r.deleted_at).toLocaleDateString() : '—') }] : []),
         ]}
         onEdit={archived ? undefined : openEdit}
         onDelete={archived ? undefined : remove}
@@ -126,7 +126,7 @@ const remove = async (row) => {
           <Field label="Credit hours" error={errors?.no_of_hours?.[0]}><input className="input" type="number" min="1" value={form.no_of_hours} onChange={(e) => setForm({ ...form, no_of_hours: e.target.value })} /></Field>
           <Field label="Professor" error={errors?.professor_id?.[0]}>
             <select className="select" value={form.professor_id} onChange={(e) => setForm({ ...form, professor_id: e.target.value })}>
-              <option value="">â€” Select professor â€”</option>
+              <option value="">— Select professor —</option>
               {profs.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </Field>
@@ -134,13 +134,13 @@ const remove = async (row) => {
         <div className="grid grid-2" style={{ gap: 14 }}>
           <Field label="Department (optional)" error={errors?.department_id?.[0]}>
             <select className="select" value={form.department_id} onChange={(e) => setForm({ ...form, department_id: e.target.value })}>
-              <option value="">â€” General (all) â€”</option>
+              <option value="">— General (all) —</option>
               {depts.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </Field>
           <Field label="Semester (optional)" error={errors?.semester_id?.[0]}>
             <select className="select" value={form.semester_id} onChange={(e) => setForm({ ...form, semester_id: e.target.value })}>
-              <option value="">â€” Any â€”</option>
+              <option value="">— Any —</option>
               {sems.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </Field>

@@ -16,13 +16,13 @@ function SemesterCardExplorer({ students, sems }) {
         <div className="grid grid-2">
           <Field label="Student">
             <select className="select" value={studentId} onChange={(e) => setStudentId(e.target.value)}>
-              <option value="">â€” Select student â€”</option>
+              <option value="">— Select student —</option>
               {students.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </Field>
-          <Field label="Semester (optional â€” defaults to active)">
+          <Field label="Semester (optional — defaults to active)">
             <select className="select" value={semesterId} onChange={(e) => setSemesterId(e.target.value)}>
-              <option value="">â€” Active semester â€”</option>
+              <option value="">— Active semester —</option>
               {sems.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </Field>
@@ -38,11 +38,11 @@ function SemesterCardExplorer({ students, sems }) {
           <div className="card-head">
             <div>
               <h3 style={{ marginBottom: 4 }}>{d.student?.name}</h3>
-              <div style={{ fontSize: '0.8rem', color: 'var(--faint)' }}>{d.student?.level || 'â€”'} Â· {d.student?.department || 'General'} Â· {d.semester?.name} ({d.semester?.academic_year})</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--faint)' }}>{d.student?.level || '—'} · {d.student?.department || 'General'} · {d.semester?.name} ({d.semester?.academic_year})</div>
             </div>
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1.4rem' }}>
-                {d.semester?.grading_system === 'fixed_term' ? `${d.summary?.percentage ?? 'â€”'}%` : d.summary?.gpa ?? 'â€”'}
+                {d.semester?.grading_system === 'fixed_term' ? `${d.summary?.percentage ?? '—'}%` : d.summary?.gpa ?? '—'}
               </div>
               <RateBadge rate={d.summary?.grade} />
             </div>
@@ -61,8 +61,8 @@ function SemesterCardExplorer({ students, sems }) {
                     <td className="cell-main">{c.course_name}</td>
                     <td>{c.course_code}</td>
                     <td>{c.credit_hours}</td>
-                    <td>{c.marks != null ? `${c.marks}/${c.max_marks}` : 'â€”'}</td>
-                    <td>{c.percentage != null ? `${c.percentage}%` : 'â€”'}</td>
+                    <td>{c.marks != null ? `${c.marks}/${c.max_marks}` : '—'}</td>
+                    <td>{c.percentage != null ? `${c.percentage}%` : '—'}</td>
                     <td style={{ textAlign: 'right' }}>{c.status === 'graded' ? <Badge tone="grn" dot>Graded</Badge> : <Badge tone="amb" dot>Pending</Badge>}</td>
                   </tr>
                 ))}
@@ -196,11 +196,11 @@ const remove = async (row) => {
             columns={[
               { key: 'student', label: 'Student', main: true },
               { key: 'course', label: 'Course' },
-              { key: 'semester', label: 'Semester', render: (r) => r.semester || 'â€”' },
+              { key: 'semester', label: 'Semester', render: (r) => r.semester || '—' },
               { key: 'marks', label: 'Marks', render: (r) => `${r.marks}/${r.max_marks}` },
               { key: 'percentage', label: '%', render: (r) => (<div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 130 }}><Prog value={r.percentage} sm /><span style={{ fontSize: '0.78rem' }}>{r.percentage}%</span></div>) },
               { key: 'letter_grade', label: 'Rate', render: (r) => <RateBadge rate={r.letter_grade} /> },
-              ...(archived ? [{ key: 'deleted_at', label: 'Archived on', render: (r) => (r.deleted_at ? new Date(r.deleted_at).toLocaleDateString() : 'â€”') }] : []),
+              ...(archived ? [{ key: 'deleted_at', label: 'Archived on', render: (r) => (r.deleted_at ? new Date(r.deleted_at).toLocaleDateString() : '—') }] : []),
             ]}
             onDelete={archived ? undefined : remove}
             onRestore={archived ? restore : undefined}
@@ -216,13 +216,13 @@ const remove = async (row) => {
         <div className="grid grid-2" style={{ gap: 14 }}>
           <Field label="Student" error={errors?.student_id?.[0]}>
             <select className="select" value={form.student_id} onChange={(e) => setForm({ ...form, student_id: e.target.value })}>
-              <option value="">â€” Select â€”</option>
+              <option value="">— Select —</option>
               {students.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </Field>
           <Field label="Course" error={errors?.course_id?.[0]}>
             <select className="select" value={form.course_id} onChange={(e) => setForm({ ...form, course_id: e.target.value })}>
-              <option value="">â€” Select â€”</option>
+              <option value="">— Select —</option>
               {courses.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </Field>
@@ -231,9 +231,9 @@ const remove = async (row) => {
           <Field label="Marks" error={errors?.marks?.[0]}><input className="input" type="number" min="0" value={form.marks} onChange={(e) => setForm({ ...form, marks: e.target.value })} /></Field>
           <Field label="Max marks" error={errors?.max_marks?.[0]}><input className="input" type="number" min="1" value={form.max_marks} onChange={(e) => setForm({ ...form, max_marks: e.target.value })} /></Field>
         </div>
-        <Field label="Semester (optional â€” defaults to active)" error={errors?.semester_id?.[0]}>
+        <Field label="Semester (optional — defaults to active)" error={errors?.semester_id?.[0]}>
           <select className="select" value={form.semester_id} onChange={(e) => setForm({ ...form, semester_id: e.target.value })}>
-            <option value="">â€” Active semester â€”</option>
+            <option value="">— Active semester —</option>
             {sems.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </Field>
