@@ -19,7 +19,12 @@ class EventAdminController extends Controller
 
     public function index(Request $request)
     {
-        $events = Event::orderByDesc('created_at')
+        $events = Event::query()
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $term = $request->search;
+                $q->where(fn ($qq) => $qq->where('title', 'like', "%{$term}%")->orWhere('content', 'like', "%{$term}%"));
+            })
+            ->orderByDesc('created_at')
             ->with('admin')
             ->paginate(15)
             ->through(fn (Event $event) => $this->formatEvent($event));

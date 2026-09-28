@@ -210,6 +210,11 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 700; line-height
 }
 .select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 38px; }
 .select option { background: var(--panel); color: var(--txt); }
+.search-bar { position: relative; }
+.search-bar .search-bar-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--faint); pointer-events: none; }
+.search-bar .input { padding-left: 42px; }
+.search-bar-clear { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; color: var(--muted); border: 1px solid var(--line); background: var(--card); transition: all 0.25s var(--ease); }
+.search-bar-clear:hover { color: var(--txt); border-color: var(--vio); }
 .textarea { resize: vertical; min-height: 90px; }
 .radio-row { display: flex; gap: 8px; flex-wrap: wrap; }
 .chip {
@@ -803,6 +808,9 @@ html[dir='rtl'] .top-actions { margin-left: 0; margin-right: auto; }
 html[dir='rtl'] .user-mini .meta { text-align: right !important; }
 html[dir='rtl'] .user-mini > svg { margin-left: 0 !important; margin-right: auto; }
 html[dir='rtl'] .pager, html[dir='rtl'] .row-actions { direction: ltr; }
+html[dir='rtl'] .search-bar .search-bar-icon { left: auto; right: 14px; }
+html[dir='rtl'] .search-bar .input { padding-left: 14px; padding-right: 42px; }
+html[dir='rtl'] .search-bar-clear { right: auto; left: 8px; }
 html[dir='rtl'] .table th, html[dir='rtl'] .table td { text-align: right; }
 html[dir='rtl'] .table th[style*='right'], html[dir='rtl'] .table td[style*='right'] { text-align: left; }
 html[dir='rtl'] .card-head, html[dir='rtl'] .page-head, html[dir='rtl'] .modal-head { text-align: right; }

@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { buildQuery, request } from '../../lib/api'
+import { useI18n } from '../../lib/i18n'
 import { useAsync } from '../../lib/hooks'
 import { Badge, Btn, Empty, Field, Modal, Spinner, useToast } from '../../lib/ui'
 import { CourseSelect, Head, useFieldErrors, useMyCourses } from './_shared'
 export function ProfessorStudents() {
+  const { t } = useI18n()
   const [params, setParams] = useSearchParams()
   const { courses, loading: cLoading } = useMyCourses()
   const courseId = Number(params.get('course')) || ''
@@ -29,7 +31,7 @@ export function ProfessorStudents() {
         method: 'POST',
         data: { student_id: target.id, lecture_id: Number(form.lecture_id), date: form.date, status: form.status, reason: form.reason || null },
       })
-      toast.success(`Attendance recorded for ${target.name}.`)
+      toast.success(t('attendanceRecorded', { name: target.name }))
       setTarget(null)
       clearErrors()
     } catch (e) {
@@ -41,20 +43,20 @@ export function ProfessorStudents() {
 
   return (
     <>
-      <Head kicker="Classroom" title="Students & attendance" sub="Pick a course to see its enrolled students and record attendance." />
+<Head kicker={t('classroom')} title={t('studentsAttendanceTitle')} sub={t('studentsAttendanceSub')} />
       <div className="card" style={{ marginBottom: 22, maxWidth: 520 }}>
         <CourseSelect courses={courses} value={courseId} onChange={setCourse} loading={cLoading} />
       </div>
 
       {!courseId ? (
-        <Empty icon="users" title="Select a course" sub="Choose one of your courses to load its students." />
+        <Empty icon="users" title={t('selectCourse')} sub={t('chooseCourseSub')} />
       ) : students.loading ? (
         <Spinner size={24} />
       ) : list.length ? (
         <div className="table-wrap">
           <table className="table">
             <thead>
-              <tr><th>Student</th><th>Email</th><th>Gender</th><th>Attendance</th><th style={{ textAlign: 'right' }}>Action</th></tr>
+              <tr><th>{t('student')}</th><th>{t('email')}</th><th>{t('gender')}</th><th>{t('attendance')}</th><th style={{ textAlign: 'right' }}>{t('action')}</th></tr>
             </thead>
             <tbody>
               {list.map((s) => {
@@ -64,13 +66,13 @@ export function ProfessorStudents() {
                   <tr key={s.id}>
                     <td className="cell-main">{s.name}</td>
                     <td>{s.email}</td>
-                    <td>{s.gender}</td>
+                    <td>{s.gender === 'Female' ? t('female') : s.gender === 'Male' ? t('male') : (s.gender || '—')}</td>
                     <td>
-                      <Badge tone="grn">{present} present</Badge>{' '}
-                      <Badge tone={att.length - present ? 'red' : ''}>{att.length - present} absent</Badge>
+                      <Badge tone="grn">{t('presentCount', { n: present })}</Badge>{' '}
+                      <Badge tone={att.length - present ? 'red' : ''}>{t('absentCount', { n: att.length - present })}</Badge>
                     </td>
                     <td style={{ textAlign: 'right' }}>
-                      <Btn size="sm" icon="check" onClick={() => { clearErrors(); setTarget(s); setForm((f) => ({ ...f, lecture_id: lectureList[0]?.id || '' })) }}>Attendance</Btn>
+                      <Btn size="sm" icon="check" onClick={() => { clearErrors(); setTarget(s); setForm((f) => ({ ...f, lecture_id: lectureList[0]?.id || '' })) }}>{t('attendance')}</Btn>
                     </td>
                   </tr>
                 )
@@ -79,45 +81,45 @@ export function ProfessorStudents() {
           </table>
         </div>
       ) : (
-        <Empty icon="users" title="No students enrolled" />
+        <Empty icon="users" title={t('noStudentsEnrolled')} />
       )}
 
       <Modal
         open={!!target}
         onClose={() => setTarget(null)}
-        title={`Attendance — ${target?.name || ''}`}
+        title={t('attendanceTitle', { name: target?.name || '' })}
         footer={
           <>
-            <Btn variant="ghost" onClick={() => setTarget(null)}>Cancel</Btn>
-            <Btn loading={busy} onClick={submit} icon="check" disabled={!form.lecture_id}>Save</Btn>
+            <Btn variant="ghost" onClick={() => setTarget(null)}>{t('cancel')}</Btn>
+            <Btn loading={busy} onClick={submit} icon="check" disabled={!form.lecture_id}>{t('save')}</Btn>
           </>
         }
       >
         {lectureList.length ? (
           <>
-<Field label="Lecture" error={errors?.lecture_id?.[0]}>
+<Field label={t('lecture')} error={errors?.lecture_id?.[0]}>
               <select className="select" value={form.lecture_id} onChange={(e) => setForm({ ...form, lecture_id: e.target.value })}>
-                <option value="">— Select lecture —</option>
+                <option value="">{t('selectLecture')}</option>
                 {lectureList.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
               </select>
             </Field>
-            <Field label="Date" error={errors?.date?.[0]}>
+            <Field label={t('date')} error={errors?.date?.[0]}>
               <input className="input" type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
             </Field>
-            <Field label="Status">
+            <Field label={t('status')}>
               <div className="radio-row">
-                <button type="button" className={`chip ${form.status ? 'on' : ''}`} onClick={() => setForm({ ...form, status: true })}>Present</button>
-                <button type="button" className={`chip ${!form.status ? 'on' : ''}`} onClick={() => setForm({ ...form, status: false })}>Absent</button>
+                <button type="button" className={`chip ${form.status ? 'on' : ''}`} onClick={() => setForm({ ...form, status: true })}>{t('present')}</button>
+                <button type="button" className={`chip ${!form.status ? 'on' : ''}`} onClick={() => setForm({ ...form, status: false })}>{t('absent')}</button>
               </div>
             </Field>
             {!form.status ? (
-              <Field label="Reason (optional)" error={errors?.reason?.[0]}>
-                <textarea className="textarea" value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} placeholder="Reason for absence" />
+              <Field label={t('reasonOptional')} error={errors?.reason?.[0]}>
+                <textarea className="textarea" value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} placeholder={t('reasonPh')} />
               </Field>
             ) : null}
           </>
         ) : (
-          <Empty icon="file" title="No lectures yet" sub="Upload a lecture first, then you can record attendance against it." />
+          <Empty icon="file" title={t('noLecturesYet')} sub={t('uploadLectureFirst')} />
         )}
       </Modal>
     </>

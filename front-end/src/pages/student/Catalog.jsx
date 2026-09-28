@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { normalizePage, request } from '../../lib/api'
+import { useI18n } from '../../lib/i18n'
 import { useAsync } from '../../lib/hooks'
 import { Badge, Btn, Empty, I, Pager, Reveal, useToast } from '../../lib/ui'
 import { Head } from './_shared'
 export function StudentCatalog() {
+  const { t } = useI18n()
   const [page, setPage] = useState(1)
   const [selected, setSelected] = useState([])
   const [busy, setBusy] = useState(false)
@@ -14,11 +16,11 @@ export function StudentCatalog() {
   const toggle = (id) => setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]))
 
   const register = async () => {
-    if (!selected.length) return toast.info('Select at least one course first.')
+    if (!selected.length) return toast.info(t('selectCourseFirst'))
     setBusy(true)
     try {
       const res = await request('/api/user/register-course', { method: 'POST', data: { course_ids: selected } })
-      toast.success(res?.registered?.length ? `Registered ${res.registered.length} course(s).` : 'Registration completed.')
+      toast.success(res?.registered?.length ? t('registeredCount', { n: res.registered.length }) : t('registrationCompleted'))
       setSelected([])
       run().catch(() => {})
     } catch (e) {
@@ -31,12 +33,12 @@ export function StudentCatalog() {
   return (
     <>
       <Head
-        kicker="Catalog"
-        title="Register for courses"
-        sub="Pick the courses for your semester, then confirm your registration."
+        kicker={t('catalog')}
+        title={t('registerForCourses')}
+        sub={t('registerForCoursesSub')}
         actions={
           <Btn loading={busy} onClick={register} icon="check">
-            Register {selected.length ? `(${selected.length})` : ''}
+            {t('register')}{selected.length ? ` (${selected.length})` : ''}
           </Btn>
         }
       />
@@ -59,10 +61,10 @@ export function StudentCatalog() {
                     </span>
                   </div>
                   <h3 style={{ fontSize: '1rem' }}>{c.course_name}</h3>
-                  <p style={{ fontSize: '0.85rem' }}>{c.professor || 'No professor assigned'}</p>
+                  <p style={{ fontSize: '0.85rem' }}>{c.professor || t('noProfessorAssigned')}</p>
                   <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
                     {c.course_code ? <Badge tone="vio">{c.course_code}</Badge> : null}
-                    {c.no_of_hours ? <Badge tone="cy">{c.no_of_hours} credit hrs</Badge> : null}
+                    {c.no_of_hours ? <Badge tone="cy">{t('creditHrs', { n: c.no_of_hours })}</Badge> : null}
                   </div>
                 </Reveal>
               )
@@ -71,7 +73,7 @@ export function StudentCatalog() {
           <Pager page={paged.page} last={paged.last_page} onPage={setPage} />
         </>
       ) : (
-        <Empty icon="layers" title="No courses available" sub="There are no courses open for your semester and department yet." />
+        <Empty icon="layers" title={t('noCoursesAvailable')} sub={t('noCoursesAvailableSub')} />
       )}
     </>
   )

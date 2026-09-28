@@ -18,7 +18,7 @@ class AccountAdminController extends Controller
 
     public function getDoctors(Request $request)
     {
-        $doctors = $this->userQuery(User::TYPE_PROFESSOR, $request->boolean('deleted'))
+        $doctors = $this->userQuery(User::TYPE_PROFESSOR, $request->boolean('deleted'), $request->input('search'))
             ->orderByDesc('created_at')
             ->with(['admin', 'student', 'professor.department'])
             ->paginate(15)
@@ -29,7 +29,7 @@ class AccountAdminController extends Controller
 
     public function getStudents(Request $request)
     {
-        $students = $this->userQuery(User::TYPE_STUDENT, $request->boolean('deleted'))
+        $students = $this->userQuery(User::TYPE_STUDENT, $request->boolean('deleted'), $request->input('search'))
             ->orderByDesc('created_at')
             ->with(['admin', 'student.department', 'student.level'])
             ->paginate(15)
@@ -38,11 +38,18 @@ class AccountAdminController extends Controller
         return SendResponse(200, 'Students fetched successfully.', $students);
     }
 
-    private function userQuery(int $type, bool $deleted)
+    private function userQuery(int $type, bool $deleted, ?string $search = null)
     {
-        return $deleted
+        $query = $deleted
             ? User::onlyTrashed()->where('type', $type)
             : User::where('type', $type);
+
+        if ($search !== null && $search !== '') {
+            $term = $search;
+            $query->where(fn ($q) => $q->where('name', 'like', "%{$term}%")->orWhere('email', 'like', "%{$term}%"));
+        }
+
+        return $query;
     }
 
     public function store(AdminStoreAccountRequest $request)

@@ -15,6 +15,10 @@ class SemesterAdminController extends Controller
     public function index(Request $request)
     {
         $semesters = Semester::withCount('courses')
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $term = $request->search;
+                $q->where(fn ($qq) => $qq->where('name', 'like', "%{$term}%")->orWhere('academic_year', 'like', "%{$term}%"));
+            })
             ->orderByDesc('created_at')
             ->paginate(15);
 

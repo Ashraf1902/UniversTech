@@ -2,14 +2,18 @@ import { useState } from 'react'
 import { request } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 import { Badge, Btn, Field, Pager, useToast } from '../../lib/ui'
-import { DataTable, FormModal, Head, useFieldErrors, useList, useOptions } from './_shared'
+import { useI18n } from '../../lib/i18n'
+import { DataTable, FormModal, Head, SearchBar, useDebounced, useFieldErrors, useList, useOptions, withSearch } from './_shared'
 export function AdminCourses() {
+  const { t } = useI18n()
   const [page, setPage] = useState(1)
   const [archived, setArchived] = useState(false)
+  const [q, setQ] = useState('')
+  const search = useDebounced(q)
   const toast = useToast()
   const { user } = useAuth()
   const isSuper = Boolean(user?.is_super_admin)
-  const { paged, loading, run } = useList(archived ? '/api/course/get/all?deleted=1' : '/api/course/get/all', page, [archived])
+  const { paged, loading, run } = useList(withSearch(archived ? '/api/course/get/all?deleted=1' : '/api/course/get/all', search), page, [archived, search])
   const depts = useOptions('/api/department/get/all', (d) => ({ value: d.id, label: d.name }))
   const profs = useOptions('/api/doctor/get/all', (u) => ({ value: u.id, label: u.name }))
   const sems = useOptions('/api/semester/get/all', (s) => ({ value: s.id, label: `${s.name} (${s.academic_year})` }))
@@ -47,7 +51,7 @@ const [busy, setBusy] = useState(false)
       fd.append('professor_id', form.professor_id)
       if (form.cover_image) fd.append('cover_image', form.cover_image)
       await request(editId ? '/api/course/update' : '/api/course/store', { method: 'POST', formData: fd })
-      toast.success('Course saved.')
+      toast.success(t('courseSaved'))
       setOpen(false)
       clearErrors()
       run().catch(() => {})
@@ -59,10 +63,10 @@ const [busy, setBusy] = useState(false)
   }
 
 const remove = async (row) => {
-    if (!window.confirm(`Archive course "${row.course_name}"? Lectures and files are kept.`)) return
+    if (!window.confirm(t('confirmArchiveCourse', { name: row.course_name }))) return
     try {
       await request(`/api/course/delete/${row.id}`, { method: 'DELETE' })
-      toast.success('Course archived.')
+      toast.success(t('courseArchived'))
       run().catch(() => {})
     } catch (e) {
       toast.error(e.message)
@@ -70,10 +74,10 @@ const remove = async (row) => {
   }
 
   const restore = async (row) => {
-    if (!window.confirm(`Restore course "${row.course_name}"?`)) return
+    if (!window.confirm(t('confirmRestoreCourse', { name: row.course_name }))) return
     try {
       await request(`/api/course/restore/${row.id}`, { method: 'POST' })
-      toast.success('Course restored.')
+      toast.success(t('courseRestored'))
       run().catch(() => {})
     } catch (e) {
       toast.error(e.message)
@@ -81,10 +85,10 @@ const remove = async (row) => {
   }
 
   const purge = async (row) => {
-    if (!window.confirm(`Permanently delete course "${row.course_name}"? This removes its lectures, quizzes, and schedules.`)) return
+    if (!window.confirm(t('confirmPurgeCourse', { name: row.course_name }))) return
     try {
       await request(`/api/course/purge/${row.id}`, { method: 'DELETE' })
-      toast.success('Course permanently deleted.')
+      toast.success(t('courseDeleted'))
       run().catch(() => {})
     } catch (e) {
       toast.error(e.message)
@@ -93,59 +97,60 @@ const remove = async (row) => {
 
   return (
     <>
-      <Head kicker="Academics" title="Courses" sub="Every course, its professor, department, semester, and cover." actions={!archived ? <Btn icon="plus" onClick={() => { setEditId(null); setForm({ course_name: '', no_of_hours: '', course_code: '', department_id: '', professor_id: '', semester_id: '', cover_image: null }); setOpen(true) }}>New course</Btn> : null} />
+<Head kicker={t('academics')} title={t('courses')} sub={t('coursesSub')} actions={!archived ? <Btn icon="plus" onClick={() => { setEditId(null); setForm({ course_name: '', no_of_hours: '', course_code: '', department_id: '', professor_id: '', semester_id: '', cover_image: null }); setOpen(true) }}>{t('newCourse')}</Btn> : null} />
       <div className="seg" style={{ marginBottom: 22, maxWidth: 300 }}>
-        <button className={!archived ? 'on' : ''} onClick={() => { setArchived(false); setPage(1) }}>Active</button>
-        <button className={archived ? 'on' : ''} onClick={() => { setArchived(true); setPage(1) }}>Archived</button>
+        <button className={!archived ? 'on' : ''} onClick={() => { setArchived(false); setPage(1) }}>{t('active')}</button>
+        <button className={archived ? 'on' : ''} onClick={() => { setArchived(true); setPage(1) }}>{t('archived')}</button>
       </div>
+      <SearchBar value={q} onChange={(v) => { setQ(v); setPage(1) }} placeholder={t('searchCoursesPh')} style={{ marginBottom: 22, maxWidth: 420 }} />
       <DataTable
         loading={loading}
         rows={paged.items}
         columns={[
-          { key: 'course_name', label: 'Course', main: true, render: (r) => (<div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><span className="av" style={{ width: 36, height: 36, borderRadius: 10, background: r.cover_image && !r.cover_image.endsWith('default.jpg') ? `center/cover url(${r.cover_image})` : 'var(--grad)', fontSize: '0.7rem' }} />{r.course_name}</div>) },
-          { key: 'course_code', label: 'Code', render: (r) => <Badge tone="vio">{r.course_code}</Badge> },
-          { key: 'professor', label: 'Professor', render: (r) => r.professor || '—' },
-          { key: 'department', label: 'Department', render: (r) => r.department || 'General' },
-          { key: 'semester', label: 'Semester', render: (r) => r.semester || '—' },
-          { key: 'no_of_hours', label: 'Hours' },
-{ key: 'lecture_count', label: 'Lectures' },
-          ...(archived ? [{ key: 'deleted_at', label: 'Archived on', render: (r) => (r.deleted_at ? new Date(r.deleted_at).toLocaleDateString() : '—') }] : []),
+          { key: 'course_name', label: t('course'), main: true, render: (r) => (<div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><span className="av" style={{ width: 36, height: 36, borderRadius: 10, background: r.cover_image && !r.cover_image.endsWith('default.jpg') ? `center/cover url(${r.cover_image})` : 'var(--grad)', fontSize: '0.7rem' }} />{r.course_name}</div>) },
+          { key: 'course_code', label: t('code'), render: (r) => <Badge tone="vio">{r.course_code}</Badge> },
+          { key: 'professor', label: t('professor'), render: (r) => r.professor || '—' },
+          { key: 'department', label: t('department'), render: (r) => r.department || t('general') },
+          { key: 'semester', label: t('semester'), render: (r) => r.semester || '—' },
+          { key: 'no_of_hours', label: t('hours') },
+{ key: 'lecture_count', label: t('lectures') },
+          ...(archived ? [{ key: 'deleted_at', label: t('archivedOn'), render: (r) => (r.deleted_at ? new Date(r.deleted_at).toLocaleDateString() : '—') }] : []),
         ]}
         onEdit={archived ? undefined : openEdit}
         onDelete={archived ? undefined : remove}
         onRestore={archived ? restore : undefined}
         onPurge={archived && isSuper ? purge : undefined}
       />
-      <Pager page={paged.page} last={paged.last_page} onPage={setPage} />
-<FormModal open={open} onClose={() => setOpen(false)} title={editId ? 'Edit course' : 'New course'} onSubmit={submit} busy={busy} errors={errors} onFormClose={clearErrors}>
+<Pager page={paged.page} last={paged.last_page} onPage={setPage} />
+<FormModal open={open} onClose={() => setOpen(false)} title={editId ? t('editCourse') : t('newCourse')} onSubmit={submit} busy={busy} errors={errors} onFormClose={clearErrors}>
         <div className="grid grid-2" style={{ gap: 14 }}>
-          <Field label="Course name" error={errors?.course_name?.[0]}><input className="input" value={form.course_name} onChange={(e) => setForm({ ...form, course_name: e.target.value })} /></Field>
-          <Field label="Course code" error={errors?.course_code?.[0]}><input className="input" value={form.course_code} onChange={(e) => setForm({ ...form, course_code: e.target.value })} /></Field>
+          <Field label={t('courseName')} error={errors?.course_name?.[0]}><input className="input" value={form.course_name} onChange={(e) => setForm({ ...form, course_name: e.target.value })} /></Field>
+          <Field label={t('courseCode')} error={errors?.course_code?.[0]}><input className="input" value={form.course_code} onChange={(e) => setForm({ ...form, course_code: e.target.value })} /></Field>
         </div>
         <div className="grid grid-2" style={{ gap: 14 }}>
-          <Field label="Credit hours" error={errors?.no_of_hours?.[0]}><input className="input" type="number" min="1" value={form.no_of_hours} onChange={(e) => setForm({ ...form, no_of_hours: e.target.value })} /></Field>
-          <Field label="Professor" error={errors?.professor_id?.[0]}>
+          <Field label={t('creditHours')} error={errors?.no_of_hours?.[0]}><input className="input" type="number" min="1" value={form.no_of_hours} onChange={(e) => setForm({ ...form, no_of_hours: e.target.value })} /></Field>
+          <Field label={t('professor')} error={errors?.professor_id?.[0]}>
             <select className="select" value={form.professor_id} onChange={(e) => setForm({ ...form, professor_id: e.target.value })}>
-              <option value="">— Select professor —</option>
+              <option value="">{t('selectProfessor')}</option>
               {profs.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </Field>
         </div>
         <div className="grid grid-2" style={{ gap: 14 }}>
-          <Field label="Department (optional)" error={errors?.department_id?.[0]}>
+          <Field label={t('departmentOptional')} error={errors?.department_id?.[0]}>
             <select className="select" value={form.department_id} onChange={(e) => setForm({ ...form, department_id: e.target.value })}>
-              <option value="">— General (all) —</option>
+              <option value="">{t('generalAllOption')}</option>
               {depts.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </Field>
-          <Field label="Semester (optional)" error={errors?.semester_id?.[0]}>
+          <Field label={t('semesterOptional')} error={errors?.semester_id?.[0]}>
             <select className="select" value={form.semester_id} onChange={(e) => setForm({ ...form, semester_id: e.target.value })}>
-              <option value="">— Any —</option>
+              <option value="">{t('anyOption')}</option>
               {sems.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </Field>
         </div>
-        <Field label="Cover image" error={errors?.cover_image?.[0]}><input className="input" type="file" accept="image/*" onChange={(e) => setForm({ ...form, cover_image: e.target.files?.[0] || null })} /></Field>
+        <Field label={t('coverImage')} error={errors?.cover_image?.[0]}><input className="input" type="file" accept="image/*" onChange={(e) => setForm({ ...form, cover_image: e.target.files?.[0] || null })} /></Field>
       </FormModal>
     </>
   )

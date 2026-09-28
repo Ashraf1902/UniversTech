@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { request } from '../../lib/api'
 import { Badge, Btn, Field, Pager, useToast } from '../../lib/ui'
+import { useI18n } from '../../lib/i18n'
 import { DataTable, FormModal, Head, useFieldErrors, useList, useOptions } from './_shared'
 const DAYS = ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
 const emptySched = { level_id: '', semester_id: '', department_id: '', course_id: '', day_of_week: 'Saturday', start_time: '', end_time: '', section_type: 'lecture', image: null }
 
 export function AdminSchedules() {
+  const { t } = useI18n()
   const [page, setPage] = useState(1)
   const toast = useToast()
   const { paged, loading, run } = useList('/api/schedule/get/all', page)
@@ -50,7 +52,7 @@ export function AdminSchedules() {
         if (form.image) fd.append('image', form.image)
         await request('/api/schedule/store', { method: 'POST', formData: fd })
       }
-toast.success('Schedule saved.')
+toast.success(t('scheduleSaved'))
       setOpen(false)
       clearErrors()
       run().catch(() => {})
@@ -61,11 +63,11 @@ toast.success('Schedule saved.')
     }
   }
 
-  const remove = async (row) => {
-    if (!window.confirm('Delete this schedule entry?')) return
+const remove = async (row) => {
+    if (!window.confirm(t('confirmDeleteEntry'))) return
     try {
       await request(`/api/schedule/delete/${row.id}`, { method: 'DELETE' })
-      toast.success('Schedule entry deleted.')
+      toast.success(t('entryDeleted'))
       run().catch(() => {})
     } catch (e) {
       toast.error(e.message)
@@ -74,66 +76,66 @@ toast.success('Schedule saved.')
 
   return (
     <>
-      <Head kicker="Timetable" title="Schedules" sub="Weekly class entries per level, semester, and department." actions={<Btn icon="plus" onClick={() => { setEditId(null); setForm(emptySched); setOpen(true) }}>New entry</Btn>} />
+<Head kicker={t('timetable')} title={t('schedules')} sub={t('schedulesSub')} actions={<Btn icon="plus" onClick={() => { setEditId(null); setForm(emptySched); setOpen(true) }}>{t('newEntry')}</Btn>} />
       <DataTable
         loading={loading}
         rows={paged.items}
         columns={[
-          { key: 'course', label: 'Course', main: true, render: (r) => r.course?.course_name || '—' },
-          { key: 'level', label: 'Level', render: (r) => r.level?.name || r.level_id || '—' },
-          { key: 'semester', label: 'Semester', render: (r) => r.semester?.name || '—' },
-          { key: 'department', label: 'Department', render: (r) => r.department?.name || 'General' },
-          { key: 'day_of_week', label: 'Day', render: (r) => <Badge tone="vio">{r.day_of_week}</Badge> },
-          { key: 'time', label: 'Time', render: (r) => `${(r.start_time || '').slice(0, 5)} – ${(r.end_time || '').slice(0, 5)}` },
-          { key: 'section_type', label: 'Type', render: (r) => <Badge tone="cy">{r.section_type}</Badge> },
+          { key: 'course', label: t('course'), main: true, render: (r) => r.course?.course_name || '—' },
+          { key: 'level', label: t('level'), render: (r) => r.level?.name || r.level_id || '—' },
+          { key: 'semester', label: t('semester'), render: (r) => r.semester?.name || '—' },
+          { key: 'department', label: t('department'), render: (r) => r.department?.name || t('general') },
+          { key: 'day_of_week', label: t('day'), render: (r) => <Badge tone="vio">{t('day_' + String(r.day_of_week).toLowerCase())}</Badge> },
+          { key: 'time', label: t('time'), render: (r) => `${(r.start_time || '').slice(0, 5)} – ${(r.end_time || '').slice(0, 5)}` },
+          { key: 'section_type', label: t('type'), render: (r) => <Badge tone="cy">{t('type_' + String(r.section_type).toLowerCase())}</Badge> },
         ]}
         onEdit={openEdit}
         onDelete={remove}
       />
       <Pager page={paged.page} last={paged.last_page} onPage={setPage} />
-<FormModal open={open} onClose={() => setOpen(false)} title={editId ? 'Edit schedule entry' : 'New schedule entry'} onSubmit={submit} busy={busy} errors={errors} onFormClose={clearErrors}>
+<FormModal open={open} onClose={() => setOpen(false)} title={editId ? t('editEntry') : t('newEntryTitle')} onSubmit={submit} busy={busy} errors={errors} onFormClose={clearErrors}>
         <div className="grid grid-2" style={{ gap: 14 }}>
-          <Field label="Level ID" hint="Numeric id from the levels table" error={errors?.level_id?.[0]}><input className="input" type="number" min="1" value={form.level_id} onChange={(e) => setForm({ ...form, level_id: e.target.value })} placeholder="e.g. 1" /></Field>
-          <Field label="Semester" error={errors?.semester_id?.[0]}>
+          <Field label={t('levelId')} hint={t('levelIdHint')} error={errors?.level_id?.[0]}><input className="input" type="number" min="1" value={form.level_id} onChange={(e) => setForm({ ...form, level_id: e.target.value })} placeholder="e.g. 1" /></Field>
+          <Field label={t('semester')} error={errors?.semester_id?.[0]}>
             <select className="select" value={form.semester_id} onChange={(e) => setForm({ ...form, semester_id: e.target.value })}>
-              <option value="">— Select —</option>
+              <option value="">{t('select')}</option>
               {sems.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </Field>
         </div>
         <div className="grid grid-2" style={{ gap: 14 }}>
-          <Field label="Course" error={errors?.course_id?.[0]}>
+          <Field label={t('course')} error={errors?.course_id?.[0]}>
             <select className="select" value={form.course_id} onChange={(e) => setForm({ ...form, course_id: e.target.value })}>
-              <option value="">— Select —</option>
+              <option value="">{t('select')}</option>
               {courses.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </Field>
-          <Field label="Department (optional)" error={errors?.department_id?.[0]}>
+          <Field label={t('departmentOptional')} error={errors?.department_id?.[0]}>
             <select className="select" value={form.department_id} onChange={(e) => setForm({ ...form, department_id: e.target.value })}>
-              <option value="">— General —</option>
+              <option value="">{t('generalOption')}</option>
               {depts.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </Field>
         </div>
         <div className="grid grid-2" style={{ gap: 14 }}>
-          <Field label="Day" error={errors?.day_of_week?.[0]}>
+          <Field label={t('day')} error={errors?.day_of_week?.[0]}>
             <select className="select" value={form.day_of_week} onChange={(e) => setForm({ ...form, day_of_week: e.target.value })}>
-              {DAYS.map((d) => <option key={d} value={d}>{d}</option>)}
+              {DAYS.map((d) => <option key={d} value={d}>{t('day_' + d.toLowerCase())}</option>)}
             </select>
           </Field>
-          <Field label="Section type" error={errors?.section_type?.[0]}>
+          <Field label={t('sectionType')} error={errors?.section_type?.[0]}>
             <select className="select" value={form.section_type} onChange={(e) => setForm({ ...form, section_type: e.target.value })}>
-              <option value="lecture">Lecture</option>
-              <option value="seminar">Seminar</option>
-              <option value="lab">Lab</option>
+              <option value="lecture">{t('lectureType')}</option>
+              <option value="seminar">{t('seminar')}</option>
+              <option value="lab">{t('lab')}</option>
             </select>
           </Field>
         </div>
         <div className="grid grid-2" style={{ gap: 14 }}>
-          <Field label="Start time" error={errors?.start_time?.[0]}><input className="input" type="time" value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} /></Field>
-          <Field label="End time" error={errors?.end_time?.[0]}><input className="input" type="time" value={form.end_time} onChange={(e) => setForm({ ...form, end_time: e.target.value })} /></Field>
+          <Field label={t('startTime')} error={errors?.start_time?.[0]}><input className="input" type="time" value={form.start_time} onChange={(e) => setForm({ ...form, start_time: e.target.value })} /></Field>
+          <Field label={t('endTime')} error={errors?.end_time?.[0]}><input className="input" type="time" value={form.end_time} onChange={(e) => setForm({ ...form, end_time: e.target.value })} /></Field>
         </div>
-        {!editId ? <Field label="Timetable image (optional)" error={errors?.image?.[0]}><input className="input" type="file" accept="image/*" onChange={(e) => setForm({ ...form, image: e.target.files?.[0] || null })} /></Field> : null}
+        {!editId ? <Field label={t('timetableImageOptional')} error={errors?.image?.[0]}><input className="input" type="file" accept="image/*" onChange={(e) => setForm({ ...form, image: e.target.files?.[0] || null })} /></Field> : null}
       </FormModal>
     </>
   )

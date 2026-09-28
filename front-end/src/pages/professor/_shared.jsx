@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { getFieldErrors, normalizePage, request } from '../../lib/api'
 import { useAsync } from '../../lib/hooks'
 import { Field } from '../../lib/ui'
+import { useI18n } from '../../lib/i18n'
 
 export function useFieldErrors() {
   const [errors, setErrors] = useState({})
@@ -40,10 +41,11 @@ export function useMyCourses() {
 }
 
 export function CourseSelect({ courses, value, onChange, loading }) {
+  const { t } = useI18n()
   return (
-    <Field label="Course">
+    <Field label={t('course')}>
       <select className="select" value={value || ''} onChange={(e) => onChange(Number(e.target.value))} disabled={loading}>
-        <option value="">{loading ? 'Loading courses…' : '— Select a course —'}</option>
+        <option value="">{loading ? t('loadingCourses') : t('chooseCourseOption')}</option>
         {courses.map((c) => (
           <option key={c.id} value={c.id}>
             {c.course_name} {c.course_code ? `(${c.course_code})` : ''}

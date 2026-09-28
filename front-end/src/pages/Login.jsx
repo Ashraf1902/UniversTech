@@ -75,10 +75,10 @@ export default function Login() {
     setLoading(true)
     try {
       const next = await login(role, email.trim(), password)
-      toast.success(`Welcome back, ${next.user?.name || 'there'}!`)
+      toast.success(t('welcomeBackToast', { name: next.user?.name || t('there') }))
       navigate(APP_ROOTS[next.role] || '/', { replace: true })
     } catch (err) {
-      toast.error(err.message || 'Login failed.')
+      toast.error(err.message || t('loginFailed'))
     } finally {
       setLoading(false)
     }
@@ -100,9 +100,9 @@ export default function Login() {
       if (form.department_id) payload.department_id = Number(form.department_id)
       await request('/api/public/access-request', { method: 'POST', data: payload })
       setSent(true)
-      toast.success('Request submitted! Your university will review it shortly.')
+      toast.success(t('requestSubmitted'))
     } catch (err) {
-      toast.error(err.message || 'Something went wrong. Please try again.')
+      toast.error(err.message || t('somethingWrong'))
     } finally {
       setRegistering(false)
     }
@@ -159,7 +159,7 @@ export default function Login() {
                     key={i}
                     className={`dot ${i === current ? 'on' : ''}`}
                     onClick={() => setSlide(i)}
-                    aria-label={`Event ${i + 1}`}
+                    aria-label={t('eventDotLabel', { n: i + 1 })}
                   />
                 ))}
               </div>

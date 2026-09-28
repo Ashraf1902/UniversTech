@@ -1,27 +1,29 @@
 import { useState } from 'react'
 import { normalizePage, request } from '../../lib/api'
+import { useI18n } from '../../lib/i18n'
 import { useAsync } from '../../lib/hooks'
 import { Badge, Empty, I, Pager, Reveal, Spinner } from '../../lib/ui'
 import { Head } from './_shared'
 export function StudentNotifications() {
+  const { t } = useI18n()
   const [tab, setTab] = useState('notifications')
   const [page, setPage] = useState(1)
   const { data, loading } = useAsync(() => request(`/api/user/notifications/${tab === 'notifications' ? '' : tab}?page=${page}`.replace('/?', '?')), [tab, page])
   const paged = normalizePage(data)
 
   const tabs = [
-    { key: 'notifications', label: 'Notifications', icon: 'bell' },
-    { key: 'events', label: 'Events', icon: 'spark' },
-    { key: 'announcments', label: 'Announcements', icon: 'info' },
+    { key: 'notifications', label: t('notifications'), icon: 'bell' },
+    { key: 'events', label: t('events'), icon: 'spark' },
+    { key: 'announcments', label: t('announcements'), icon: 'info' },
   ]
 
   return (
     <>
-      <Head kicker="Inbox" title="Notifications" sub="Course updates, events, and announcements — all in one place." />
+      <Head kicker={t('inbox')} title={t('notifications')} sub={t('notificationsSub2')} />
       <div className="seg" style={{ marginBottom: 22, maxWidth: 520 }}>
-        {tabs.map((t) => (
-          <button key={t.key} className={tab === t.key ? 'on' : ''} onClick={() => { setTab(t.key); setPage(1) }}>
-            {t.label}
+        {tabs.map((x) => (
+          <button key={x.key} className={tab === x.key ? 'on' : ''} onClick={() => { setTab(x.key); setPage(1) }}>
+            {x.label}
           </button>
         ))}
       </div>
@@ -43,9 +45,9 @@ export function StudentNotifications() {
                   </div>
                   <p style={{ color: 'var(--muted)', fontSize: '0.88rem', marginTop: 8, whiteSpace: 'pre-line' }}>{n.content}</p>
                   <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-                    {n.professor ? <Badge tone="cy">Prof. {n.professor}</Badge> : null}
+                    {n.professor ? <Badge tone="cy">{t('profPrefix')} {n.professor}</Badge> : null}
                     {n.admin ? <Badge tone="vio">{n.admin}</Badge> : null}
-                    {n.image_path ? <a href={n.image_path} target="_blank" rel="noreferrer" className="badge amb">Attachment</a> : null}
+                    {n.image_path ? <a href={n.image_path} target="_blank" rel="noreferrer" className="badge amb">{t('attachment')}</a> : null}
                   </div>
                 </div>
               </Reveal>
@@ -54,7 +56,7 @@ export function StudentNotifications() {
           <Pager page={paged.page} last={paged.last_page} onPage={setPage} />
         </>
       ) : (
-        <Empty icon="bell" title="Nothing here" sub="You have no items in this inbox yet." />
+        <Empty icon="bell" title={t('nothingHere')} sub={t('noItemsSub')} />
       )}
     </>
   )

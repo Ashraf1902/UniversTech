@@ -20,6 +20,10 @@ class CourseAdminController extends Controller
     public function index(Request $request)
     {
         $courses = ($request->boolean('deleted') ? Course::onlyTrashed() : Course::query())
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $term = $request->search;
+                $q->where(fn ($qq) => $qq->where('course_name', 'like', "%{$term}%")->orWhere('course_code', 'like', "%{$term}%"));
+            })
             ->orderByDesc('created_at')
             ->with(['admin', 'department', 'professor', 'lectures', 'semester'])
             ->paginate(15)

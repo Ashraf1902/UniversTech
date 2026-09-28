@@ -1,16 +1,18 @@
 import { useState } from 'react'
 import { normalizePage, request } from '../../lib/api'
+import { useI18n } from '../../lib/i18n'
 import { useAsync } from '../../lib/hooks'
 import { Empty, I, Pager, Reveal, Spinner } from '../../lib/ui'
 import { Head } from './_shared'
 export function ProfessorNotifications() {
+  const { t } = useI18n()
   const [page, setPage] = useState(1)
   const { data, loading } = useAsync(() => request(`/api/professor/notifications?page=${page}`), [page])
   const paged = normalizePage(data)
 
   return (
     <>
-      <Head kicker="Inbox" title="Notifications" sub="Everything the platform has sent your way." />
+      <Head kicker={t('inbox')} title={t('notifications')} sub={t('notificationsSub')} />
       {loading ? (
         <Spinner size={24} />
       ) : paged.items.length ? (
@@ -32,7 +34,7 @@ export function ProfessorNotifications() {
           <Pager page={paged.page} last={paged.last_page} onPage={setPage} />
         </>
       ) : (
-        <Empty icon="bell" title="No notifications" />
+        <Empty icon="bell" title={t('noNotifications')} />
       )}
     </>
   )

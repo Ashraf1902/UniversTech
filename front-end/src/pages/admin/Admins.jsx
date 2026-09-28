@@ -28,8 +28,19 @@ export function AdminAdmins() {
   const [busyId, setBusyId] = useState(null)
   const { errors, clear: clearErrors, apply: applyErrors } = useFieldErrors()
 
-  const isSuper = Boolean(user?.is_super_admin)
+const isSuper = Boolean(user?.is_super_admin)
   const admins = normalizePage(data).items || []
+
+  const ROLE_LABEL = {
+    accounts: 'roleAccounts',
+    access_requests: 'roleAccessRequests',
+    departments: 'roleDepartments',
+    courses: 'roleCourses',
+    semesters: 'roleSemesters',
+    schedules: 'roleSchedules',
+    events: 'roleEvents',
+    grades: 'roleGrades',
+  }
 
   const toggleRole = (scope) =>
     setForm((f) => ({
@@ -105,8 +116,8 @@ setOpen(false)
         }
       />
 
-      {loading ? (
-        <CourseLoader label="Loading admins…" />
+{loading ? (
+        <CourseLoader label={t('loadingAdmins')} />
       ) : !admins.length ? (
         <Empty icon="shield" title={t('noAdmins')} />
       ) : (
@@ -114,10 +125,10 @@ setOpen(false)
           <table className="table">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Roles</th>
-                <th>Type</th>
+                <th>{t('name')}</th>
+                <th>{t('email')}</th>
+                <th>{t('roles')}</th>
+                <th>{t('type')}</th>
                 <th style={{ textAlign: 'right' }}>{t('actions')}</th>
               </tr>
             </thead>
@@ -138,12 +149,12 @@ setOpen(false)
                     <td>{row.email}</td>
                     <td>
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                        {row.is_super_admin
+{row.is_super_admin
                           ? <Badge tone="vio" dot>{t('superAdmin')}</Badge>
-                          : (row.roles || []).map((r) => <Badge key={r}>{r.replace('_', ' ')}</Badge>)}
+                          : (row.roles || []).map((r) => <Badge key={r}>{t(ROLE_LABEL[r] || r)}</Badge>)}
                       </div>
                     </td>
-                    <td>{row.is_super_admin ? <Badge tone="grn">Root</Badge> : <Badge>Admin</Badge>}</td>
+                    <td>{row.is_super_admin ? <Badge tone="grn">{t('typeRoot')}</Badge> : <Badge>{t('typeAdmin')}</Badge>}</td>
                     <td>
                       <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
                         {!row.is_super_admin && !isSelf ? (
@@ -185,11 +196,11 @@ setOpen(false)
         <div className="grid grid-2" style={{ gap: 12 }}>
           {!editId ? (
             <Field label={t('adminFieldsPassword')} error={errors?.password?.[0]}>
-              <input className="input" type="text" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} minLength={6} required={!editId} placeholder="Min 6 characters" />
+              <input className="input" type="text" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} minLength={6} required={!editId} placeholder={t('passwordMinChars')} />
             </Field>
           ) : (
             <Field label={t('adminFieldsPasswordKeep')} error={errors?.password?.[0]}>
-              <input className="input" type="text" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Leave blank to keep" />
+              <input className="input" type="text" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder={t('passwordKeepPh')} />
             </Field>
           )}
         </div>

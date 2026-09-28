@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { getFieldErrors, normalizePage, request } from '../../lib/api'
 import { useAsync } from '../../lib/hooks'
-import { Btn, CourseLoader, Empty, Modal } from '../../lib/ui'
+import { useI18n } from '../../lib/i18n'
+import { Btn, CourseLoader, Empty, I, Modal } from '../../lib/ui'
 export function Head({ kicker, title, sub, actions }) {
   return (
     <div className="page-head">
@@ -40,9 +41,47 @@ export function useFieldErrors() {
   return { errors, setErrors, clear, apply }
 }
 
+export function useDebounced(value, delay = 350) {
+  const [debounced, setDebounced] = useState(value)
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), delay)
+    return () => clearTimeout(id)
+  }, [value, delay])
+  return debounced
+}
+
+export function withSearch(path, search) {
+  if (!search) return path
+  const sep = path.includes('?') ? '&' : '?'
+  return `${path}${sep}search=${encodeURIComponent(search)}`
+}
+
+export function SearchBar({ value, onChange, placeholder, style }) {
+  const { t } = useI18n()
+  const ph = placeholder || t('search')
+  return (
+    <div className="search-bar" style={style}>
+      <I name="search" size={16} className="search-bar-icon" />
+      <input
+        className="input"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={ph}
+        aria-label={ph}
+      />
+      {value ? (
+        <button type="button" className="search-bar-clear" onClick={() => onChange('')} aria-label={t('clearSearch')}>
+          <I name="x" size={14} />
+        </button>
+      ) : null}
+    </div>
+  )
+}
+
 export function DataTable({ columns, rows, loading, onEdit, onDelete, onRestore, onPurge, empty }) {
-  if (loading) return <CourseLoader label="Loading records…" />
-  if (!rows.length) return empty || <Empty icon="info" title="No records yet" />
+  const { t } = useI18n()
+  if (loading) return <CourseLoader label={t('loadingRecords')} />
+  if (!rows.length) return empty || <Empty icon="info" title={t('noRecordsYet')} />
   const hasActions = onEdit || onDelete || onRestore || onPurge
   return (
     <div className="table-wrap">
@@ -52,7 +91,7 @@ export function DataTable({ columns, rows, loading, onEdit, onDelete, onRestore,
             {columns.map((c) => (
               <th key={c.key} style={c.align ? { textAlign: c.align } : undefined}>{c.label}</th>
             ))}
-            {hasActions ? <th style={{ textAlign: 'right' }}>Actions</th> : null}
+            {hasActions ? <th style={{ textAlign: 'right' }}>{t('actions')}</th> : null}
           </tr>
         </thead>
         <tbody>
@@ -68,8 +107,8 @@ export function DataTable({ columns, rows, loading, onEdit, onDelete, onRestore,
                   <div className="row-actions">
                     {onEdit ? <Btn size="sm" variant="soft" icon="edit" onClick={() => onEdit(row)} /> : null}
                     {onDelete ? <Btn size="sm" variant="danger" icon="trash" onClick={() => onDelete(row)} /> : null}
-                    {onRestore ? <Btn size="sm" variant="soft" icon="refresh" title="Restore" onClick={() => onRestore(row)} /> : null}
-                    {onPurge ? <Btn size="sm" variant="danger" icon="x" title="Delete permanently" onClick={() => onPurge(row)} /> : null}
+                    {onRestore ? <Btn size="sm" variant="soft" icon="refresh" title={t('restore')} onClick={() => onRestore(row)} /> : null}
+                    {onPurge ? <Btn size="sm" variant="danger" icon="x" title={t('deletePermanently')} onClick={() => onPurge(row)} /> : null}
                   </div>
                 </td>
               ) : null}
@@ -81,7 +120,8 @@ export function DataTable({ columns, rows, loading, onEdit, onDelete, onRestore,
   )
 }
 
-export function FormModal({ open, onClose, title, children, onSubmit, busy, submitLabel = 'Save', errors, onFormClose }) {
+export function FormModal({ open, onClose, title, children, onSubmit, busy, submitLabel, errors, onFormClose }) {
+  const { t } = useI18n()
   return (
     <Modal
       open={open}
@@ -93,14 +133,14 @@ export function FormModal({ open, onClose, title, children, onSubmit, busy, subm
       size="lg"
       footer={
         <>
-          <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
-          <Btn loading={busy} onClick={onSubmit} icon="check">{submitLabel}</Btn>
+          <Btn variant="ghost" onClick={onClose}>{t('cancel')}</Btn>
+          <Btn loading={busy} onClick={onSubmit} icon="check">{submitLabel ?? t('save')}</Btn>
         </>
       }
     >
       {errors && Object.keys(errors).length ? (
         <div className="form-alert" role="alert">
-          Please fix the highlighted fields below.
+          {t('fixFieldsBelow')}
         </div>
       ) : null}
       {children}

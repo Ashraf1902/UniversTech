@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { request } from '../../lib/api'
+import { useI18n } from '../../lib/i18n'
 import { useAsync } from '../../lib/hooks'
 import { Btn, Empty, Field, I, Modal, Reveal, Spinner, useToast } from '../../lib/ui'
 import { CourseSelect, Head, useFieldErrors, useMyCourses } from './_shared'
 export function ProfessorLectures() {
+  const { t } = useI18n()
   const [params, setParams] = useSearchParams()
   const { courses, loading: cLoading } = useMyCourses()
   const courseId = Number(params.get('course')) || ''
@@ -19,7 +21,7 @@ export function ProfessorLectures() {
 
   const submit = async () => {
     if (!form.name || !form.pdf) {
-      setErrors({ name: !form.name ? ['Lecture name is required.'] : [], pdf: !form.pdf ? ['Please choose a PDF file.'] : [] })
+      setErrors({ name: !form.name ? [t('lectureNameRequired')] : [], pdf: !form.pdf ? [t('choosePdf')] : [] })
       return
     }
     setBusy(true)
@@ -29,7 +31,7 @@ export function ProfessorLectures() {
       fd.append('name', form.name)
       fd.append('pdf', form.pdf)
       await request('/api/lecture/store', { method: 'POST', formData: fd })
-      toast.success('Lecture uploaded.')
+      toast.success(t('lectureUploaded'))
       setOpen(false)
       clearErrors()
       setForm({ name: '', pdf: null })
@@ -43,18 +45,18 @@ export function ProfessorLectures() {
 
   return (
     <>
-      <Head
-        kicker="Content"
-        title="Lectures"
-        sub="Upload lecture material and review what students can access."
-        actions={<Btn icon="upload" onClick={() => setOpen(true)} disabled={!courseId}>Upload lecture</Btn>}
+<Head
+        kicker={t('content')}
+        title={t('lectures')}
+        sub={t('lecturesSub')}
+        actions={<Btn icon="upload" onClick={() => setOpen(true)} disabled={!courseId}>{t('uploadLecture')}</Btn>}
       />
       <div className="card" style={{ marginBottom: 22, maxWidth: 520 }}>
         <CourseSelect courses={courses} value={courseId} onChange={(id) => setParams(id ? { course: String(id) } : {})} loading={cLoading} />
       </div>
 
       {!courseId ? (
-        <Empty icon="file" title="Select a course" />
+        <Empty icon="file" title={t('selectCourse')} />
       ) : lectures.loading ? (
         <Spinner size={24} />
       ) : list.length ? (
@@ -66,22 +68,22 @@ export function ProfessorLectures() {
                 <div style={{ fontWeight: 600 }}>{l.name}</div>
                 <div style={{ fontSize: '0.78rem', color: 'var(--faint)' }}>{new Date(l.created_at).toLocaleDateString()}</div>
               </div>
-              <a href={l.path} target="_blank" rel="noreferrer"><Btn size="sm" variant="soft" icon="play">Open</Btn></a>
+              <a href={l.path} target="_blank" rel="noreferrer"><Btn size="sm" variant="soft" icon="play">{t('openAction')}</Btn></a>
             </Reveal>
           ))}
         </div>
       ) : (
-        <Empty icon="file" title="No lectures uploaded" sub="Upload the first lecture for this course." />
+        <Empty icon="file" title={t('noLectures')} sub={t('uploadFirstLecture')} />
       )}
 
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title="Upload lecture"
-        footer={<><Btn variant="ghost" onClick={() => setOpen(false)}>Cancel</Btn><Btn loading={busy} onClick={submit} icon="upload">Upload</Btn></>}
+        title={t('uploadLecture')}
+        footer={<><Btn variant="ghost" onClick={() => setOpen(false)}>{t('cancel')}</Btn><Btn loading={busy} onClick={submit} icon="upload">{t('upload')}</Btn></>}
       >
-<Field label="Lecture name" error={errors?.name?.[0]}><input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Introduction to Algorithms" /></Field>
-        <Field label="PDF file" error={errors?.pdf?.[0]}><input className="input" type="file" accept="application/pdf" onChange={(e) => setForm({ ...form, pdf: e.target.files?.[0] || null })} /></Field>
+<Field label={t('lectureName')} error={errors?.name?.[0]}><input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={t('lectureNamePh')} /></Field>
+        <Field label={t('pdfFile')} error={errors?.pdf?.[0]}><input className="input" type="file" accept="application/pdf" onChange={(e) => setForm({ ...form, pdf: e.target.files?.[0] || null })} /></Field>
       </Modal>
     </>
   )

@@ -1,9 +1,11 @@
 import { useMemo } from 'react'
 import { request } from '../../lib/api'
+import { useI18n } from '../../lib/i18n'
 import { useAsync } from '../../lib/hooks'
 import { Badge, Btn, Empty, I, Reveal, Spinner } from '../../lib/ui'
 import { Head } from './_shared'
 export function StudentSchedule() {
+  const { t } = useI18n()
   const { data, loading } = useAsync(() => request('/api/user/schedule'))
   const rows = data?.schedule || []
   const days = useMemo(() => {
@@ -18,7 +20,7 @@ export function StudentSchedule() {
 
   return (
     <>
-      <Head kicker="This term" title="Weekly schedule" sub="Your classes for the active semester, sorted by day." />
+      <Head kicker={t('thisTerm')} title={t('weeklySchedule')} sub={t('weeklyScheduleSub')} />
       {loading ? (
         <Spinner size={24} />
       ) : days.length ? (
@@ -26,7 +28,7 @@ export function StudentSchedule() {
           {days.map(([day, items], di) => (
             <Reveal key={day} className="card" delay={di * 0.06}>
               <div className="card-head">
-                <h3 style={{ fontSize: '1rem' }}>{day}</h3>
+                <h3 style={{ fontSize: '1rem' }}>{t('day_' + String(day).toLowerCase())}</h3>
                 <Badge tone="vio">{items.length}</Badge>
               </div>
               {items.map((s, i) => (
@@ -41,9 +43,9 @@ export function StudentSchedule() {
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    {s.section_type ? <Badge tone="cy">{s.section_type}</Badge> : null}
+                    {s.section_type ? <Badge tone="cy">{t('type_' + String(s.section_type).toLowerCase())}</Badge> : null}
                     {s.course_code ? <Badge>{s.course_code}</Badge> : null}
-                    {s.path ? <a href={s.path} target="_blank" rel="noreferrer" style={{ marginLeft: 'auto' }}><Btn size="sm" variant="soft" icon="file">File</Btn></a> : null}
+                    {s.path ? <a href={s.path} target="_blank" rel="noreferrer" style={{ marginLeft: 'auto' }}><Btn size="sm" variant="soft" icon="file">{t('fileAction')}</Btn></a> : null}
                   </div>
                 </div>
               ))}
@@ -51,7 +53,7 @@ export function StudentSchedule() {
           ))}
         </div>
       ) : (
-        <Empty icon="calendar" title="No schedule published" sub="Your schedule will appear here once the administration publishes it." />
+        <Empty icon="calendar" title={t('noSchedulePublished')} sub={t('noSchedulePublishedSub')} />
       )}
     </>
   )

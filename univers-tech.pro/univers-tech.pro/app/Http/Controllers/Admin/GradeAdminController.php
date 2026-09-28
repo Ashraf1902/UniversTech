@@ -25,6 +25,14 @@ class GradeAdminController extends Controller
             ->when($request->filled('student_id'), fn ($q) => $q->where('student_id', $request->student_id))
             ->when($request->filled('course_id'), fn ($q) => $q->where('course_id', $request->course_id))
             ->when($request->filled('semester_id'), fn ($q) => $q->where('semester_id', $request->semester_id))
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $term = $request->search;
+                $q->where(function ($qq) use ($term) {
+                    $qq->whereHas('student', fn ($s) => $s->where('name', 'like', "%{$term}%")->orWhere('email', 'like', "%{$term}%"))
+                        ->orWhereHas('course', fn ($c) => $c->where('course_name', 'like', "%{$term}%")->orWhere('course_code', 'like', "%{$term}%"))
+                        ->orWhereHas('semester', fn ($s) => $s->where('name', 'like', "%{$term}%")->orWhere('academic_year', 'like', "%{$term}%"));
+                });
+            })
             ->orderByDesc('created_at')
             ->paginate(15)
             ->through(fn (Grade $grade) => $this->formatGrade($grade));

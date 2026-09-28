@@ -16,6 +16,10 @@ class DepartmentAdminController extends Controller
     public function index(Request $request)
     {
         $departments = ($request->boolean('deleted') ? Department::onlyTrashed() : Department::query())
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $term = $request->search;
+                $q->where(fn ($qq) => $qq->where('name', 'like', "%{$term}%")->orWhere('abbrevation', 'like', "%{$term}%"));
+            })
             ->orderByDesc('created_at')
             ->with('admin')
             ->paginate(15)

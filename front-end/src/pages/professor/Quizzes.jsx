@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { normalizePage, request } from '../../lib/api'
+import { useI18n } from '../../lib/i18n'
 import { useAsync } from '../../lib/hooks'
 import { Btn, Empty, Field, I, Modal, Pager, Reveal, Spinner, useToast } from '../../lib/ui'
 import { CourseSelect, Head, useFieldErrors, useMyCourses } from './_shared'
 export function ProfessorQuizzes() {
+  const { t } = useI18n()
   const [params, setParams] = useSearchParams()
   const { courses, loading: cLoading } = useMyCourses()
   const courseId = Number(params.get('course')) || ''
@@ -19,7 +21,7 @@ const [open, setOpen] = useState(false)
 
   const submit = async () => {
     if (!form.name || !form.pdf) {
-      setErrors({ name: !form.name ? ['Quiz name is required.'] : [], pdf: !form.pdf ? ['Please choose a PDF file.'] : [] })
+      setErrors({ name: !form.name ? [t('quizNameRequired')] : [], pdf: !form.pdf ? [t('choosePdf')] : [] })
       return
     }
     setBusy(true)
@@ -30,7 +32,7 @@ const [open, setOpen] = useState(false)
       if (form.due_at) fd.append('due_at', form.due_at)
       fd.append('pdf', form.pdf)
       await request('/api/quiz/store', { method: 'POST', formData: fd })
-      toast.success('Quiz uploaded.')
+      toast.success(t('quizUploaded'))
       setOpen(false)
       clearErrors()
       setForm({ name: '', due_at: '', pdf: null })
@@ -44,8 +46,8 @@ const [open, setOpen] = useState(false)
 
   const remove = async (id) => {
     try {
-      await request(`/api/quiz/delete/${id}`, { method: 'DELETE' })
-      toast.success('Quiz deleted.')
+await request(`/api/quiz/delete/${id}`, { method: 'DELETE' })
+      toast.success(t('quizDeleted'))
       quizzes.run().catch(() => {})
     } catch (e) {
       toast.error(e.message)
@@ -54,18 +56,18 @@ const [open, setOpen] = useState(false)
 
   return (
     <>
-      <Head
-        kicker="Assessment"
-        title="Quizzes"
-        sub="Publish quizzes with due dates and manage existing ones."
-        actions={<Btn icon="upload" onClick={() => setOpen(true)} disabled={!courseId}>Upload quiz</Btn>}
+<Head
+        kicker={t('assessment')}
+        title={t('quizzes')}
+        sub={t('quizzesSub')}
+        actions={<Btn icon="upload" onClick={() => setOpen(true)} disabled={!courseId}>{t('uploadQuiz')}</Btn>}
       />
       <div className="card" style={{ marginBottom: 22, maxWidth: 520 }}>
         <CourseSelect courses={courses} value={courseId} onChange={(id) => { setParams(id ? { course: String(id) } : {}); setPage(1) }} loading={cLoading} />
       </div>
 
       {!courseId ? (
-        <Empty icon="award" title="Select a course" />
+        <Empty icon="award" title={t('selectCourse')} />
       ) : quizzes.loading ? (
         <Spinner size={24} />
       ) : paged.items.length ? (
@@ -76,9 +78,9 @@ const [open, setOpen] = useState(false)
                 <span className="av" style={{ background: 'rgba(245,99,176,.16)', color: '#ffb0d6' }}><I name="award" size={18} /></span>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 600 }}>{q.name}</div>
-                  <div style={{ fontSize: '0.78rem', color: 'var(--faint)' }}>{q.due_at ? `Due ${new Date(q.due_at).toLocaleDateString()}` : 'No due date'}</div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--faint)' }}>{q.due_at ? t('due', { date: new Date(q.due_at).toLocaleDateString() }) : t('noDueDate')}</div>
                 </div>
-                <a href={q.content} target="_blank" rel="noreferrer"><Btn size="sm" variant="soft" icon="file">Open</Btn></a>
+                <a href={q.content} target="_blank" rel="noreferrer"><Btn size="sm" variant="soft" icon="file">{t('openAction')}</Btn></a>
                 <Btn size="sm" variant="danger" icon="trash" onClick={() => remove(q.id)} />
               </Reveal>
             ))}
@@ -86,18 +88,18 @@ const [open, setOpen] = useState(false)
           <Pager page={paged.page} last={paged.last_page} onPage={setPage} />
         </>
       ) : (
-        <Empty icon="award" title="No quizzes yet" sub="Upload the first quiz for this course." />
+        <Empty icon="award" title={t('noQuizzes')} sub={t('uploadFirstQuiz')} />
       )}
 
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title="Upload quiz"
-        footer={<><Btn variant="ghost" onClick={() => setOpen(false)}>Cancel</Btn><Btn loading={busy} onClick={submit} icon="upload">Upload</Btn></>}
+        title={t('uploadQuiz')}
+        footer={<><Btn variant="ghost" onClick={() => setOpen(false)}>{t('cancel')}</Btn><Btn loading={busy} onClick={submit} icon="upload">{t('upload')}</Btn></>}
       >
-<Field label="Quiz name" error={errors?.name?.[0]}><input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Midterm Quiz" /></Field>
-        <Field label="Due date (optional)" error={errors?.due_at?.[0]}><input className="input" type="datetime-local" value={form.due_at} onChange={(e) => setForm({ ...form, due_at: e.target.value })} /></Field>
-        <Field label="PDF file" error={errors?.pdf?.[0]}><input className="input" type="file" accept="application/pdf" onChange={(e) => setForm({ ...form, pdf: e.target.files?.[0] || null })} /></Field>
+<Field label={t('quizName')} error={errors?.name?.[0]}><input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={t('quizNamePh')} /></Field>
+        <Field label={t('dueDateOptional')} error={errors?.due_at?.[0]}><input className="input" type="datetime-local" value={form.due_at} onChange={(e) => setForm({ ...form, due_at: e.target.value })} /></Field>
+        <Field label={t('pdfFile')} error={errors?.pdf?.[0]}><input className="input" type="file" accept="application/pdf" onChange={(e) => setForm({ ...form, pdf: e.target.files?.[0] || null })} /></Field>
       </Modal>
     </>
   )

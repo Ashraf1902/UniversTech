@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { buildQuery, request } from '../../lib/api'
 import { Badge, Btn, Empty, I, Pager, Reveal, Spinner, useToast } from '../../lib/ui'
+import { useI18n } from '../../lib/i18n'
 import { Head, useList } from './_shared'
 export function AdminAccessRequests() {
+  const { t } = useI18n()
   const [page, setPage] = useState(1)
   const [status, setStatus] = useState('pending')
   const toast = useToast()
@@ -11,11 +13,11 @@ export function AdminAccessRequests() {
   const [busyId, setBusyId] = useState(null)
 
   const respond = async (row, action) => {
-    if (!window.confirm(action === 'accept' ? `Accept ${row.name}'s request and create their account?` : `Refuse ${row.name}'s request?`)) return
+    if (!window.confirm(action === 'accept' ? t('confirmAcceptRequest', { name: row.name }) : t('confirmRefuseRequest', { name: row.name }))) return
     setBusyId(action === 'accept' ? `a-${row.id}` : `r-${row.id}`)
     try {
       await request('/api/access-request/respond', { method: 'POST', data: { id: row.id, action } })
-      toast.success(action === 'accept' ? 'Request accepted. Account created.' : 'Request refused.')
+      toast.success(action === 'accept' ? t('requestAccepted') : t('requestRefused'))
       run().catch(() => {})
     } catch (e) {
       toast.error(e.message)
@@ -28,19 +30,19 @@ export function AdminAccessRequests() {
 
   return (
     <>
-      <Head
-        kicker="Onboarding"
-        title="Access Requests"
-        sub="Students who applied for access. Accepting creates their account — refusing closes the request."
+<Head
+        kicker={t('onboarding')}
+        title={t('accessRequests')}
+        sub={t('accessRequestsSub')}
       />
       <div className="seg" style={{ marginBottom: 22, maxWidth: 460 }}>
-        {[['pending', 'Pending'], ['accepted', 'Accepted'], ['refused', 'Refused']].map(([k, l]) => (
+        {[['pending', t('pending')], ['accepted', t('accepted')], ['refused', t('refused')]].map(([k, l]) => (
           <button key={k} className={status === k ? 'on' : ''} onClick={() => { setStatus(k); setPage(1) }}>{l}</button>
         ))}
       </div>
 
       {loading ? <Spinner size={24} /> : !paged.items.length ? (
-        <Empty icon="mail" title="Nothing here" sub="No requests in this list yet." />
+        <Empty icon="mail" title={t('nothingHere')} sub={t('noRequestsYet')} />
       ) : (
         <div className="grid" style={{ gap: 16 }}>
           {paged.items.map((row) => (
@@ -53,21 +55,21 @@ export function AdminAccessRequests() {
                   <div style={{ fontWeight: 700 }}>{row.name}</div>
                   <div style={{ fontSize: '0.8rem', color: 'var(--faint)' }}>{row.email}</div>
                 </div>
-                <Badge tone={tone[row.status] || ''} dot>{row.status}</Badge>
+<Badge tone={tone[row.status] || ''} dot>{t('status_' + row.status)}</Badge>
               </div>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', margin: '14px 0 16px' }}>
                 <Badge tone="vio">{row.level || '—'}</Badge>
-                <Badge tone="cy">{row.department || 'General'}</Badge>
-                <Badge>{row.gender || '—'}</Badge>
+                <Badge tone="cy">{row.department || t('general')}</Badge>
+                <Badge>{row.gender === 'Female' ? t('female') : row.gender === 'Male' ? t('male') : (row.gender || '—')}</Badge>
                 {row.national_id ? <Badge>{row.national_id}</Badge> : null}
                 {row.phone ? <Badge>{row.phone}</Badge> : null}
               </div>
               {row.decided_by
-                ? <div style={{ fontSize: '0.8rem', color: 'var(--faint)' }}>Decided by {row.decided_by}</div>
+                ? <div style={{ fontSize: '0.8rem', color: 'var(--faint)' }}>{t('decidedBy', { name: row.decided_by })}</div>
                 : (
                   <div style={{ display: 'flex', gap: 10 }}>
-                    <Btn size="sm" variant="ghost" loading={busyId === `a-${row.id}`} onClick={() => respond(row, 'accept')}><I name="check" size={16} /> Accept</Btn>
-                    <Btn size="sm" variant="danger" loading={busyId === `r-${row.id}`} onClick={() => respond(row, 'refuse')}><I name="x" size={16} /> Refuse</Btn>
+                    <Btn size="sm" variant="ghost" loading={busyId === `a-${row.id}`} onClick={() => respond(row, 'accept')}><I name="check" size={16} /> {t('acceptAction')}</Btn>
+                    <Btn size="sm" variant="danger" loading={busyId === `r-${row.id}`} onClick={() => respond(row, 'refuse')}><I name="x" size={16} /> {t('refuseAction')}</Btn>
                   </div>
                 )}
             </Reveal>

@@ -2,18 +2,23 @@ import { useState } from 'react'
 import { request } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 import { Btn, Field, Pager, useToast } from '../../lib/ui'
-import { DataTable, FormModal, Head, useFieldErrors, useList, useOptions } from './_shared'
+import { useI18n } from '../../lib/i18n'
+import { DataTable, FormModal, Head, SearchBar, useDebounced, useFieldErrors, useList, useOptions, withSearch } from './_shared'
 const emptyAccount = { name: '', email: '', password: '', gender: 0, nationalid: '', phone: '', credit_points: '', semester: '', type: 0, department_id: '', level_id: '', job_title: '' }
 
 export function AdminAccounts() {
+  const { t } = useI18n()
   const [tab, setTab] = useState('students')
   const [archived, setArchived] = useState(false)
   const [page, setPage] = useState(1)
+  const [q, setQ] = useState('')
+  const search = useDebounced(q)
   const toast = useToast()
   const { user } = useAuth()
   const isSuper = Boolean(user?.is_super_admin)
   const listPath = tab === 'students' ? '/api/student/get/all' : '/api/doctor/get/all'
-  const { paged, loading, run } = useList(archived ? `${listPath}?deleted=1` : listPath, page, [tab, archived])
+  const basePath = archived ? `${listPath}?deleted=1` : listPath
+  const { paged, loading, run } = useList(withSearch(basePath, search), page, [tab, archived, search])
   const departments = useOptions('/api/department/get/all', (d) => ({ value: d.id, label: d.name }))
 
   const [open, setOpen] = useState(false)
@@ -60,12 +65,12 @@ export function AdminAccounts() {
       if (editId) {
         payload.account_id = editId
         if (form.password) payload.password = form.password
-        await request('/api/user/update', { method: 'PUT', data: payload })
-        toast.success('Account updated.')
+await request('/api/user/update', { method: 'PUT', data: payload })
+        toast.success(t('accountUpdated'))
       } else {
         payload.password = form.password
         await request('/api/user/store', { method: 'POST', data: payload })
-        toast.success('Account created.')
+        toast.success(t('accountCreated'))
       }
 setOpen(false)
       clearErrors()
@@ -78,10 +83,10 @@ setOpen(false)
   }
 
 const remove = async (row) => {
-    if (!window.confirm(`Archive ${row.name}? They will not be able to sign in.`)) return
+    if (!window.confirm(t('confirmArchiveAccount', { name: row.name }))) return
     try {
       await request(`/api/user/delete/${row.id}`, { method: 'DELETE' })
-      toast.success('Account archived.')
+      toast.success(t('accountArchived'))
       run().catch(() => {})
     } catch (e) {
       toast.error(e.message)
@@ -89,10 +94,10 @@ const remove = async (row) => {
   }
 
   const restore = async (row) => {
-    if (!window.confirm(`Restore ${row.name}?`)) return
+    if (!window.confirm(t('confirmRestoreAccount', { name: row.name }))) return
     try {
       await request(`/api/user/restore/${row.id}`, { method: 'POST' })
-      toast.success('Account restored.')
+      toast.success(t('accountRestored'))
       run().catch(() => {})
     } catch (e) {
       toast.error(e.message)
@@ -100,50 +105,50 @@ const remove = async (row) => {
   }
 
   const purge = async (row) => {
-    if (!window.confirm(`Permanently delete ${row.name}? This destroys their grades, payments, and history.`)) return
+    if (!window.confirm(t('confirmPurgeAccount', { name: row.name }))) return
     try {
       await request(`/api/user/purge/${row.id}`, { method: 'DELETE' })
-      toast.success('Account permanently deleted.')
+      toast.success(t('accountDeleted'))
       run().catch(() => {})
     } catch (e) {
       toast.error(e.message)
     }
   }
 
-  return (
+return (
     <>
 <Head
-        kicker="People"
-        title="Accounts"
-        sub="Create and manage student and professor accounts."
-        actions={!archived ? <Btn icon="plus" onClick={openCreate}>New {tab === 'students' ? 'student' : 'professor'}</Btn> : null}
+        kicker={t('people')}
+        title={t('accounts')}
+        sub={t('accountsSub')}
+        actions={!archived ? <Btn icon="plus" onClick={openCreate}>{tab === 'students' ? t('newStudent') : t('newProfessor')}</Btn> : null}
       />
       <div className="seg" style={{ marginBottom: 22, maxWidth: 340 }}>
-        <button className={tab === 'students' ? 'on' : ''} onClick={() => { setTab('students'); setPage(1) }}>Students</button>
-        <button className={tab === 'doctors' ? 'on' : ''} onClick={() => { setTab('doctors'); setPage(1) }}>Professors</button>
+        <button className={tab === 'students' ? 'on' : ''} onClick={() => { setTab('students'); setPage(1) }}>{t('students')}</button>
+        <button className={tab === 'doctors' ? 'on' : ''} onClick={() => { setTab('doctors'); setPage(1) }}>{t('professors')}</button>
       </div>
       <div className="seg" style={{ marginBottom: 22, maxWidth: 300 }}>
-        <button className={!archived ? 'on' : ''} onClick={() => { setArchived(false); setPage(1) }}>Active</button>
-        <button className={archived ? 'on' : ''} onClick={() => { setArchived(true); setPage(1) }}>Archived</button>
+        <button className={!archived ? 'on' : ''} onClick={() => { setArchived(false); setPage(1) }}>{t('active')}</button>
+        <button className={archived ? 'on' : ''} onClick={() => { setArchived(true); setPage(1) }}>{t('archived')}</button>
       </div>
-
+      <SearchBar value={q} onChange={(v) => { setQ(v); setPage(1) }} placeholder={t('searchUsersPh')} style={{ marginBottom: 22, maxWidth: 420 }} />
       <DataTable
         loading={loading}
         rows={paged.items}
         columns={
           tab === 'students'
             ? [
-                { key: 'name', label: 'Name', main: true },
-                { key: 'email', label: 'Email' },
-                { key: 'level', label: 'Level', render: (r) => r.level || '—' },
-                { key: 'department', label: 'Department', render: (r) => r.department || 'General' },
-                { key: 'created_at', label: 'Joined', render: (r) => (r.created_at ? new Date(r.created_at).toLocaleDateString() : '—') },
+                { key: 'name', label: t('name'), main: true },
+                { key: 'email', label: t('email') },
+                { key: 'level', label: t('level'), render: (r) => r.level || '—' },
+                { key: 'department', label: t('department'), render: (r) => r.department || t('general') },
+                { key: 'created_at', label: t('joined'), render: (r) => (r.created_at ? new Date(r.created_at).toLocaleDateString() : '—') },
               ]
             : [
-                { key: 'name', label: 'Name', main: true },
-                { key: 'email', label: 'Email' },
-                { key: 'job_title', label: 'Title', render: (r) => r.job_title || '—' },
-                { key: 'created_at', label: 'Joined', render: (r) => (r.created_at ? new Date(r.created_at).toLocaleDateString() : '—') },
+                { key: 'name', label: t('name'), main: true },
+                { key: 'email', label: t('email') },
+                { key: 'job_title', label: t('jobTitle'), render: (r) => r.job_title || '—' },
+                { key: 'created_at', label: t('joined'), render: (r) => (r.created_at ? new Date(r.created_at).toLocaleDateString() : '—') },
               ]
         }
 onEdit={archived ? undefined : openEdit}
@@ -153,52 +158,52 @@ onEdit={archived ? undefined : openEdit}
       />
       <Pager page={paged.page} last={paged.last_page} onPage={setPage} />
 
-<FormModal open={open} onClose={() => setOpen(false)} title={editId ? 'Edit account' : 'Create account'} onSubmit={submit} busy={busy} errors={errors} onFormClose={clearErrors}>
+<FormModal open={open} onClose={() => setOpen(false)} title={editId ? t('editAccount') : t('createAccount')} onSubmit={submit} busy={busy} errors={errors} onFormClose={clearErrors}>
         <div className="grid grid-2" style={{ gap: 14 }}>
-          <Field label="Full name" error={errors?.name?.[0]}><input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field>
-          <Field label="Email" error={errors?.email?.[0]}><input className="input" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></Field>
+          <Field label={t('fullName')} error={errors?.name?.[0]}><input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field>
+          <Field label={t('email')} error={errors?.email?.[0]}><input className="input" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></Field>
         </div>
         <div className="grid grid-2" style={{ gap: 14 }}>
-          <Field label={editId ? 'New password (optional)' : 'Password'} error={errors?.password?.[0]}><input className="input" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} /></Field>
-          <Field label="National ID (14 digits)" error={errors?.nationalid?.[0]}><input className="input" maxLength={14} value={form.nationalid} onChange={(e) => setForm({ ...form, nationalid: e.target.value })} /></Field>
+          <Field label={editId ? t('newPasswordOptional') : t('password')} error={errors?.password?.[0]}><input className="input" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} /></Field>
+          <Field label={t('nationalId14')} error={errors?.nationalid?.[0]}><input className="input" maxLength={14} value={form.nationalid} onChange={(e) => setForm({ ...form, nationalid: e.target.value })} /></Field>
         </div>
         <div className="grid grid-2" style={{ gap: 14 }}>
-          <Field label="Role" error={errors?.type?.[0]}>
+          <Field label={t('role')} error={errors?.type?.[0]}>
             <div className="radio-row">
-              <button type="button" className={`chip ${form.type === 0 ? 'on' : ''}`} onClick={() => setForm({ ...form, type: 0 })}>Student</button>
-              <button type="button" className={`chip ${form.type === 1 ? 'on' : ''}`} onClick={() => setForm({ ...form, type: 1 })}>Professor</button>
+              <button type="button" className={`chip ${form.type === 0 ? 'on' : ''}`} onClick={() => setForm({ ...form, type: 0 })}>{t('student')}</button>
+              <button type="button" className={`chip ${form.type === 1 ? 'on' : ''}`} onClick={() => setForm({ ...form, type: 1 })}>{t('professor')}</button>
             </div>
           </Field>
-          <Field label="Gender" error={errors?.gender?.[0]}>
+          <Field label={t('gender')} error={errors?.gender?.[0]}>
             <div className="radio-row">
-              <button type="button" className={`chip ${form.gender === 0 ? 'on' : ''}`} onClick={() => setForm({ ...form, gender: 0 })}>Male</button>
-              <button type="button" className={`chip ${form.gender === 1 ? 'on' : ''}`} onClick={() => setForm({ ...form, gender: 1 })}>Female</button>
+              <button type="button" className={`chip ${form.gender === 0 ? 'on' : ''}`} onClick={() => setForm({ ...form, gender: 0 })}>{t('male')}</button>
+              <button type="button" className={`chip ${form.gender === 1 ? 'on' : ''}`} onClick={() => setForm({ ...form, gender: 1 })}>{t('female')}</button>
             </div>
           </Field>
         </div>
         <div className="grid grid-2" style={{ gap: 14 }}>
-          <Field label="Phone (11 digits)" error={errors?.phone?.[0]}><input className="input" maxLength={11} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></Field>
-          <Field label="Credit points" error={errors?.credit_points?.[0]}><input className="input" type="number" value={form.credit_points} onChange={(e) => setForm({ ...form, credit_points: e.target.value })} /></Field>
+          <Field label={t('phone11')} error={errors?.phone?.[0]}><input className="input" maxLength={11} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></Field>
+          <Field label={t('creditPoints')} error={errors?.credit_points?.[0]}><input className="input" type="number" value={form.credit_points} onChange={(e) => setForm({ ...form, credit_points: e.target.value })} /></Field>
         </div>
         <div className="grid grid-2" style={{ gap: 14 }}>
-          <Field label="Department" error={errors?.department_id?.[0]}>
+          <Field label={t('department')} error={errors?.department_id?.[0]}>
             <select className="select" value={form.department_id} onChange={(e) => setForm({ ...form, department_id: e.target.value })}>
-              <option value="">— None (General) —</option>
+              <option value="">{t('noneGeneralOption')}</option>
               {departments.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </Field>
           {form.type === 1 ? (
-            <Field label="Job title" error={errors?.job_title?.[0]}><input className="input" value={form.job_title} onChange={(e) => setForm({ ...form, job_title: e.target.value })} /></Field>
+            <Field label={t('jobTitle')} error={errors?.job_title?.[0]}><input className="input" value={form.job_title} onChange={(e) => setForm({ ...form, job_title: e.target.value })} /></Field>
           ) : (
-            <Field label="Level ID" error={errors?.level_id?.[0]}><input className="input" type="number" min="1" value={form.level_id} onChange={(e) => setForm({ ...form, level_id: e.target.value })} placeholder="e.g. 1" /></Field>
+            <Field label={t('levelId')} error={errors?.level_id?.[0]}><input className="input" type="number" min="1" value={form.level_id} onChange={(e) => setForm({ ...form, level_id: e.target.value })} placeholder="e.g. 1" /></Field>
           )}
         </div>
         {form.type === 0 ? (
-          <Field label="Semester" error={errors?.semester?.[0]}>
+          <Field label={t('semester')} error={errors?.semester?.[0]}>
             <select className="select" value={form.semester} onChange={(e) => setForm({ ...form, semester: e.target.value })}>
-              <option value="">— None —</option>
-              <option value="first">First</option>
-              <option value="second">Second</option>
+              <option value="">{t('noneOption')}</option>
+              <option value="first">{t('first')}</option>
+              <option value="second">{t('second')}</option>
             </select>
           </Field>
         ) : null}

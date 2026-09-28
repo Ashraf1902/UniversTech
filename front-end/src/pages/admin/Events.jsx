@@ -1,11 +1,15 @@
 import { useState } from 'react'
 import { request } from '../../lib/api'
 import { Btn, Field, Pager, useToast } from '../../lib/ui'
-import { DataTable, FormModal, Head, useFieldErrors, useList } from './_shared'
+import { useI18n } from '../../lib/i18n'
+import { DataTable, FormModal, Head, SearchBar, useDebounced, useFieldErrors, useList, withSearch } from './_shared'
 export function AdminEvents() {
+  const { t } = useI18n()
   const [page, setPage] = useState(1)
+  const [q, setQ] = useState('')
+  const search = useDebounced(q)
   const toast = useToast()
-  const { paged, loading, run } = useList('/api/event/get/all', page)
+  const { paged, loading, run } = useList(withSearch('/api/event/get/all', search), page, [search])
   const [open, setOpen] = useState(false)
   const [editId, setEditId] = useState(null)
   const [form, setForm] = useState({ title: '', content: '', image: null })
@@ -21,7 +25,7 @@ export function AdminEvents() {
       fd.append('content', form.content)
       if (form.image) fd.append('image', form.image)
       await request(editId ? '/api/event/update' : '/api/event/store', { method: 'POST', formData: fd })
-      toast.success('Event saved and shared with students.')
+      toast.success(t('eventSaved'))
       setOpen(false)
       clearErrors()
       run().catch(() => {})
@@ -32,11 +36,11 @@ export function AdminEvents() {
     }
   }
 
-  const remove = async (row) => {
-    if (!window.confirm(`Delete event "${row.title}"?`)) return
+const remove = async (row) => {
+    if (!window.confirm(t('confirmDeleteEvent', { title: row.title }))) return
     try {
       await request(`/api/event/delete/${row.id}`, { method: 'DELETE' })
-      toast.success('Event deleted.')
+      toast.success(t('eventDeleted'))
       run().catch(() => {})
     } catch (e) {
       toast.error(e.message)
@@ -45,24 +49,25 @@ export function AdminEvents() {
 
   return (
     <>
-      <Head kicker="Campus life" title="Events" sub="Publish events that are broadcast to every student instantly." actions={<Btn icon="plus" onClick={() => { setEditId(null); setForm({ title: '', content: '', image: null }); setOpen(true) }}>New event</Btn>} />
+<Head kicker={t('campusLife')} title={t('events')} sub={t('eventsSub')} actions={<Btn icon="plus" onClick={() => { setEditId(null); setForm({ title: '', content: '', image: null }); setOpen(true) }}>{t('newEvent')}</Btn>} />
+      <SearchBar value={q} onChange={(v) => { setQ(v); setPage(1) }} placeholder={t('searchEventsPh')} style={{ marginBottom: 22, maxWidth: 420 }} />
       <DataTable
         loading={loading}
         rows={paged.items}
         columns={[
-          { key: 'title', label: 'Event', main: true },
-          { key: 'content', label: 'Details', render: (r) => <span style={{ display: 'inline-block', maxWidth: 340, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.content}</span> },
-          { key: 'created_by', label: 'Published by', render: (r) => r.created_by || '—' },
-          { key: 'created_at', label: 'Date', render: (r) => (r.created_at ? new Date(r.created_at).toLocaleDateString() : '—') },
+          { key: 'title', label: t('event'), main: true },
+          { key: 'content', label: t('details'), render: (r) => <span style={{ display: 'inline-block', maxWidth: 340, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.content}</span> },
+          { key: 'created_by', label: t('publishedBy'), render: (r) => r.created_by || '—' },
+          { key: 'created_at', label: t('date'), render: (r) => (r.created_at ? new Date(r.created_at).toLocaleDateString() : '—') },
         ]}
         onEdit={(row) => { setEditId(row.id); setForm({ title: row.title || '', content: row.content || '', image: null }); setOpen(true) }}
         onDelete={remove}
       />
       <Pager page={paged.page} last={paged.last_page} onPage={setPage} />
-<FormModal open={open} onClose={() => setOpen(false)} title={editId ? 'Edit event' : 'New event'} onSubmit={submit} busy={busy} errors={errors} onFormClose={clearErrors}>
-        <Field label="Title" error={errors?.title?.[0]}><input className="input" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></Field>
-        <Field label="Content" error={errors?.content?.[0]}><textarea className="textarea" rows={4} value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} /></Field>
-        <Field label={editId ? 'Replace image (optional)' : 'Image'} error={errors?.image?.[0]}>
+<FormModal open={open} onClose={() => setOpen(false)} title={editId ? t('editEvent') : t('newEvent')} onSubmit={submit} busy={busy} errors={errors} onFormClose={clearErrors}>
+        <Field label={t('title')} error={errors?.title?.[0]}><input className="input" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></Field>
+        <Field label={t('content')} error={errors?.content?.[0]}><textarea className="textarea" rows={4} value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} /></Field>
+        <Field label={editId ? t('replaceImageOptional') : t('image')} error={errors?.image?.[0]}>
           <input className="input" type="file" accept="image/*" onChange={(e) => setForm({ ...form, image: e.target.files?.[0] || null })} />
         </Field>
       </FormModal>

@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { request } from '../../lib/api'
+import { useI18n } from '../../lib/i18n'
 import { useAsync } from '../../lib/hooks'
 import { Badge, Btn, CourseLoader, Empty, I, Reveal, Ring, useToast } from '../../lib/ui'
 import { Head } from './_shared'
 export function StudentCourseDetail() {
   const { id } = useParams()
+  const { t } = useI18n()
   const toast = useToast()
   const { data: course, loading } = useAsync(() => request(`/api/user/course/${id}`), [id])
   const [watched, setWatched] = useState({})
@@ -20,19 +22,19 @@ export function StudentCourseDetail() {
     }
   }
 
-  if (loading) return <CourseLoader label="Opening course…" />
-  if (!course) return <Empty icon="book" title="Course not found" />
+  if (loading) return <CourseLoader label={t('openingCourse')} />
+  if (!course) return <Empty icon="book" title={t('courseNotFound')} />
 
   return (
     <>
-      <Head kicker="Course" title={course.course_name} sub={`${course.course_code || ''} · ${course.course_professor || 'No professor'}`} actions={<Link to="/app/student/courses"><Btn variant="ghost" icon="chevron" style={{ transform: 'scaleX(-1)' }}>Back</Btn></Link>} />
+      <Head kicker={t('course')} title={course.course_name} sub={`${course.course_code || ''} · ${course.course_professor || t('noProfessor')}`} actions={<Link to="/app/student/courses"><Btn variant="ghost" icon="chevron" style={{ transform: 'scaleX(-1)' }}>{t('back')}</Btn></Link>} />
 
       <div className="grid grid-2" style={{ gridTemplateColumns: '1fr 320px', alignItems: 'start' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
           <Reveal className="card">
             <div className="card-head">
-              <h3>Lectures</h3>
-              <Badge tone="cy">{course.lectures?.length || 0} total</Badge>
+              <h3>{t('lectures')}</h3>
+              <Badge tone="cy">{t('totalCount', { n: course.lectures?.length || 0 })}</Badge>
             </div>
             {course.lectures?.length ? (
               course.lectures.map((l, i) => {
@@ -44,21 +46,21 @@ export function StudentCourseDetail() {
                     </span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600, fontSize: '0.92rem' }}>{l.lecture_name}</div>
-                      <div style={{ fontSize: '0.78rem', color: 'var(--faint)' }}>{done ? 'Watched' : 'Not started'}</div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--faint)' }}>{done ? t('watched') : t('notStarted')}</div>
                     </div>
-                    <Btn size="sm" variant="soft" icon="play" onClick={() => watch(l)}>Watch</Btn>
+                    <Btn size="sm" variant="soft" icon="play" onClick={() => watch(l)}>{t('watch')}</Btn>
                   </div>
                 )
               })
             ) : (
-              <Empty icon="file" title="No lectures yet" sub="Your professor has not uploaded any lectures." />
+              <Empty icon="file" title={t('noLecturesYet')} sub={t('noLecturesYetSub')} />
             )}
           </Reveal>
 
           <Reveal className="card" delay={0.08}>
             <div className="card-head">
-              <h3>Quizzes</h3>
-              <Badge tone="pnk">{course.quizzes?.length || 0} total</Badge>
+              <h3>{t('quizzes')}</h3>
+              <Badge tone="pnk">{t('totalCount', { n: course.quizzes?.length || 0 })}</Badge>
             </div>
             {course.quizzes?.length ? (
               course.quizzes.map((q) => (
@@ -68,15 +70,15 @@ export function StudentCourseDetail() {
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 600, fontSize: '0.92rem' }}>{q.name}</div>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--faint)' }}>{q.due_at ? `Due ${new Date(q.due_at).toLocaleDateString()}` : 'No due date'}</div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--faint)' }}>{q.due_at ? t('due', { date: new Date(q.due_at).toLocaleDateString() }) : t('noDueDate')}</div>
                   </div>
                   <a href={q.content} target="_blank" rel="noreferrer">
-                    <Btn size="sm" variant="soft" icon="file">Open</Btn>
+                    <Btn size="sm" variant="soft" icon="file">{t('openAction')}</Btn>
                   </a>
                 </div>
               ))
             ) : (
-              <Empty icon="award" title="No quizzes yet" />
+              <Empty icon="award" title={t('noQuizzes')} />
             )}
           </Reveal>
         </div>
@@ -87,8 +89,8 @@ export function StudentCourseDetail() {
             <div className="gpa-meter" style={{ justifyContent: 'center' }}>
               <Ring value={course.progress_percent || 0} max={100} label={`${Math.round(course.progress_percent || 0)}%`} />
               <div style={{ textAlign: 'left' }}>
-                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700 }}>Progress</div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--faint)' }}>across lectures</div>
+                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700 }}>{t('progress')}</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--faint)' }}>{t('acrossLectures')}</div>
               </div>
             </div>
           </Reveal>

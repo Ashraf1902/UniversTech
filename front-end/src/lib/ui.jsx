@@ -1,4 +1,5 @@
 import { createContext, cloneElement, isValidElement, useContext, useEffect, useId, useRef, useState } from 'react'
+import { useI18n } from './i18n'
 
 /* ---------------- ICONS ---------------- */
 const PATHS = {
@@ -470,13 +471,14 @@ export function SectionTitle({ kicker, title, sub, center = true }) {
 }
 
 /* ---------------- EMPTY / LOADER ---------------- */
-export function Empty({ icon = 'info', title = 'Nothing here yet', sub, action }) {
+export function Empty({ icon = 'info', title, sub, action }) {
+  const { t } = useI18n()
   return (
     <div className="empty">
       <div className="eic">
         <I name={icon} size={26} />
       </div>
-      <h3>{title}</h3>
+      <h3>{title ?? t('nothingHereYet')}</h3>
       {sub ? <p>{sub}</p> : null}
       {action}
     </div>
@@ -508,7 +510,8 @@ export function Loader() {
   )
 }
 
-export function CourseLoader({ label = 'Loading courses…' }) {
+export function CourseLoader({ label }) {
+  const { t } = useI18n()
   return (
     <div className="course-loader" role="status" aria-live="polite">
       <div className="cl-stage">
@@ -522,7 +525,7 @@ export function CourseLoader({ label = 'Loading courses…' }) {
         <span className="cl-dot cl-dot-3" />
       </div>
       <div className="cl-label">
-        {label}
+        {label ?? t('loadingCourses')}
         <span className="cl-dots"><i /><i /><i /></span>
       </div>
     </div>
@@ -531,6 +534,7 @@ export function CourseLoader({ label = 'Loading courses…' }) {
 
 /* ---------------- MODAL ---------------- */
 export function Modal({ open, onClose, title, children, footer, size }) {
+  const { t } = useI18n()
   const titleId = useId()
   const panelRef = useRef(null)
   const lastFocus = useRef(null)
@@ -587,7 +591,7 @@ export function Modal({ open, onClose, title, children, footer, size }) {
       <div className={`modal ${size === 'lg' ? 'modal-lg' : ''}`} role="dialog" aria-modal="true" aria-labelledby={titleId} ref={panelRef}>
         <div className="modal-head">
           <h3 id={titleId}>{title}</h3>
-          <button className="icon-btn" onClick={onClose} aria-label="Close">
+          <button className="icon-btn" onClick={onClose} aria-label={t('close')}>
             <I name="x" size={18} />
           </button>
         </div>
@@ -642,6 +646,7 @@ export function useToast() {
 
 /* ---------------- FORM ---------------- */
 export function Field({ label, hint, error, children, className = '' }) {
+  const { t } = useI18n()
   const fid = useId()
   const child =
     isValidElement(children)
@@ -652,7 +657,7 @@ export function Field({ label, hint, error, children, className = '' }) {
     <div className={`field ${error ? 'has-error' : ''} ${className}`}>
       {label ? <label htmlFor={id}>{label}</label> : null}
       {child}
-      {error ? <small className="field-msg" role="alert">{typeof error === 'string' ? error : Array.isArray(error) ? error[0] : 'This field is invalid.'}</small> : null}
+      {error ? <small className="field-msg" role="alert">{typeof error === 'string' ? error : Array.isArray(error) ? error[0] : t('fieldInvalid')}</small> : null}
       {hint ? <small style={{ color: 'var(--faint)', fontSize: '0.78rem' }}>{hint}</small> : null}
     </div>
   )
@@ -660,6 +665,7 @@ export function Field({ label, hint, error, children, className = '' }) {
 
 /* ---------------- PAGER ---------------- */
 export function Pager({ page = 1, last = 1, onPage }) {
+  const { t } = useI18n()
   if (last <= 1) return null
   const pages = []
   const from = Math.max(1, page - 2)
@@ -667,7 +673,7 @@ export function Pager({ page = 1, last = 1, onPage }) {
   for (let i = from; i <= to; i++) pages.push(i)
   return (
     <div className="pager">
-      <button onClick={() => onPage(page - 1)} disabled={page <= 1} aria-label="Previous">
+      <button onClick={() => onPage(page - 1)} disabled={page <= 1} aria-label={t('previous')}>
         <I name="chevron" size={16} style={{ transform: 'rotate(180deg)' }} />
       </button>
       {from > 1 ? (
@@ -687,7 +693,7 @@ export function Pager({ page = 1, last = 1, onPage }) {
           <button onClick={() => onPage(last)}>{last}</button>
         </>
       ) : null}
-      <button onClick={() => onPage(page + 1)} disabled={page >= last} aria-label="Next">
+      <button onClick={() => onPage(page + 1)} disabled={page >= last} aria-label={t('next')}>
         <I name="chevron" size={16} />
       </button>
     </div>

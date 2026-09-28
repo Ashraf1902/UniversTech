@@ -1,10 +1,12 @@
 import { Link } from 'react-router-dom'
 import { request } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
+import { useI18n } from '../../lib/i18n'
 import { useAsync } from '../../lib/hooks'
 import { Btn, Counter, Empty, I, Prog, Reveal, Spinner, StatCard } from '../../lib/ui'
 export function StudentHome() {
   const { user } = useAuth()
+  const { t } = useI18n()
   const profile = useAsync(() => request('/api/user'))
   const reports = useAsync(() => request('/api/user/reports'))
   const notifs = useAsync(() => request('/api/user/notifications'))
@@ -23,33 +25,33 @@ export function StudentHome() {
   return (
     <>
       <Reveal className="cta-band" style={{ padding: '40px 34px', marginBottom: 28, textAlign: 'left' }}>
-        <span className="badge grn" style={{ marginBottom: 14 }}>
-          <span className="gd" /> Active term
+<span className="badge grn" style={{ marginBottom: 14 }}>
+          <span className="gd" /> {t('activeTerm')}
         </span>
         <h1 style={{ fontSize: 'clamp(1.6rem,3vw,2.3rem)', marginBottom: 10 }}>
-          Welcome back, <span className="grad-text">{user?.name?.split(' ')[0] || 'student'}</span>
+          <span className="grad-text">{t('welcomeBack', { name: user?.name?.split(' ')[0] || t('student') })}</span>
         </h1>
         <p style={{ margin: 0, maxWidth: 620 }}>
-          {p?.level?.name || 'Your year'} · {p?.department?.name || 'General'} · {avgProgress}% average progress across your courses.
+          {p?.level?.name || t('yourYear')} · {p?.department?.name || t('general')} · {t('avgProgressLine', { avg: avgProgress })}
         </p>
       </Reveal>
 
       <div className="grid grid-4" style={{ marginBottom: 28 }}>
-        <StatCard icon="book" label="Registered courses" value={courses.length} tone="vio" delay={0} />
-        <StatCard icon="chart" label="Average progress" value={<Counter to={avgProgress} suffix="%" />} tone="cy" delay={0.06}>
+        <StatCard icon="book" label={t('registeredCourses')} value={courses.length} tone="vio" delay={0} />
+        <StatCard icon="chart" label={t('averageProgress')} value={<Counter to={avgProgress} suffix="%" />} tone="cy" delay={0.06}>
           <div style={{ marginTop: 12 }}>
             <Prog value={avgProgress} tone="cy" sm />
           </div>
         </StatCard>
-        <StatCard icon="award" label="Cumulative GPA" value={overall.cumulative_gpa ?? '—'} sub={overall.rate ? `Rate ${overall.rate}` : 'No grades yet'} tone="grn" delay={0.12} />
-        <StatCard icon="calendar" label="Attendance" value={attendance} sub={`${absences} absences`} tone="amb" delay={0.18} />
+        <StatCard icon="award" label={t('cumulativeGpa')} value={overall.cumulative_gpa ?? '—'} sub={overall.rate ? t('ratePrefix', { rate: overall.rate }) : t('noGradesYet')} tone="grn" delay={0.12} />
+        <StatCard icon="calendar" label={t('attendance')} value={attendance} sub={t('absencesCount', { n: absences })} tone="amb" delay={0.18} />
       </div>
 
       <div className="grid grid-2" style={{ gridTemplateColumns: '1.3fr 1fr', alignItems: 'start' }}>
         <Reveal className="card">
           <div className="card-head">
-            <h3>Course progress</h3>
-            <Link to="/app/student/courses" className="badge vio">View all</Link>
+            <h3>{t('courseProgress')}</h3>
+            <Link to="/app/student/courses" className="badge vio">{t('viewAll')}</Link>
           </div>
           {reports.loading ? <Spinner /> : courses.length ? (
             courses.slice(0, 5).map((c) => {
@@ -58,41 +60,41 @@ export function StudentHome() {
                 <div key={c.course_name} style={{ marginBottom: 18 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: '0.9rem' }}>
                     <span style={{ fontWeight: 600 }}>{c.course_name}</span>
-                    <span style={{ color: 'var(--muted)' }}>{c.progress}/{c.total_lectures} · {pct}%</span>
+                    <span style={{ color: 'var(--muted)' }}>{t('progressFraction', { done: c.progress, total: c.total_lectures, pct })}</span>
                   </div>
                   <Prog value={pct} />
                 </div>
               )
             })
           ) : (
-            <Empty icon="book" title="No courses yet" sub="Register for courses in the catalog to get started." action={<Link to="/app/student/catalog"><Btn size="sm">Open catalog</Btn></Link>} />
+            <Empty icon="book" title={t('noCoursesYet')} sub={t('registerInCatalog')} action={<Link to="/app/student/catalog"><Btn size="sm">{t('openCatalog')}</Btn></Link>} />
           )}
         </Reveal>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
           <Reveal className="card" delay={0.08}>
             <div className="card-head">
-              <h3>Next classes</h3>
-              <Link to="/app/student/schedule" className="badge cy">Schedule</Link>
+              <h3>{t('nextClasses')}</h3>
+              <Link to="/app/student/schedule" className="badge cy">{t('schedule')}</Link>
             </div>
             {sched.slice(0, 4).map((s, i) => (
               <div className="list-row" key={i}>
                 <span className="av" style={{ background: 'var(--grad)', width: 40, height: 40, fontSize: '0.7rem' }}>
-                  {String(s.day_of_week || '').slice(0, 3)}
+                  {t('dayShort_' + String(s.day_of_week || '').toLowerCase())}
                 </span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.course_name}</div>
-                  <div style={{ fontSize: '0.78rem', color: 'var(--faint)' }}>{s.start_time} – {s.end_time} · {s.section_type}</div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--faint)' }}>{s.start_time} – {s.end_time} · {t('type_' + String(s.section_type || '').toLowerCase())}</div>
                 </div>
               </div>
             ))}
-            {!sched.length && !schedule.loading ? <Empty icon="calendar" title="No schedule yet" /> : null}
+            {!sched.length && !schedule.loading ? <Empty icon="calendar" title={t('noScheduleYet')} /> : null}
           </Reveal>
 
           <Reveal className="card" delay={0.14}>
             <div className="card-head">
-              <h3>Latest notices</h3>
-              <Link to="/app/student/notifications" className="badge pnk">All</Link>
+              <h3>{t('latestNotices')}</h3>
+              <Link to="/app/student/notifications" className="badge pnk">{t('all')}</Link>
             </div>
             {notes.slice(0, 3).map((n) => (
               <div className="list-row" key={n.id}>
@@ -105,7 +107,7 @@ export function StudentHome() {
                 </div>
               </div>
             ))}
-            {!notes.length && !notifs.loading ? <Empty icon="bell" title="No notifications" /> : null}
+            {!notes.length && !notifs.loading ? <Empty icon="bell" title={t('noNotifications')} /> : null}
           </Reveal>
         </div>
       </div>
