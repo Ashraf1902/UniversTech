@@ -534,31 +534,40 @@ export function Modal({ open, onClose, title, children, footer, size }) {
   const titleId = useId()
   const panelRef = useRef(null)
   const lastFocus = useRef(null)
+  const onCloseRef = useRef(onClose)
+
+  useEffect(() => {
+    onCloseRef.current = onClose
+  }, [onClose])
+
+  const getFocusables = () =>
+    Array.from(panelRef.current?.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])') ?? []).filter(
+      (el) => !el.disabled,
+    )
 
   useEffect(() => {
     if (!open) return
     lastFocus.current = document.activeElement
-    const panel = panelRef.current
-    if (panel) {
-      const focusables = panel.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
-      if (focusables.length) focusables[0].focus()
-    }
+    const focusables = getFocusables()
+    const preferred = focusables.find((el) => ['INPUT', 'SELECT', 'TEXTAREA'].includes(el.tagName))
+    ;(preferred || focusables[0])?.focus()
+
     const onKey = (e) => {
       if (e.key === 'Escape') {
         e.stopPropagation()
-        onClose?.()
+        onCloseRef.current?.()
         return
       }
-      if (e.key !== 'Tab' || !panel) return
-      const focusables = Array.from(panel.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])').values()).filter((el) => !el.disabled)
-      if (!focusables.length) return
-      const first = focusables[0]
-      const last = focusables[focusables.length - 1]
+      if (e.key !== 'Tab') return
+      const list = getFocusables()
+      if (!list.length) return
+      const first = list[0]
+      const last = list[list.length - 1]
       const active = document.activeElement
-      if (e.shiftKey && (active === first || !panel.contains(active))) {
+      if (e.shiftKey && (active === first || !panelRef.current?.contains(active))) {
         e.preventDefault()
         last.focus()
-      } else if (!e.shiftKey && (active === last || !panel.contains(active))) {
+      } else if (!e.shiftKey && (active === last || !panelRef.current?.contains(active))) {
         e.preventDefault()
         first.focus()
       }
@@ -570,7 +579,7 @@ export function Modal({ open, onClose, title, children, footer, size }) {
       document.body.style.overflow = ''
       lastFocus.current?.focus?.()
     }
-  }, [open, onClose])
+  }, [open])
 
   if (!open) return null
   return (
