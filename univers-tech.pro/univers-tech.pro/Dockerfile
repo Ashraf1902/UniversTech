@@ -55,7 +55,7 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 
 USER app
 
-EXPOSE 8080
+EXPOSE 9000
 
 ENTRYPOINT ["entrypoint.sh"]
-CMD ["sh", "-c", "php -S 0.0.0.0:${PORT:-8080} -t public"]
+CMD ["php-fpm"]

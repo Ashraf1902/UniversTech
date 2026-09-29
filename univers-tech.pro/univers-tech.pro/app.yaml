@@ -1,0 +1,27 @@
+kind: wasmer.io/App.v0
+name: universtech-api            # must be unique across Wasmer; adjust if taken
+owner: mah_ashraf1902
+package: .
+capabilities:
+  database:
+    engine: mysql
+locality:
+  regions:
+    - fr-roub1                   # exactly one region; closest MySQL region to Cairo
+env:
+  APP_NAME: UniversTech
+  APP_ENV: production
+  APP_DEBUG: "false"
+  APP_URL: https://universtech-api.wasmer.app     # update to the real URL after first deploy
+  LOG_CHANNEL: stderr
+  CACHE_STORE: array
+  SESSION_DRIVER: array
+  QUEUE_CONNECTION: sync
+  DB_CONNECTION: mysql
+  FILES_DISK_ROOT: /app/public/uploads
+  PAYMENT_DEMO_MODE: "true"     # the app's real flag name in config/services.php
+volumes:
+  - name: uploads
+    mount: /app/public/uploads
+scaling:
+  mode: single_concurrency       # VERIFY against Wasmer Edge PHP docs (php -S is single-threaded)
