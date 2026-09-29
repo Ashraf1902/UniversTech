@@ -1,12 +1,12 @@
 [dependencies]
-"php/php" = "=8.3.4"
+"shira/php" = "8.5.10"
 
 [fs]
 "/app/" = "."
 
 [[command]]
 name = "run"
-module = "php/php:php"
+module = "shira/php:php"
 runner = "wasi"
 [command.annotations.wasi]
-main-args = ["-t", "/app/public", "-S", "localhost:8080"]
+main-args = ["-d", "display_errors=Off", "-d", "expose_php=Off", "-t", "/app/public", "-S", "0.0.0.0:8080"]

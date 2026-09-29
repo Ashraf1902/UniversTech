@@ -12,7 +12,7 @@ env:
   APP_NAME: UniversTech
   APP_ENV: production
   APP_DEBUG: "false"
-  APP_URL: https://universtech-api.wasmer.app     # update to the real URL after first deploy
+  APP_URL: https://universtech-api.wasmer.app     # confirmed real URL from first deploy
   LOG_CHANNEL: stderr
   CACHE_STORE: array
   SESSION_DRIVER: array
@@ -25,3 +25,4 @@ volumes:
     mount: /app/public/uploads
 scaling:
   mode: single_concurrency       # VERIFY against Wasmer Edge PHP docs (php -S is single-threaded)
+app_id: da_KN4IZtyUPopm
