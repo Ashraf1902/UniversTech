@@ -9,6 +9,7 @@ use App\Models\Event;
 use App\Models\Grade;
 use App\Models\Lecture;
 use App\Models\Level;
+use App\Models\Notification;
 use App\Models\Professor;
 use App\Models\Schedule;
 use App\Models\Semester;
@@ -171,15 +172,16 @@ class DatabaseSeeder extends Seeder
             );
         }
 
+        $courseLevels = [0, 1, 2, 3, 0, 1, 2, 3];
         $days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'];
         foreach ($courses as $i => $course) {
             $slots = [
                 [$days[$i % count($days)], '09:00', '10:30', 'lecture'],
                 [$days[($i + 1) % count($days)], '11:00', '12:30', 'section'],
             ];
-            foreach ($slots as $k => [$day, $start, $end, $section]) {
+            foreach ($slots as [$day, $start, $end, $section]) {
                 Schedule::updateOrCreate(
-                    ['level_id' => null, 'semester_id' => $sem1->id, 'department_id' => $course->department_id, 'day_of_week' => $day, 'start_time' => $start, 'end_time' => $end, 'section_type' => $section],
+                    ['level_id' => $levels[$courseLevels[$i]]->id, 'semester_id' => $sem1->id, 'department_id' => $course->department_id, 'day_of_week' => $day, 'start_time' => $start, 'end_time' => $end, 'section_type' => $section],
                     ['course_id' => $course->id, 'admin_id' => $super->id, 'path' => null]
                 );
             }
@@ -196,6 +198,26 @@ class DatabaseSeeder extends Seeder
                 'content' => $content,
                 'admin_id' => $super->id,
                 'image' => $image,
+            ]);
+            Notification::updateOrCreate(['title' => $title, 'type' => Notification::TYPE_EVENT], [
+                'content' => $content,
+                'admin_id' => $super->id,
+                'image_path' => $image,
+            ]);
+        }
+
+        Notification::updateOrCreate(['title' => 'Welcome to UniversTech', 'type' => Notification::TYPE_NOTIFICATION], [
+            'content' => 'Your account is ready. Check your schedule and courses for the new semester.',
+            'admin_id' => $super->id,
+            'student_id' => null,
+            'professor_id' => null,
+        ]);
+        foreach ($students as $student) {
+            Notification::updateOrCreate(['title' => 'Enrollment confirmed', 'type' => Notification::TYPE_NOTIFICATION, 'student_id' => $student->user_id], [
+                'content' => 'You have been enrolled in your courses for the first semester.',
+                'admin_id' => $super->id,
+                'student_id' => $student->user_id,
+                'professor_id' => null,
             ]);
         }
     }
