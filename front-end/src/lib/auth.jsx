@@ -19,6 +19,8 @@ export function AuthProvider({ children }) {
     })
     const next = {
       role,
+      access_token: data.access_token || data.token || null,
+      token_type: data.token_type || 'Bearer',
       user: data.user || {},
     }
     setSession(next)
