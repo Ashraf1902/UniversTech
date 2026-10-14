@@ -32,10 +32,25 @@ function CourseCard({ course, footer, delay = 0, t }) {
 export function StudentCourses() {
   const { t } = useI18n()
   const [page, setPage] = useState(1)
+  const [dropping, setDropping] = useState(null)
   const toast = useToast()
   const { data, loading, error, run } = useAsync(() => request(`/api/user/courses?page=${page}`), [page])
   const paged = normalizePage(data)
   const paywall = error && (error.status === 403 || /pay/i.test(error.message))
+
+  const drop = async (c) => {
+    if (!window.confirm(t('confirmDropCourse', { name: c.course_name }))) return
+    setDropping(c.id)
+    try {
+      await request('/api/user/drop-course', { method: 'POST', data: { course_id: c.course_id } })
+      toast.success(t('courseDropped'))
+      run().catch(() => {})
+    } catch (e) {
+      toast.error(e.message)
+    } finally {
+      setDropping(null)
+    }
+  }
 
   const pay = async (type) => {
     try {
@@ -92,9 +107,12 @@ export function StudentCourses() {
                       <span>{t('progressLectures', { done: c.progress, total: c.total_lectures })}</span>
                     </div>
                     <Prog value={c.progress_percent} tone="cy" />
-                    <Link to={`/app/student/course/${c.course_id}`} style={{ display: 'block', marginTop: 18 }}>
-                      <Btn variant="soft" className="btn-block" iconRight="arrow">{t('continueLearning')}</Btn>
-                    </Link>
+                    <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>
+                      <Link to={`/app/student/course/${c.course_id}`} style={{ flex: 1 }}>
+                        <Btn variant="soft" className="btn-block" iconRight="arrow">{t('continueLearning')}</Btn>
+                      </Link>
+                      <Btn variant="ghost" icon="trash" loading={dropping === c.id} onClick={() => drop(c)}>{t('dropCourse')}</Btn>
+                    </div>
                   </>
                 }
               />

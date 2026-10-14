@@ -27,6 +27,7 @@ class StudentCourseResource extends JsonResource
             'progress' => $this->progress,
             'progress_percent' => $progressPercent,
             'total_lectures' => $lectureCount,
+            'status' => $this->status,
         ];
     }
 }

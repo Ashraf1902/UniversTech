@@ -34,6 +34,7 @@ export const NAV = {
     { to: '/app/admin/events', icon: 'spark', key: 'events', scope: 'events' },
     { to: '/app/admin/grades', icon: 'award', key: 'gradesCards', scope: 'grades' },
     { to: '/app/admin/activity', icon: 'file', key: 'activityLog', scope: 'activity' },
+    { to: '/app/admin/settings', icon: 'lock', key: 'settings', scope: 'settings' },
     { to: '/app/admin/admins', icon: 'shield', key: 'adminsRoles', super: true },
   ],
 }

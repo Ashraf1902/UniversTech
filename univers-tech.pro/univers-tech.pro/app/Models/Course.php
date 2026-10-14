@@ -23,6 +23,7 @@ class Course extends Model
         'professor_id',
         'admin_id',
         'semester_id',
+        'capacity',
     ];
 
     protected static function booted(): void
@@ -83,7 +84,34 @@ class Course extends Model
 
     public function students()
     {
-        return $this->belongsToMany(User::class, 'student_courses', 'course_id', 'student_id');
+        return $this->belongsToMany(User::class, 'student_courses', 'course_id', 'student_id')
+            ->withPivot(['progress', 'last_lecture_id', 'status', 'semester_id']);
+    }
+
+    /**
+     * The courses that must be passed before this course can be taken.
+     */
+    public function prerequisites()
+    {
+        return $this->belongsToMany(
+            Course::class,
+            'course_prerequisites',
+            'course_id',
+            'prerequisite_course_id'
+        );
+    }
+
+    /**
+     * The courses for which this course is a prerequisite.
+     */
+    public function prerequisiteFor()
+    {
+        return $this->belongsToMany(
+            Course::class,
+            'course_prerequisites',
+            'prerequisite_course_id',
+            'course_id'
+        );
     }
 
     public function schedules()

@@ -30,6 +30,8 @@ class SemesterAdminController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100'],
             'academic_year' => ['required', 'string', 'max:20'],
+            'registration_opens_at' => ['nullable', 'date'],
+            'registration_closes_at' => ['nullable', 'date', 'after_or_equal:registration_opens_at'],
         ]);
 
         $semester = Semester::create($data);
@@ -50,6 +52,8 @@ class SemesterAdminController extends Controller
             'academic_year' => 'sometimes|string|max:20',
             'is_active' => 'sometimes|boolean',
             'grading_system' => 'sometimes|in:gpa,fixed_term',
+            'registration_opens_at' => 'nullable|date',
+            'registration_closes_at' => 'nullable|date|after_or_equal:registration_opens_at',
         ]);
 
         $semester = Semester::find($request->semester_id);

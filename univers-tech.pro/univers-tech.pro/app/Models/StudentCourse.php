@@ -10,6 +10,18 @@ class StudentCourse extends Model
 {
     use HasFactory, LogsActivity;
 
+    public const STATUS_REGISTERED = 'registered';
+    public const STATUS_DROPPED = 'dropped';
+    public const STATUS_COMPLETED = 'completed';
+    public const STATUS_FAILED = 'failed';
+
+    public const STATUSES = [
+        self::STATUS_REGISTERED,
+        self::STATUS_DROPPED,
+        self::STATUS_COMPLETED,
+        self::STATUS_FAILED,
+    ];
+
     protected $guarded = [];
 
     protected $fillable = [
@@ -17,17 +29,26 @@ class StudentCourse extends Model
         'course_id',
         'progress',
         'last_lecture_id',
+        'status',
+        'status_changed_at',
+        'semester_id',
+    ];
+
+    protected $casts = [
+        'status_changed_at' => 'datetime',
     ];
 
     /**
      * Watching lectures updates progress/last_lecture_id constantly; those are
      * study-state, not auditable events, so they never trigger a log entry.
+     * Status transitions are logged explicitly via {@see changeStatus()}, so
+     * they are ignored here to avoid a duplicate generic "updated" entry.
      *
      * @return array<int, string>
      */
     protected function activityLogIgnoredAttributes(): array
     {
-        return ['progress', 'last_lecture_id'];
+        return ['progress', 'last_lecture_id', 'status', 'status_changed_at'];
     }
 
     public function student()
@@ -40,9 +61,57 @@ class StudentCourse extends Model
         return $this->belongsTo(Course::class, 'course_id');
     }
 
+    public function semester()
+    {
+        return $this->belongsTo(Semester::class);
+    }
+
     public function lastLecture()
     {
         return $this->belongsTo(Lecture::class, 'last_lecture_id');
+    }
+
+    /**
+     * Only currently-active enrollments (not dropped/withdrawn).
+     */
+    public function scopeRegistered($query)
+    {
+        return $query->where('status', self::STATUS_REGISTERED);
+    }
+
+    public function isRegistered(): bool
+    {
+        return $this->status === self::STATUS_REGISTERED;
+    }
+
+    /**
+     * Move the enrollment to a new status and audit the transition.
+     */
+    public function changeStatus(string $status, ?Model $actor = null, array $properties = []): void
+    {
+        if (! in_array($status, self::STATUSES, true)) {
+            return;
+        }
+
+        $previous = $this->status;
+
+        $this->forceFill([
+            'status' => $status,
+            'status_changed_at' => now(),
+        ])->save();
+
+        \App\Support\ActivityLogger::log(
+            \App\Support\ActivityLogger::ENROLLMENT_STATUS_CHANGED,
+            $this,
+            array_merge([
+                'from' => $previous,
+                'to' => $status,
+                'course_id' => $this->course_id,
+                'student_id' => $this->student_id,
+            ], $properties),
+            $actor,
+            'Enrollment status changed from ' . $previous . ' to ' . $status . '.'
+        );
     }
 
     public function watchedLectureIds()

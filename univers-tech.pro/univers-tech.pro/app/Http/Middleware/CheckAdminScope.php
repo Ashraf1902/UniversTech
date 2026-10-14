@@ -14,7 +14,7 @@ class CheckAdminScope
      *
      * Supported scopes: accounts, access_requests, departments, courses,
      * semesters, schedules, events, grades, attendances, payments, reports,
-     * activity.
+     * activity, settings.
      */
     public function handle(Request $request, Closure $next, string ...$scopes): Response
     {

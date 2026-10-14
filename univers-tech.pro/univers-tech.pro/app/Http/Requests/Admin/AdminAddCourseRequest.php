@@ -28,11 +28,14 @@ class AdminAddCourseRequest extends FormRequest
         return [
             'course_name' => 'required|string|max:255',
             'no_of_hours' => 'required|integer|min:1',
+            'capacity' => 'nullable|integer|min:0',
             'course_code' => 'required|string|max:255|unique:courses,course_code',
             'cover_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             'department_id' => 'nullable|exists:departments,id',
             'professor_id' => 'required|exists:users,id',
-            'semester_id' => 'nullable|exists:semesters,id'
+            'semester_id' => 'nullable|exists:semesters,id',
+            'prerequisite_course_ids' => 'nullable|array',
+            'prerequisite_course_ids.*' => 'integer|exists:courses,id',
         ];
     }
 }

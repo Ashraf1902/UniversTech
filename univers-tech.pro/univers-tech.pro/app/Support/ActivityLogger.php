@@ -36,6 +36,12 @@ class ActivityLogger
     public const PASSWORD_RESET = 'password_reset';
     public const PASSWORD_CHANGED = 'password_changed';
 
+    // Enrollment
+    public const ENROLLMENT_STATUS_CHANGED = 'enrollment_status_changed';
+
+    // Configuration
+    public const SETTINGS_UPDATED = 'settings_updated';
+
     // Administration
     public const ADMIN_CREATED = 'admin_created';
     public const ADMIN_UPDATED = 'admin_updated';

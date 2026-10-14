@@ -45,7 +45,10 @@ class NotifyLectureReminders extends Command
         $rows = [];
 
         foreach ($students as $student) {
-            $registeredCourseIds = $student->studentCourses->pluck('course_id')->all();
+            $registeredCourseIds = $student->studentCourses
+                ->where('status', StudentCourse::STATUS_REGISTERED)
+                ->pluck('course_id')
+                ->all();
 
             foreach ($schedules as $schedule) {
                 if (! in_array($schedule->course_id, $registeredCourseIds, true)) {

@@ -42,6 +42,7 @@ Route::middleware(['role:student', 'active'])->group(function () {
     // Course catalog & registration
     Route::get('all-courses', [CoursesController::class, 'allCourses']);
     Route::post('register-course', [CoursesController::class, 'register']);
+    Route::post('drop-course', [CoursesController::class, 'dropCourse']);
 
     // Schedule & reports
     Route::get('schedule', [CoursesController::class, 'schedule']);

@@ -13,7 +13,7 @@ class AdminManagementController extends Controller
 {
     use Notifiable;
 
-    private const VALID_SCOPES = ['accounts', 'access_requests', 'departments', 'courses', 'semesters', 'schedules', 'events', 'grades', 'attendances', 'payments', 'reports', 'activity'];
+    private const VALID_SCOPES = ['accounts', 'access_requests', 'departments', 'courses', 'semesters', 'schedules', 'events', 'grades', 'attendances', 'payments', 'reports', 'activity', 'settings'];
 
     private function authorizeSuper(Request $request)
     {

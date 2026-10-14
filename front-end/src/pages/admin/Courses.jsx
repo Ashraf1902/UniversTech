@@ -4,6 +4,10 @@ import { useAuth } from '../../lib/auth'
 import { Badge, Btn, Field, Pager, useToast } from '../../lib/ui'
 import { useI18n } from '../../lib/i18n'
 import { DataTable, FormModal, Head, SearchBar, useDebounced, useFieldErrors, useList, useOptions, withSearch } from './_shared'
+import { CourseEnrollmentModal } from './Enrollment.jsx'
+
+const EMPTY_FORM = { course_name: '', no_of_hours: '', course_code: '', department_id: '', professor_id: '', semester_id: '', capacity: '', prereq_ids: [], cover_image: null }
+
 export function AdminCourses() {
   const { t } = useI18n()
   const [page, setPage] = useState(1)
@@ -17,10 +21,12 @@ export function AdminCourses() {
   const depts = useOptions('/api/department/get/all', (d) => ({ value: d.id, label: d.name }))
   const profs = useOptions('/api/doctor/get/all', (u) => ({ value: u.id, label: u.name }))
   const sems = useOptions('/api/semester/get/all', (s) => ({ value: s.id, label: `${s.name} (${s.academic_year})` }))
+  const courseOpts = useOptions('/api/course/get/all', (c) => ({ value: String(c.id), label: `${c.course_code} — ${c.course_name}` }))
 
   const [open, setOpen] = useState(false)
   const [editId, setEditId] = useState(null)
-  const [form, setForm] = useState({ course_name: '', no_of_hours: '', course_code: '', department_id: '', professor_id: '', semester_id: '', cover_image: null })
+  const [form, setForm] = useState(EMPTY_FORM)
+  const [enrollCourse, setEnrollCourse] = useState(null)
 const [busy, setBusy] = useState(false)
   const { errors, clear: clearErrors, apply: applyErrors } = useFieldErrors()
 
@@ -30,7 +36,8 @@ const [busy, setBusy] = useState(false)
       setEditId(row.id)
       setForm({
         course_name: c.course_name || '', no_of_hours: c.no_of_hours ?? '', course_code: c.course_code || '',
-        department_id: c.department_id || '', professor_id: c.professor_id || '', semester_id: c.semester_id || '', cover_image: null,
+        department_id: c.department_id || '', professor_id: c.professor_id || '', semester_id: c.semester_id || '',
+        capacity: c.capacity ?? '', prereq_ids: (c.prerequisite_course_ids || []).map(String), cover_image: null,
       })
       setOpen(true)
     } catch (e) {
@@ -49,6 +56,12 @@ const [busy, setBusy] = useState(false)
       if (form.department_id) fd.append('department_id', form.department_id)
       if (form.semester_id) fd.append('semester_id', form.semester_id)
       fd.append('professor_id', form.professor_id)
+      if (form.capacity !== '' && form.capacity !== null) fd.append('capacity', form.capacity)
+      if (form.prereq_ids.length) {
+        form.prereq_ids.forEach((id) => fd.append('prerequisite_course_ids[]', id))
+      } else {
+        fd.append('prerequisite_course_ids', '')
+      }
       if (form.cover_image) fd.append('cover_image', form.cover_image)
       await request(editId ? '/api/course/update' : '/api/course/store', { method: 'POST', formData: fd })
       toast.success(t('courseSaved'))
@@ -97,7 +110,7 @@ const remove = async (row) => {
 
   return (
     <>
-<Head kicker={t('academics')} title={t('courses')} sub={t('coursesSub')} actions={!archived ? <Btn icon="plus" onClick={() => { setEditId(null); setForm({ course_name: '', no_of_hours: '', course_code: '', department_id: '', professor_id: '', semester_id: '', cover_image: null }); setOpen(true) }}>{t('newCourse')}</Btn> : null} />
+<Head kicker={t('academics')} title={t('courses')} sub={t('coursesSub')} actions={!archived ? <Btn icon="plus" onClick={() => { setEditId(null); setForm(EMPTY_FORM); setOpen(true) }}>{t('newCourse')}</Btn> : null} />
       <div className="seg" style={{ marginBottom: 22, maxWidth: 300 }}>
         <button className={!archived ? 'on' : ''} onClick={() => { setArchived(false); setPage(1) }}>{t('active')}</button>
         <button className={archived ? 'on' : ''} onClick={() => { setArchived(true); setPage(1) }}>{t('archived')}</button>
@@ -114,6 +127,11 @@ const remove = async (row) => {
           { key: 'semester', label: t('semester'), render: (r) => r.semester || '—' },
           { key: 'no_of_hours', label: t('hours') },
 { key: 'lecture_count', label: t('lectures') },
+          ...(!archived ? [{
+            key: 'enrollment',
+            label: t('manageEnrollment'),
+            render: (r) => <Btn size="sm" variant="soft" icon="users" onClick={() => setEnrollCourse(r)} />,
+          }] : []),
           ...(archived ? [{ key: 'deleted_at', label: t('archivedOn'), render: (r) => (r.deleted_at ? new Date(r.deleted_at).toLocaleDateString() : '—') }] : []),
         ]}
         onEdit={archived ? undefined : openEdit}
@@ -150,8 +168,25 @@ const remove = async (row) => {
             </select>
           </Field>
         </div>
+        <div className="grid grid-2" style={{ gap: 14 }}>
+          <Field label={t('capacityOptional')} error={errors?.capacity?.[0]} hint={t('capacityHint')}>
+            <input className="input" type="number" min="0" value={form.capacity} onChange={(e) => setForm({ ...form, capacity: e.target.value })} placeholder="∞" />
+          </Field>
+          <Field label={t('prerequisitesOptional')} error={errors?.prerequisite_course_ids?.[0]} hint={t('prerequisitesHint')}>
+            <select
+              className="select"
+              multiple
+              size={4}
+              value={form.prereq_ids}
+              onChange={(e) => setForm({ ...form, prereq_ids: Array.from(e.target.selectedOptions, (o) => o.value) })}
+            >
+              {courseOpts.filter((o) => o.value !== String(editId)).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </Field>
+        </div>
         <Field label={t('coverImage')} error={errors?.cover_image?.[0]}><input className="input" type="file" accept="image/*" onChange={(e) => setForm({ ...form, cover_image: e.target.files?.[0] || null })} /></Field>
       </FormModal>
+      <CourseEnrollmentModal course={enrollCourse} open={Boolean(enrollCourse)} onClose={() => setEnrollCourse(null)} />
     </>
   )
 }

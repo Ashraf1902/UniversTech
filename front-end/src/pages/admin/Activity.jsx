@@ -20,6 +20,8 @@ const ACTION_META = {
   admin_deleted: { key: 'actionAdminDeleted', tone: 'red' },
   password_reset: { key: 'actionPasswordReset', tone: 'amb' },
   password_changed: { key: 'actionPasswordChanged', tone: 'cy' },
+  enrollment_status_changed: { key: 'actionEnrollmentStatusChanged', tone: 'amb' },
+  settings_updated: { key: 'actionSettingsUpdated', tone: 'cy' },
   ai_override: { key: 'actionAiOverride', tone: 'vio' },
 }
 

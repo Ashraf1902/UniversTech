@@ -18,6 +18,7 @@ const ADMIN_ROLES = [
   ['payments', 'rolePayments', 'wallet'],
   ['reports', 'roleReports', 'trend'],
   ['activity', 'roleActivity', 'file'],
+  ['settings', 'roleSettings', 'lock'],
 ]
 
 export function AdminAdmins() {
@@ -48,6 +49,7 @@ const isSuper = Boolean(user?.is_super_admin)
     payments: 'rolePayments',
     reports: 'roleReports',
     activity: 'roleActivity',
+    settings: 'roleSettings',
   }
 
   const toggleRole = (scope) =>

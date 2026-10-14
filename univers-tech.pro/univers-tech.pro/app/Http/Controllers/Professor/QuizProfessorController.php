@@ -75,6 +75,7 @@ class QuizProfessorController extends Controller
         ]);
 
         $studentIds = StudentCourse::where('course_id', $course->id)
+            ->registered()
             ->pluck('student_id')
             ->toArray();
 

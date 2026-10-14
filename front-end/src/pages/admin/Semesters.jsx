@@ -3,6 +3,11 @@ import { request } from '../../lib/api'
 import { Badge, Btn, Field, Pager, useToast } from '../../lib/ui'
 import { useI18n } from '../../lib/i18n'
 import { DataTable, FormModal, Head, SearchBar, useDebounced, useFieldErrors, useList, withSearch } from './_shared'
+
+const EMPTY_FORM = { name: '', academic_year: '', is_active: false, grading_system: 'gpa', registration_opens_at: '', registration_closes_at: '' }
+
+const toLocal = (iso) => (iso ? String(iso).slice(0, 16) : '')
+
 export function AdminSemesters() {
   const { t } = useI18n()
   const [page, setPage] = useState(1)
@@ -12,17 +17,21 @@ export function AdminSemesters() {
   const { paged, loading, run } = useList(withSearch('/api/semester/get/all', search), page, [search])
   const [open, setOpen] = useState(false)
   const [editId, setEditId] = useState(null)
-  const [form, setForm] = useState({ name: '', academic_year: '', is_active: false, grading_system: 'gpa' })
+  const [form, setForm] = useState(EMPTY_FORM)
   const [busy, setBusy] = useState(false)
   const { errors, clear: clearErrors, apply: applyErrors } = useFieldErrors()
 
   const submit = async () => {
     setBusy(true)
     try {
+      const window = {
+        registration_opens_at: form.registration_opens_at || null,
+        registration_closes_at: form.registration_closes_at || null,
+      }
       if (editId) {
-        await request('/api/semester/update', { method: 'POST', data: { semester_id: editId, name: form.name, academic_year: form.academic_year, is_active: !!form.is_active, grading_system: form.grading_system } })
+        await request('/api/semester/update', { method: 'POST', data: { semester_id: editId, name: form.name, academic_year: form.academic_year, is_active: !!form.is_active, grading_system: form.grading_system, ...window } })
       } else {
-        await request('/api/semester/store', { method: 'POST', data: { name: form.name, academic_year: form.academic_year } })
+        await request('/api/semester/store', { method: 'POST', data: { name: form.name, academic_year: form.academic_year, ...window } })
       }
       toast.success(t('semesterSaved'))
       setOpen(false)
@@ -58,7 +67,7 @@ const remove = async (row) => {
 
   return (
     <>
-<Head kicker={t('calendar')} title={t('semesters')} sub={t('semestersSub')} actions={<Btn icon="plus" onClick={() => { setEditId(null); setForm({ name: '', academic_year: '', is_active: false, grading_system: 'gpa' }); setOpen(true) }}>{t('newSemester')}</Btn>} />
+<Head kicker={t('calendar')} title={t('semesters')} sub={t('semestersSub')} actions={<Btn icon="plus" onClick={() => { setEditId(null); setForm(EMPTY_FORM); setOpen(true) }}>{t('newSemester')}</Btn>} />
       <SearchBar value={q} onChange={(v) => { setQ(v); setPage(1) }} placeholder={t('searchSemestersPh')} style={{ marginBottom: 22, maxWidth: 420 }} />
       <DataTable
         loading={loading}
@@ -70,7 +79,7 @@ const remove = async (row) => {
           { key: 'courses_count', label: t('courses'), render: (r) => <Badge tone="vio">{r.courses_count ?? 0}</Badge> },
           { key: 'is_active', label: t('status'), render: (r) => (r.is_active ? <Badge tone="grn" dot>{t('active')}</Badge> : <button className="badge" onClick={() => activate(r)}>{t('setActive')}</button>) },
         ]}
-        onEdit={(row) => { setEditId(row.id); setForm({ name: row.name || '', academic_year: row.academic_year || '', is_active: !!row.is_active, grading_system: row.grading_system || 'gpa' }); setOpen(true) }}
+        onEdit={(row) => { setEditId(row.id); setForm({ name: row.name || '', academic_year: row.academic_year || '', is_active: !!row.is_active, grading_system: row.grading_system || 'gpa', registration_opens_at: toLocal(row.registration_opens_at), registration_closes_at: toLocal(row.registration_closes_at) }); setOpen(true) }}
         onDelete={remove}
       />
       <Pager page={paged.page} last={paged.last_page} onPage={setPage} />
@@ -90,6 +99,14 @@ const remove = async (row) => {
             <button type="button" className={`switch ${form.is_active ? 'on' : ''}`} onClick={() => setForm({ ...form, is_active: !form.is_active })} aria-label={t('toggleActive')} />
           </Field>
         ) : null}
+        <div className="grid grid-2" style={{ gap: 14 }}>
+          <Field label={t('registrationOpens')} error={errors?.registration_opens_at?.[0]}>
+            <input className="input" type="datetime-local" value={form.registration_opens_at} onChange={(e) => setForm({ ...form, registration_opens_at: e.target.value })} />
+          </Field>
+          <Field label={t('registrationCloses')} error={errors?.registration_closes_at?.[0]} hint={t('registrationWindowHint')}>
+            <input className="input" type="datetime-local" value={form.registration_closes_at} onChange={(e) => setForm({ ...form, registration_closes_at: e.target.value })} />
+          </Field>
+        </div>
       </FormModal>
     </>
   )

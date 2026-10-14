@@ -138,6 +138,7 @@ class GradeAdminController extends Controller
         }
 
         $enrollments = StudentCourse::where('student_id', $student->id)
+            ->where('status', '!=', StudentCourse::STATUS_DROPPED)
             ->with(['course.semester', 'course.department'])
             ->get()
             ->filter(fn (StudentCourse $enrollment) => $enrollment->course->semester_id === $semester->id)

@@ -32,11 +32,14 @@ class AdminUpdateCourseRequest extends FormRequest
             'course_id' => 'required|exists:courses,id',
             'course_name' => 'string|max:255',
             'no_of_hours' => 'integer|min:1',
+            'capacity' => 'nullable|integer|min:0',
             'course_code' => ['string', 'max:255', Rule::unique('courses', 'course_code')->ignore($courseId)],
             'cover_image' => 'image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             'department_id' => 'exists:departments,id',
             'semester_id' => 'exists:semesters,id',
-            'professor_id' => 'exists:users,id'
+            'professor_id' => 'exists:users,id',
+            'prerequisite_course_ids' => 'nullable|array',
+            'prerequisite_course_ids.*' => 'integer|exists:courses,id',
         ];
     }
 }

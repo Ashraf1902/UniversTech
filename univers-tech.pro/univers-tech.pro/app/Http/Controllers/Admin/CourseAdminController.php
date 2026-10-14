@@ -25,18 +25,20 @@ class CourseAdminController extends Controller
                 $q->where(fn ($qq) => $qq->where('course_name', 'like', "%{$term}%")->orWhere('course_code', 'like', "%{$term}%"));
             })
             ->orderByDesc('created_at')
-            ->with(['admin', 'department', 'professor', 'lectures', 'semester'])
+            ->with(['admin', 'department', 'professor', 'lectures', 'semester', 'prerequisites'])
             ->paginate(15)
             ->through(fn (Course $course) => [
                 'id' => $course->id,
                 'course_name' => $course->course_name,
                 'no_of_hours' => $course->no_of_hours,
+                'capacity' => $course->capacity,
                 'course_code' => $course->course_code,
                 'cover_image' => url('uploads/' . $course->cover_image),
                 'department' => $course->department?->name,
                 'professor' => $course->professor?->name,
                 'semester' => $course->semester?->name,
                 'lecture_count' => $course->lectures->count(),
+                'prerequisite_ids' => $course->prerequisites->pluck('id')->all(),
                 'created_by' => $course->admin?->name,
                 'updated_at' => $course->updated_at,
                 'created_at' => $course->created_at,
@@ -69,7 +71,10 @@ class CourseAdminController extends Controller
             'professor_id' => $request->professor_id,
             'admin_id' => $request->user()->id,
             'semester_id' => $request->semester_id,
+            'capacity' => $request->input('capacity'),
         ]);
+
+        $course->prerequisites()->sync($this->prerequisiteIds($request, $course->id));
 
         $this->notifyAdmin(
             'Course created',
@@ -124,11 +129,13 @@ class CourseAdminController extends Controller
 
     public function getCourseById(Request $request, $id)
     {
-        $course = Course::with(['admin', 'department', 'professor', 'semester'])->find($id);
+        $course = Course::with(['admin', 'department', 'professor', 'semester', 'prerequisites'])->find($id);
 
         if (! $course) {
             return SendResponse(404, 'Course not found.');
         }
+
+        $course->setAttribute('prerequisite_course_ids', $course->prerequisites->pluck('id')->all());
 
         return SendResponse(200, 'Course fetched successfully.', $course);
     }
@@ -167,8 +174,32 @@ class CourseAdminController extends Controller
             'professor_id' => $request->input('professor_id', $course->professor_id),
             'semester_id' => $request->input('semester_id', $course->semester_id),
             'cover_image' => $cover,
+            'capacity' => $request->has('capacity') ? $request->input('capacity') : $course->capacity,
         ]);
 
+        if ($request->has('prerequisite_course_ids')) {
+            $course->prerequisites()->sync($this->prerequisiteIds($request, $course->id));
+        }
+
         return SendResponse(200, 'Course updated successfully.');
+    }
+
+    /**
+     * Prerequisite course ids, excluding the course itself.
+     *
+     * @return array<int, int>
+     */
+    private function prerequisiteIds(Request $request, int $courseId): array
+    {
+        $ids = $request->input('prerequisite_course_ids', []);
+
+        if (! is_array($ids)) {
+            return [];
+        }
+
+        return array_values(array_unique(array_filter(
+            array_map('intval', $ids),
+            fn (int $id) => $id !== $courseId
+        )));
     }
 }

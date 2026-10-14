@@ -32,6 +32,7 @@ class GradeProfessorController extends Controller
 
         $isEnrolled = StudentCourse::where('student_id', $data['student_id'])
             ->where('course_id', $course->id)
+            ->registered()
             ->exists();
 
         if (! $isEnrolled) {

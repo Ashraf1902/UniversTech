@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreAttendaceRequest;
 use App\Models\Attendance;
 use App\Models\Lecture;
+use App\Models\StudentCourse;
 use App\Traits\AuthorizesCourseOwnership;
 use App\Traits\Notifiable;
 
@@ -29,6 +30,7 @@ class AttendaceProfessorController extends Controller
 
         $isEnrolled = $course->students()
             ->wherePivot('student_id', $request->student_id)
+            ->wherePivot('status', StudentCourse::STATUS_REGISTERED)
             ->exists();
 
         if (! $isEnrolled) {

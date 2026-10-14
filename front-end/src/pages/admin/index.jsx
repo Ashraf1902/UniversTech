@@ -9,4 +9,5 @@ export { AdminGrades } from './Grades.jsx'
 export { AdminHome } from './Home.jsx'
 export { AdminSchedules } from './Schedules.jsx'
 export { AdminSemesters } from './Semesters.jsx'
+export { AdminSettings } from './Settings.jsx'
 

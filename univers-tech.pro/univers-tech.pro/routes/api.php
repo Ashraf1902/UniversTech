@@ -7,10 +7,12 @@ use App\Http\Controllers\Admin\AdminAuthController;
 use App\Http\Controllers\Admin\AdminManagementController;
 use App\Http\Controllers\Admin\CourseAdminController;
 use App\Http\Controllers\Admin\DepartmentAdminController;
+use App\Http\Controllers\Admin\EnrollmentAdminController;
 use App\Http\Controllers\Admin\EventAdminController;
 use App\Http\Controllers\Admin\GradeAdminController;
 use App\Http\Controllers\Admin\ScheduleAdminController;
 use App\Http\Controllers\Admin\SemesterAdminController;
+use App\Http\Controllers\Admin\SettingAdminController;
 use App\Http\Controllers\API\AuthController as UserAuthController;
 use App\Http\Controllers\API\AccessRequestController;
 use App\Http\Controllers\API\PublicController;
@@ -121,6 +123,17 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
         Route::post('course/update', [CourseAdminController::class, 'update']);
         Route::post('course/restore/{id}', [CourseAdminController::class, 'restore']);
         Route::delete('course/purge/{id}', [CourseAdminController::class, 'purge']);
+
+        // Manual enrollment management (A4)
+        Route::get('course/enrollment/get/all', [EnrollmentAdminController::class, 'students']);
+        Route::post('course/enrollment/enroll', [EnrollmentAdminController::class, 'enroll']);
+        Route::post('course/enrollment/unenroll', [EnrollmentAdminController::class, 'unenroll']);
+    });
+
+    // Enrollment settings (§0.7)
+    Route::middleware('admin-scope:settings')->group(function () {
+        Route::get('settings/get/all', [SettingAdminController::class, 'index']);
+        Route::post('settings/update', [SettingAdminController::class, 'update']);
     });
 
     // Semesters

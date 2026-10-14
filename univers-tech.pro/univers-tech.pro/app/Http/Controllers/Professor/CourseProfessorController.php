@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Professor;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Professor\ProfessorStudentResource;
 use App\Models\Course;
+use App\Models\StudentCourse;
 use App\Traits\AuthorizesCourseOwnership;
 use Illuminate\Http\Request;
 
@@ -35,6 +36,7 @@ class CourseProfessorController extends Controller
         }
 
         $students = $course->students()
+            ->wherePivot('status', StudentCourse::STATUS_REGISTERED)
             ->withPivot('course_id', 'student_id')
             ->get()
             ->load(['attendances' => fn ($query) => $query->where('course_id', $course->id)]);

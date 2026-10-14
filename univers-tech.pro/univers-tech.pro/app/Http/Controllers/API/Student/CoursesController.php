@@ -15,6 +15,8 @@ use App\Models\Schedule;
 use App\Models\Semester;
 use App\Models\StudentCourse;
 use App\Models\StudentLecture;
+use App\Services\EnrollmentService;
+use App\Support\Settings;
 use App\Traits\Notifiable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -23,9 +25,14 @@ class CoursesController extends Controller
 {
     use Notifiable;
 
+    public function __construct(private EnrollmentService $enrollment)
+    {
+    }
+
     public function myCourses()
     {
         $enrollments = auth()->user()->studentCourses()
+            ->registered()
             ->with(['course.professor', 'course.department', 'course.lectures'])
             ->latest()
             ->paginate(15);
@@ -40,67 +47,84 @@ class CoursesController extends Controller
             'course_ids.*' => ['required', 'integer', 'exists:courses,id'],
         ]);
 
-        $user = auth()->user();
-        $activeSemester = Semester::where('is_active', true)->first();
+        $result = $this->enrollment->register(auth()->user(), $data['course_ids']);
 
-        $alreadyRegistered = [];
-        $newlyRegistered = [];
-        $rejected = [];
-
-        DB::transaction(function () use ($user, $data, $activeSemester, &$alreadyRegistered, &$newlyRegistered, &$rejected) {
-            foreach ($data['course_ids'] as $courseId) {
-                $course = Course::find($courseId);
-
-                $inDepartment = $course->department_id === $user->student?->department_id
-                    || ($user->student?->department_id && $course->department_id === null)
-                    || (! $user->student?->department_id && $course->department_id === null);
-
-                $inSemester = $course->semester_id === null
-                    || ($activeSemester && $course->semester_id === $activeSemester->id);
-
-                if (! $inDepartment || ! $inSemester) {
-                    $rejected[] = $course->course_name;
-                    continue;
-                }
-
-                $exists = StudentCourse::where('student_id', auth()->id())
-                    ->where('course_id', $courseId)
-                    ->exists();
-
-                if ($exists) {
-                    $alreadyRegistered[] = $courseId;
-                    continue;
-                }
-
-                StudentCourse::create([
-                    'student_id' => auth()->id(),
-                    'course_id' => $courseId,
-                ]);
-                $newlyRegistered[] = $courseId;
-            }
-        });
-
-        $message = 'Courses registration completed.';
-
-        if (! empty($rejected)) {
-            $message .= ' Rejected (not in your semester/department): ' . implode(', ', $rejected) . '.';
+        if (! $result['success']) {
+            return SendResponse(422, $this->registrationMessage($result['errors']), [
+                'registered' => [],
+                'errors' => $result['errors'],
+            ]);
         }
 
-        if (! empty($alreadyRegistered)) {
-            $message .= ' Already registered: ' . implode(', ', $alreadyRegistered) . '.';
-        }
-
-        return SendResponse(200, $message, [
-            'registered' => $newlyRegistered,
-            'already_registered' => $alreadyRegistered,
-            'rejected' => $rejected,
+        return SendResponse(200, 'Courses registered successfully.', [
+            'registered' => $result['registered'],
+            'errors' => [],
         ]);
+    }
+
+    public function dropCourse(Request $request)
+    {
+        $data = $request->validate([
+            'course_id' => ['required', 'integer', 'exists:courses,id'],
+        ]);
+
+        $course = Course::findOrFail($data['course_id']);
+
+        $result = $this->enrollment->drop(auth()->user(), $course);
+
+        if (! $result['success']) {
+            $messages = [
+                'not_registered' => 'You are not registered in this course.',
+                'drop_window_closed' => 'The drop window for this semester has closed.',
+            ];
+
+            return SendResponse(422, $messages[$result['reason']] ?? 'Unable to drop the course.', [
+                'reason' => $result['reason'],
+            ]);
+        }
+
+        return SendResponse(200, 'Course dropped successfully.');
+    }
+
+    /**
+     * Turn per-course failure reasons into a readable summary.
+     *
+     * @param  array<int, array<string, mixed>>  $errors
+     */
+    private function registrationMessage(array $errors): string
+    {
+        $names = Course::whereIn('id', array_filter(array_column($errors, 'course_id')))
+            ->pluck('course_name', 'id');
+
+        $reasons = [
+            'registration_closed' => 'registration is currently closed',
+            'not_found' => 'course not found',
+            'already_registered' => 'already registered',
+            'not_in_department' => 'not available for your department',
+            'not_in_semester' => 'not offered in the active semester',
+            'course_full' => 'course is full',
+            'prerequisites_not_met' => 'prerequisites not met',
+            'credit_limit_exceeded' => 'credit limit exceeded',
+            'schedule_conflict' => 'schedule conflict with another course',
+        ];
+
+        $parts = [];
+
+        foreach ($errors as $error) {
+            $reason = $reasons[$error['reason']] ?? $error['reason'];
+            $name = $error['course_id'] ? ($names[$error['course_id']] ?? ('#' . $error['course_id'])) : null;
+
+            $parts[] = $name ? "{$name}: {$reason}" : $reason;
+        }
+
+        return 'Registration failed. ' . implode('; ', $parts) . '.';
     }
 
     public function showCourse(Request $request, $courseId)
     {
         $enrollment = StudentCourse::where('course_id', $courseId)
             ->where('student_id', auth()->id())
+            ->registered()
             ->with(['course.professor', 'course.lectures', 'course.quizzes'])
             ->first();
 
@@ -117,6 +141,7 @@ class CoursesController extends Controller
 
         $ownsCourse = $lecture && StudentCourse::where('student_id', auth()->id())
             ->where('course_id', $lecture->course_id)
+            ->registered()
             ->exists();
 
         if (! $ownsCourse) {
@@ -134,6 +159,7 @@ class CoursesController extends Controller
         ]);
 
         $enrollment = auth()->user()->studentCourses()
+            ->registered()
             ->with('course.lectures')
             ->firstWhere('course_id', $data['course_id']);
 
@@ -229,6 +255,7 @@ class CoursesController extends Controller
     public function reports()
     {
         $courses = auth()->user()->studentCourses()
+            ->where('status', '!=', StudentCourse::STATUS_DROPPED)
             ->with(['course.professor', 'course.department'])
             ->get()
             ->map(function (StudentCourse $enrollment) {
@@ -359,7 +386,7 @@ class CoursesController extends Controller
         $user = auth()->user();
         $activeSemester = Semester::where('is_active', true)->first();
 
-        $query = Course::with('professor')->orderBy('course_name');
+        $query = Course::with(['professor', 'prerequisites:id,course_name,course_code'])->orderBy('course_name');
 
         if ($user->student?->department_id) {
             $query->where(function ($q) use ($user) {
@@ -378,6 +405,33 @@ class CoursesController extends Controller
         }
 
         $courses = $query->paginate(15);
+
+        $ids = collect($courses->items())->pluck('id');
+
+        $counts = StudentCourse::whereIn('course_id', $ids)
+            ->registered()
+            ->selectRaw('course_id, count(*) as aggregate')
+            ->groupBy('course_id')
+            ->pluck('aggregate', 'course_id');
+
+        $registered = StudentCourse::where('student_id', $user->id)
+            ->whereIn('course_id', $ids)
+            ->registered()
+            ->pluck('course_id')
+            ->flip();
+
+        $registrationOpen = (bool) ($activeSemester && $activeSemester->registrationOpen());
+
+        foreach ($courses as $course) {
+            $enrolled = (int) ($counts[$course->id] ?? 0);
+
+            $course->setAttribute('enrolled_count', $enrolled);
+            $course->setAttribute('seats_remaining', $course->capacity === null ? null : max($course->capacity - $enrolled, 0));
+            $course->setAttribute('already_registered', isset($registered[$course->id]));
+            $course->setAttribute('registration_open', $registrationOpen);
+            $course->setAttribute('credit_limit', Settings::creditLimit());
+            $course->setAttribute('drop_window_days', Settings::dropWindowDays());
+        }
 
         return SendResponse(200, 'Courses fetched successfully.', CourseCatalogResource::collection($courses));
     }
