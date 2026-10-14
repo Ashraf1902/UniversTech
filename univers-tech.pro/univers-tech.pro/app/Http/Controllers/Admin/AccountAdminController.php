@@ -18,7 +18,7 @@ class AccountAdminController extends Controller
 
     public function getDoctors(Request $request)
     {
-        $doctors = $this->userQuery(User::TYPE_PROFESSOR, $request->boolean('deleted'), $request->input('search'))
+        $doctors = $this->userQuery(User::TYPE_PROFESSOR, $request->boolean('deleted'), $request->input('search'), $request->input('status'))
             ->orderByDesc('created_at')
             ->with(['admin', 'student', 'professor.department'])
             ->paginate(15)
@@ -29,7 +29,7 @@ class AccountAdminController extends Controller
 
     public function getStudents(Request $request)
     {
-        $students = $this->userQuery(User::TYPE_STUDENT, $request->boolean('deleted'), $request->input('search'))
+        $students = $this->userQuery(User::TYPE_STUDENT, $request->boolean('deleted'), $request->input('search'), $request->input('status'))
             ->orderByDesc('created_at')
             ->with(['admin', 'student.department', 'student.level'])
             ->paginate(15)
@@ -38,7 +38,7 @@ class AccountAdminController extends Controller
         return SendResponse(200, 'Students fetched successfully.', $students);
     }
 
-    private function userQuery(int $type, bool $deleted, ?string $search = null)
+    private function userQuery(int $type, bool $deleted, ?string $search = null, ?string $status = null)
     {
         $query = $deleted
             ? User::onlyTrashed()->where('type', $type)
@@ -47,6 +47,10 @@ class AccountAdminController extends Controller
         if ($search !== null && $search !== '') {
             $term = $search;
             $query->where(fn ($q) => $q->where('name', 'like', "%{$term}%")->orWhere('email', 'like', "%{$term}%"));
+        }
+
+        if ($status !== null && $status !== '' && in_array($status, User::STATUSES, true)) {
+            $query->where('status', $status);
         }
 
         return $query;
@@ -63,6 +67,7 @@ class AccountAdminController extends Controller
                 'nationalid' => $request->nationalid,
                 'phone' => $request->phone,
                 'type' => $request->type,
+                'status' => $request->input('status', User::STATUS_ACTIVE),
                 'admin_id' => $request->user()->id,
             ]);
 
@@ -151,6 +156,8 @@ class AccountAdminController extends Controller
             return SendResponse(404, 'User not found.');
         }
 
+        $statusChanged = $request->filled('status') && $request->input('status') !== $user->status;
+
         DB::transaction(function () use ($request, $user) {
             $data = [
                 'name' => $request->input('name', $user->name),
@@ -159,6 +166,7 @@ class AccountAdminController extends Controller
                 'nationalid' => $request->input('nationalid', $user->nationalid),
                 'phone' => $request->input('phone', $user->phone),
                 'type' => $request->input('type', $user->type),
+                'status' => $request->input('status', $user->status),
             ];
 
             if ($request->filled('password')) {
@@ -182,6 +190,14 @@ class AccountAdminController extends Controller
             }
         });
 
+        if ($statusChanged) {
+            $user->refresh();
+
+            if (! $user->isActive()) {
+                $user->revokeTokens();
+            }
+        }
+
         return SendResponse(200, 'User updated successfully.');
     }
 
@@ -196,6 +212,7 @@ class AccountAdminController extends Controller
             'phone' => $user->phone,
             'credit_points' => $user->student?->credit_points,
             'type' => $user->type,
+            'status' => $user->status,
             'created_at' => $user->created_at,
             'updated_at' => $user->updated_at,
             'deleted_at' => $user->deleted_at,

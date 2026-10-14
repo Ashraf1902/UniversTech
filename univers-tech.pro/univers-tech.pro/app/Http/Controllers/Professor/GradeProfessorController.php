@@ -7,16 +7,19 @@ use App\Models\Course;
 use App\Models\Grade;
 use App\Models\Semester;
 use App\Models\StudentCourse;
+use App\Traits\AuthorizesCourseOwnership;
 use Illuminate\Http\Request;
 
 class GradeProfessorController extends Controller
 {
+    use AuthorizesCourseOwnership;
+
     public function store(Request $request)
     {
         $course = Course::find($request->course_id);
 
-        if (! $course || $course->professor_id !== $request->user()->id) {
-            return SendResponse(403, 'You are only allowed to add grades for your own courses.');
+        if ($blocked = $this->authorizeCourseOwnership($request, $course, 'You are only allowed to add grades for your own courses.')) {
+            return $blocked;
         }
 
         $data = $request->validate([
@@ -62,8 +65,8 @@ class GradeProfessorController extends Controller
 
         $course = Course::find($request->course_id);
 
-        if (! $course || $course->professor_id !== $request->user()->id) {
-            return SendResponse(403, 'You are not allowed to view grades for this course.');
+        if ($blocked = $this->authorizeCourseOwnership($request, $course, 'You are not allowed to view grades for this course.')) {
+            return $blocked;
         }
 
         $grades = Grade::where('course_id', $course->id)
@@ -88,10 +91,14 @@ class GradeProfessorController extends Controller
 
     public function delete(Request $request, $id)
     {
-        $grade = Grade::find($id);
+        $grade = Grade::with('course')->find($id);
 
-        if (! $grade || ! $grade->course || $grade->course->professor_id !== $request->user()->id) {
-            return SendResponse(403, 'You are not allowed to delete this grade.');
+        if (! $grade) {
+            return SendResponse(404, 'Grade not found.');
+        }
+
+        if ($blocked = $this->authorizeCourseOwnership($request, $grade->course, 'You are not allowed to delete this grade.')) {
+            return $blocked;
         }
 
         $grade->delete();

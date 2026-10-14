@@ -6,23 +6,25 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreAttendaceRequest;
 use App\Models\Attendance;
 use App\Models\Lecture;
+use App\Traits\AuthorizesCourseOwnership;
 use App\Traits\Notifiable;
 
 class AttendaceProfessorController extends Controller
 {
-    use Notifiable;
+    use AuthorizesCourseOwnership, Notifiable;
 
     public function storeAttendace(StoreAttendaceRequest $request)
     {
-        $lecture = Lecture::find($request->lecture_id);
-        $course = $lecture?->course;
+        $lecture = Lecture::with('course')->find($request->lecture_id);
 
-        if (! $course) {
+        if (! $lecture || ! $lecture->course) {
             return SendResponse(404, 'Lecture not found.');
         }
 
-        if ($course->professor_id !== $request->user()->id) {
-            return SendResponse(403, 'You are not allowed to take attendance for this course.');
+        $course = $lecture->course;
+
+        if ($blocked = $this->authorizeCourseOwnership($request, $course, 'You are not allowed to take attendance for this course.')) {
+            return $blocked;
         }
 
         $isEnrolled = $course->students()

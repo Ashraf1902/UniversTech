@@ -15,6 +15,18 @@ class User extends Authenticatable
     public const TYPE_STUDENT = 0;
     public const TYPE_PROFESSOR = 1;
 
+    public const STATUS_ACTIVE = 'active';
+    public const STATUS_SUSPENDED = 'suspended';
+    public const STATUS_GRADUATED = 'graduated';
+    public const STATUS_INACTIVE = 'inactive';
+
+    public const STATUSES = [
+        self::STATUS_ACTIVE,
+        self::STATUS_SUSPENDED,
+        self::STATUS_GRADUATED,
+        self::STATUS_INACTIVE,
+    ];
+
     protected $guarded = [];
 
     protected $hidden = [
@@ -36,6 +48,30 @@ class User extends Authenticatable
     public function isStudent(): bool
     {
         return $this->type === self::TYPE_STUDENT;
+    }
+
+    public function isActive(): bool
+    {
+        return ($this->status ?? self::STATUS_ACTIVE) === self::STATUS_ACTIVE;
+    }
+
+    public function statusMessage(): string
+    {
+        return match ($this->status) {
+            self::STATUS_SUSPENDED => 'Your account has been suspended. Please contact the administration.',
+            self::STATUS_GRADUATED => 'Your account has graduated and can no longer sign in. Please contact the administration.',
+            self::STATUS_INACTIVE => 'Your account is inactive. Please contact the administration.',
+            default => 'Your account is not active. Please contact the administration.',
+        };
+    }
+
+    /**
+     * Revoke every access token issued to this user. Used when the account
+     * status changes so an already-issued token stops working immediately.
+     */
+    public function revokeTokens(): void
+    {
+        $this->tokens()->delete();
     }
 
     public function student()

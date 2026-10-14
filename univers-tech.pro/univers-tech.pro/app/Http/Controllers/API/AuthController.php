@@ -27,6 +27,18 @@ class AuthController extends Controller
             return SendResponse(403, 'This account is not a student account.');
         }
 
+        if (! $user->isActive()) {
+            Auth::logout();
+
+            if ($request->hasSession()) {
+                $request->session()->invalidate();
+            }
+
+            $user->revokeTokens();
+
+            return SendResponse(403, $user->statusMessage());
+        }
+
         if (EnsureFrontendRequestsAreStateful::fromFrontend($request)) {
             $request->session()->regenerate();
 

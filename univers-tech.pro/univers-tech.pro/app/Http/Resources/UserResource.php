@@ -27,6 +27,7 @@ class UserResource extends JsonResource
             'credit_points' => $user->student?->credit_points,
             'semester' => $user->student?->semester,
             'type' => $user->type,
+            'status' => $user->status,
             'job_title' => $user->professor?->job_title,
             'admin' => $user->admin?->name,
             'department' => $profile?->department ? [

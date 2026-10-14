@@ -3,8 +3,8 @@
 Generated: 10/14/2026 04:08:40
 
 ## Stage Checklist
-- [ ] Stage 0: Recon, todo list, coverage matrix
-- [ ] Stage 1: Security hardening (P1, X2)
+- [x] Stage 0: Recon, todo list, coverage matrix
+- [~] Stage 1: Security hardening (P1, X2) — code complete; test run blocked (no MySQL, see report)
 - [ ] Stage 2: Audit log, soft deletes, admin scopes (N2, N3, A5)
 - [ ] Stage 3: Email, password reset, access requests (X1, A6)
 - [ ] Stage 4: Enrollment status, registration rules, manual enrollment (X3, S1, A4)

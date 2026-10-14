@@ -143,7 +143,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
 });
 
 // Professor routes
-Route::middleware(['auth:sanctum', 'role:professor'])->group(function () {
+Route::middleware(['auth:sanctum', 'role:professor', 'active'])->group(function () {
     Route::get('professors/courses', [CourseProfessorController::class, 'getProfessorCourses']);
     Route::get('professors/course/student', [CourseProfessorController::class, 'getCoursesStudent']);
     Route::post('professors/make/attendance', [AttendaceProfessorController::class, 'storeAttendace']);

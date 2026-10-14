@@ -5,10 +5,13 @@ namespace App\Http\Controllers\Professor;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Professor\ProfessorStudentResource;
 use App\Models\Course;
+use App\Traits\AuthorizesCourseOwnership;
 use Illuminate\Http\Request;
 
 class CourseProfessorController extends Controller
 {
+    use AuthorizesCourseOwnership;
+
     public function getProfessorCourses(Request $request)
     {
         $courses = Course::where('professor_id', $request->user()->id)
@@ -27,8 +30,8 @@ class CourseProfessorController extends Controller
 
         $course = Course::find($request->course_id);
 
-        if (! $course || $course->professor_id !== $request->user()->id) {
-            return SendResponse(403, 'You are not allowed to view this course.');
+        if ($blocked = $this->authorizeCourseOwnership($request, $course, 'You are not allowed to view this course.')) {
+            return $blocked;
         }
 
         $students = $course->students()

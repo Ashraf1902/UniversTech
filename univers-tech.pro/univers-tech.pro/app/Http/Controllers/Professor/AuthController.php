@@ -26,6 +26,12 @@ class AuthController extends Controller
             return SendResponse(403, 'This account is not a professor account.');
         }
 
+        if (! $user->isActive()) {
+            $user->revokeTokens();
+
+            return SendResponse(403, $user->statusMessage());
+        }
+
         $userData = [
             'id' => $user->id,
             'name' => $user->name,

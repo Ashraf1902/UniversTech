@@ -7,20 +7,21 @@ use App\Http\Requests\Professor\ProfessorAddLectureRequest;
 use App\Models\Course;
 use App\Models\Lecture;
 use App\Models\StudentCourse;
+use App\Traits\AuthorizesCourseOwnership;
 use App\Traits\File\UploadFile;
 use App\Traits\Notifiable;
 use Illuminate\Http\Request;
 
 class LectureProfessorController extends Controller
 {
-    use UploadFile, Notifiable;
+    use AuthorizesCourseOwnership, UploadFile, Notifiable;
 
     public function getLecturesCourse(Request $request, $id)
     {
         $course = Course::find($id);
 
-        if (! $course || $course->professor_id !== $request->user()->id) {
-            return SendResponse(403, 'You are not allowed to view this course.');
+        if ($blocked = $this->authorizeCourseOwnership($request, $course, 'You are not allowed to view this course.')) {
+            return $blocked;
         }
 
         $lectures = Lecture::where('course_id', $id)
@@ -41,8 +42,8 @@ class LectureProfessorController extends Controller
     {
         $course = Course::find($request->course_id);
 
-        if (! $course || $course->professor_id !== $request->user()->id) {
-            return SendResponse(403, 'You are not allowed to add lectures to this course.');
+        if ($blocked = $this->authorizeCourseOwnership($request, $course, 'You are not allowed to add lectures to this course.')) {
+            return $blocked;
         }
 
         $path = $this->uploadFile($request, 'pdf', 'lectures');

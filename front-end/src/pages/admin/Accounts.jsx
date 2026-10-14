@@ -1,15 +1,23 @@
 import { useState } from 'react'
 import { request } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
-import { Btn, Field, Pager, useToast } from '../../lib/ui'
+import { Badge, Btn, Field, Pager, useToast } from '../../lib/ui'
 import { useI18n } from '../../lib/i18n'
 import { DataTable, FormModal, Head, SearchBar, useDebounced, useFieldErrors, useList, useOptions, withSearch } from './_shared'
-const emptyAccount = { name: '', email: '', password: '', gender: 0, nationalid: '', phone: '', credit_points: '', semester: '', type: 0, department_id: '', level_id: '', job_title: '' }
+const emptyAccount = { name: '', email: '', password: '', gender: 0, nationalid: '', phone: '', credit_points: '', semester: '', type: 0, status: 'active', department_id: '', level_id: '', job_title: '' }
+const ACCOUNT_STATUSES = [
+  { value: 'active', labelKey: 'statusActive', tone: 'grn' },
+  { value: 'suspended', labelKey: 'statusSuspended', tone: 'red' },
+  { value: 'graduated', labelKey: 'statusGraduated', tone: 'cy' },
+  { value: 'inactive', labelKey: 'statusInactive', tone: 'amb' },
+]
+const statusMeta = (value) => ACCOUNT_STATUSES.find((s) => s.value === value) || ACCOUNT_STATUSES[0]
 
 export function AdminAccounts() {
   const { t } = useI18n()
   const [tab, setTab] = useState('students')
   const [archived, setArchived] = useState(false)
+  const [status, setStatus] = useState('')
   const [page, setPage] = useState(1)
   const [q, setQ] = useState('')
   const search = useDebounced(q)
@@ -17,8 +25,14 @@ export function AdminAccounts() {
   const { user } = useAuth()
   const isSuper = Boolean(user?.is_super_admin)
   const listPath = tab === 'students' ? '/api/student/get/all' : '/api/doctor/get/all'
-  const basePath = archived ? `${listPath}?deleted=1` : listPath
-  const { paged, loading, run } = useList(withSearch(basePath, search), page, [tab, archived, search])
+  const basePath = (() => {
+    const params = new URLSearchParams()
+    if (archived) params.set('deleted', '1')
+    if (status) params.set('status', status)
+    const qs = params.toString()
+    return qs ? `${listPath}?${qs}` : listPath
+  })()
+  const { paged, loading, run } = useList(withSearch(basePath, search), page, [tab, archived, status, search])
   const departments = useOptions('/api/department/get/all', (d) => ({ value: d.id, label: d.name }))
 
   const [open, setOpen] = useState(false)
@@ -41,6 +55,7 @@ export function AdminAccounts() {
         name: u.name || '', email: u.email || '', password: '', gender: u.gender === 'Female' ? 1 : 0,
         nationalid: u.national_id || '', phone: u.phone || '', credit_points: u.credit_points ?? '',
         semester: u.semester || '', type: (u.type === 1 || u.type === 'professor') ? 1 : 0,
+        status: u.status || 'active',
         department_id: u.department?.id || '', level_id: u.level?.id || '', job_title: u.job_title || '',
       })
       setOpen(true)
@@ -54,6 +69,7 @@ export function AdminAccounts() {
     try {
       const payload = {
         name: form.name, email: form.email, gender: Number(form.gender), type: Number(form.type),
+        status: form.status,
       }
       if (form.nationalid) payload.nationalid = form.nationalid
       if (form.phone) payload.phone = form.phone
@@ -132,6 +148,14 @@ return (
         <button className={archived ? 'on' : ''} onClick={() => { setArchived(true); setPage(1) }}>{t('archived')}</button>
       </div>
       <SearchBar value={q} onChange={(v) => { setQ(v); setPage(1) }} placeholder={t('searchUsersPh')} style={{ marginBottom: 22, maxWidth: 420 }} />
+      {!archived ? (
+        <div style={{ marginBottom: 22, maxWidth: 220 }}>
+          <select className="select" value={status} onChange={(e) => { setStatus(e.target.value); setPage(1) }}>
+            <option value="">{t('allStatuses')}</option>
+            {ACCOUNT_STATUSES.map((s) => <option key={s.value} value={s.value}>{t(s.labelKey)}</option>)}
+          </select>
+        </div>
+      ) : null}
       <DataTable
         loading={loading}
         rows={paged.items}
@@ -142,12 +166,14 @@ return (
                 { key: 'email', label: t('email') },
                 { key: 'level', label: t('level'), render: (r) => r.level || '—' },
                 { key: 'department', label: t('department'), render: (r) => r.department || t('general') },
+                { key: 'status', label: t('status'), render: (r) => <Badge tone={statusMeta(r.status).tone} dot>{t(statusMeta(r.status).labelKey)}</Badge> },
                 { key: 'created_at', label: t('joined'), render: (r) => (r.created_at ? new Date(r.created_at).toLocaleDateString() : '—') },
               ]
             : [
                 { key: 'name', label: t('name'), main: true },
                 { key: 'email', label: t('email') },
                 { key: 'job_title', label: t('jobTitle'), render: (r) => r.job_title || '—' },
+                { key: 'status', label: t('status'), render: (r) => <Badge tone={statusMeta(r.status).tone} dot>{t(statusMeta(r.status).labelKey)}</Badge> },
                 { key: 'created_at', label: t('joined'), render: (r) => (r.created_at ? new Date(r.created_at).toLocaleDateString() : '—') },
               ]
         }
@@ -207,6 +233,11 @@ onEdit={archived ? undefined : openEdit}
             </select>
           </Field>
         ) : null}
+        <Field label={t('status')} error={errors?.status?.[0]}>
+          <select className="select" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+            {ACCOUNT_STATUSES.map((s) => <option key={s.value} value={s.value}>{t(s.labelKey)}</option>)}
+          </select>
+        </Field>
       </FormModal>
     </>
   )

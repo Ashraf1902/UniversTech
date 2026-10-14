@@ -7,20 +7,21 @@ use App\Http\Requests\Professor\ProfessorAddQuizRequest;
 use App\Models\Course;
 use App\Models\Quiz;
 use App\Models\StudentCourse;
+use App\Traits\AuthorizesCourseOwnership;
 use App\Traits\File\UploadFile;
 use App\Traits\Notifiable;
 use Illuminate\Http\Request;
 
 class QuizProfessorController extends Controller
 {
-    use UploadFile, Notifiable;
+    use AuthorizesCourseOwnership, UploadFile, Notifiable;
 
     public function getQuizzesCourse(Request $request, $id)
     {
         $course = Course::find($id);
 
-        if (! $course || $course->professor_id !== $request->user()->id) {
-            return SendResponse(403, 'You are not allowed to view this course.');
+        if ($blocked = $this->authorizeCourseOwnership($request, $course, 'You are not allowed to view this course.')) {
+            return $blocked;
         }
 
         $quizzes = Quiz::where('course_id', $id)
@@ -40,10 +41,14 @@ class QuizProfessorController extends Controller
 
     public function delete(Request $request, $id)
     {
-        $quiz = Quiz::find($id);
+        $quiz = Quiz::with('course')->find($id);
 
-        if (! $quiz || ! $quiz->course || $quiz->course->professor_id !== $request->user()->id) {
-            return SendResponse(403, 'You are not allowed to delete this quiz.');
+        if (! $quiz) {
+            return SendResponse(404, 'Quiz not found.');
+        }
+
+        if ($blocked = $this->authorizeCourseOwnership($request, $quiz->course, 'You are not allowed to delete this quiz.')) {
+            return $blocked;
         }
 
         \Illuminate\Support\Facades\Storage::disk('files')->delete($quiz->content);
@@ -56,8 +61,8 @@ class QuizProfessorController extends Controller
     {
         $course = Course::find($request->course_id);
 
-        if (! $course || $course->professor_id !== $request->user()->id) {
-            return SendResponse(403, 'You are not allowed to add quizzes to this course.');
+        if ($blocked = $this->authorizeCourseOwnership($request, $course, 'You are not allowed to add quizzes to this course.')) {
+            return $blocked;
         }
 
         $path = $this->uploadFile($request, 'pdf', 'quizzes');

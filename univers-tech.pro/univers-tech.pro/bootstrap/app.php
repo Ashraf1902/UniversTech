@@ -24,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \App\Http\Middleware\CheckUserRole::class,
             'admin-scope' => \App\Http\Middleware\CheckAdminScope::class,
             'paid-courses' => \App\Http\Middleware\PaidCourses::class,
+            'active' => \App\Http\Middleware\EnsureAccountActive::class,
         ]);
     })
     ->withSchedule(function (\Illuminate\Console\Scheduling\Schedule $schedule) {

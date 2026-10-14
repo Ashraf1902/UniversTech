@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Models\User;
 use App\Traits\FetchRequestError;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -41,7 +42,8 @@ class AdminUpdateUserRequest extends FormRequest
             'type' => 'boolean',
             'department_id' => 'exists:departments,id',
             'level_id' => 'exists:levels,id',
-            'job_title' => 'min:3|max:50'
+            'job_title' => 'min:3|max:50',
+            'status' => ['nullable', Rule::in(User::STATUSES)],
         ];
     }
 }

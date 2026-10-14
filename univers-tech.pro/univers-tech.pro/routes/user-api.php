@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware('role:student')->group(function () {
+Route::middleware(['role:student', 'active'])->group(function () {
 
     // Profile & session
     Route::get('', UserController::class);
