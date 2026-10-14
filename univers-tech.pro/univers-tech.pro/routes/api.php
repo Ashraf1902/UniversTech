@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AccountAdminController;
 use App\Http\Controllers\Admin\AccessRequestAdminController;
+use App\Http\Controllers\Admin\ActivityAdminController;
 use App\Http\Controllers\Admin\AdminAuthController;
 use App\Http\Controllers\Admin\AdminManagementController;
 use App\Http\Controllers\Admin\CourseAdminController;
@@ -139,6 +140,11 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::middleware('admin-scope:access_requests')->group(function () {
         Route::get('access-request/get/all', [AccessRequestAdminController::class, 'index']);
         Route::post('access-request/respond', [AccessRequestAdminController::class, 'respond']);
+    });
+
+    // Activity log
+    Route::middleware('admin-scope:activity')->group(function () {
+        Route::get('activity/get/all', [ActivityAdminController::class, 'index']);
     });
 });
 

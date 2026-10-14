@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AdminLoginRequest;
 use App\Models\Admin;
+use App\Support\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -18,8 +19,18 @@ class AdminAuthController extends Controller
         $admin = Admin::where('email', $request->email)->first();
 
         if (! $admin || ! Hash::check($request->password, $admin->password)) {
+            ActivityLogger::log(ActivityLogger::LOGIN_FAILED, null, [
+                'email' => $request->email,
+                'guard' => 'admin',
+            ]);
+
             return SendResponse(401, 'Invalid credentials.');
         }
+
+        ActivityLogger::log(ActivityLogger::LOGIN, $admin, [
+            'email' => $admin->email,
+            'guard' => 'admin',
+        ], $admin);
 
         $adminData = [
             'id' => $admin->id,
@@ -55,6 +66,8 @@ class AdminAuthController extends Controller
             if ($token instanceof PersonalAccessToken) {
                 $token->delete();
             }
+
+            ActivityLogger::log(ActivityLogger::LOGOUT, $admin, ['guard' => 'admin'], $admin);
         }
 
         Auth::guard('web-admin')->logout();

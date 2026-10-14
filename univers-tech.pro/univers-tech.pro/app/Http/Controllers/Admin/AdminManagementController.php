@@ -4,12 +4,16 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Admin;
+use App\Support\ActivityLogger;
+use App\Traits\Notifiable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
 class AdminManagementController extends Controller
 {
-    private const VALID_SCOPES = ['accounts', 'access_requests', 'departments', 'courses', 'semesters', 'schedules', 'events', 'grades'];
+    use Notifiable;
+
+    private const VALID_SCOPES = ['accounts', 'access_requests', 'departments', 'courses', 'semesters', 'schedules', 'events', 'grades', 'attendances', 'payments', 'reports', 'activity'];
 
     private function authorizeSuper(Request $request)
     {
@@ -70,6 +74,11 @@ class AdminManagementController extends Controller
             'roles' => $this->normalizeRoles($data['roles'] ?? []),
         ]);
 
+        ActivityLogger::log(ActivityLogger::ADMIN_CREATED, $admin, [
+            'email' => $admin->email,
+            'roles' => $admin->roles ?? [],
+        ], $request->user());
+
         return SendResponse(201, 'Admin created successfully.', [
             'id' => $admin->id,
             'name' => $admin->name,
@@ -104,6 +113,8 @@ class AdminManagementController extends Controller
             return SendResponse(409, 'Super admin accounts cannot be modified.');
         }
 
+        $previousRoles = $admin->roles ?? [];
+
         $admin->update([
             'name' => $data['name'] ?? $admin->name,
             'roles' => $this->normalizeRoles($data['roles'] ?? []),
@@ -111,6 +122,22 @@ class AdminManagementController extends Controller
 
         if (! empty($data['password'])) {
             $admin->update(['password' => Hash::make($data['password'])]);
+        }
+
+        ActivityLogger::log(ActivityLogger::ADMIN_UPDATED, $admin, [
+            'email' => $admin->email,
+            'roles_before' => $previousRoles,
+            'roles_after' => $admin->roles ?? [],
+            'password_changed' => ! empty($data['password']),
+        ], $request->user());
+
+        $rolesChanged = array_values($previousRoles) !== array_values($admin->roles ?? []);
+        if ($rolesChanged) {
+            $this->notifyAdmin(
+                'Your permissions were updated',
+                'Your administrator scopes are now: ' . (implode(', ', $admin->roles ?? []) ?: 'none') . '.',
+                $admin->id
+            );
         }
 
         return SendResponse(200, 'Admin updated successfully.');
@@ -138,6 +165,11 @@ class AdminManagementController extends Controller
         }
 
         $admin->delete();
+
+        ActivityLogger::log(ActivityLogger::ADMIN_DELETED, $admin, [
+            'email' => $admin->email,
+            'roles' => $admin->roles ?? [],
+        ], $request->user());
 
         return SendResponse(200, 'Admin deleted successfully.');
     }

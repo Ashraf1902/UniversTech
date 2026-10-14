@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
+use App\Support\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -19,18 +20,40 @@ class AuthController extends Controller
         $user = User::where('email', $request->email)->first();
 
         if (! $user || ! Hash::check($request->password, $user->password)) {
+            ActivityLogger::log(ActivityLogger::LOGIN_FAILED, null, [
+                'email' => $request->email,
+                'guard' => 'professor',
+            ]);
+
             return SendResponse(401, 'Invalid credentials.');
         }
 
         if (! $user->isProfessor()) {
+            ActivityLogger::log(ActivityLogger::LOGIN_FAILED, null, [
+                'email' => $request->email,
+                'guard' => 'professor',
+                'reason' => 'wrong_role',
+            ]);
+
             return SendResponse(403, 'This account is not a professor account.');
         }
 
         if (! $user->isActive()) {
             $user->revokeTokens();
 
+            ActivityLogger::log(ActivityLogger::LOGIN_FAILED, null, [
+                'email' => $request->email,
+                'guard' => 'professor',
+                'reason' => 'inactive',
+            ]);
+
             return SendResponse(403, $user->statusMessage());
         }
+
+        ActivityLogger::log(ActivityLogger::LOGIN, $user, [
+            'email' => $user->email,
+            'guard' => 'professor',
+        ], $user);
 
         $userData = [
             'id' => $user->id,
@@ -65,6 +88,8 @@ class AuthController extends Controller
             if ($token instanceof PersonalAccessToken) {
                 $token->delete();
             }
+
+            ActivityLogger::log(ActivityLogger::LOGOUT, $user, ['guard' => 'professor'], $user);
         }
 
         Auth::guard('web')->logout();

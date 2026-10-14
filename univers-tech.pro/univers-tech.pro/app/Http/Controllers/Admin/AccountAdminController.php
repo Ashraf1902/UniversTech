@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\AdminStoreAccountRequest;
 use App\Http\Requests\Admin\AdminUpdateUserRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
+use App\Support\ActivityLogger;
 use App\Traits\Notifiable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -157,6 +158,7 @@ class AccountAdminController extends Controller
         }
 
         $statusChanged = $request->filled('status') && $request->input('status') !== $user->status;
+        $previousStatus = $user->status;
 
         DB::transaction(function () use ($request, $user) {
             $data = [
@@ -196,9 +198,28 @@ class AccountAdminController extends Controller
             if (! $user->isActive()) {
                 $user->revokeTokens();
             }
+
+            ActivityLogger::log(ActivityLogger::STATUS_CHANGED, $user, [
+                'from' => $previousStatus,
+                'to' => $user->status,
+            ], $request->user());
+
+            $this->notifyAccountStatus($user);
         }
 
         return SendResponse(200, 'User updated successfully.');
+    }
+
+    private function notifyAccountStatus(User $user): void
+    {
+        $title = 'Account status updated';
+        $content = 'Your account status is now "' . $user->status . '".';
+
+        if ($user->isStudent()) {
+            $this->notifyStudent($user->id, $title, $content);
+        } else {
+            $this->notifyProfessor($user->id, $title, $content);
+        }
     }
 
     private function formatUser(User $user, bool $isProfessor): array

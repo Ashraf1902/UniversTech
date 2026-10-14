@@ -13,7 +13,8 @@ class CheckAdminScope
      * Ensure the authenticated admin is a super admin or has the given scope(s).
      *
      * Supported scopes: accounts, access_requests, departments, courses,
-     * semesters, schedules, events, grades.
+     * semesters, schedules, events, grades, attendances, payments, reports,
+     * activity.
      */
     public function handle(Request $request, Closure $next, string ...$scopes): Response
     {

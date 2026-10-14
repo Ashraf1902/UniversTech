@@ -12,7 +12,7 @@ import {
   ProfessorCourses, ProfessorGrades, ProfessorHome, ProfessorLectures, ProfessorNotifications, ProfessorQuizzes, ProfessorStudents,
 } from './pages/professor'
 import {
-  AdminAccounts, AdminAccessRequests, AdminAdmins, AdminCourses, AdminDepartments, AdminEvents, AdminGrades, AdminHome, AdminSchedules, AdminSemesters,
+  AdminAccounts, AdminAccessRequests, AdminActivity, AdminAdmins, AdminCourses, AdminDepartments, AdminEvents, AdminGrades, AdminHome, AdminSchedules, AdminSemesters,
 } from './pages/admin'
 
 function UnauthorizedListener() {
@@ -99,6 +99,7 @@ export default function App() {
                   <Route path="schedules" element={<AdminSchedules />} />
                   <Route path="events" element={<AdminEvents />} />
                   <Route path="grades" element={<AdminGrades />} />
+                  <Route path="activity" element={<AdminActivity />} />
                 </Route>
 
                 <Route path="*" element={<Navigate to="/login" replace />} />

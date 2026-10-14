@@ -16,7 +16,7 @@ class AccessRequestController extends Controller
 
     public function store(AccessRequestStoreRequest $request)
     {
-        if (User::where('email', $request->email)->exists()) {
+        if (User::withTrashed()->where('email', $request->email)->exists()) {
             return SendResponse(409, 'This email is already registered. Please sign in instead.');
         }
 

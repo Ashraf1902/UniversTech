@@ -1,5 +1,6 @@
 export { AdminAccounts } from './Accounts.jsx'
 export { AdminAccessRequests } from './AccessRequests.jsx'
+export { AdminActivity } from './Activity.jsx'
 export { AdminAdmins } from './Admins.jsx'
 export { AdminCourses } from './Courses.jsx'
 export { AdminDepartments } from './Departments.jsx'

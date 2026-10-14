@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AdminRespondAccessRequest;
 use App\Models\AccessRequest;
 use App\Models\User;
+use App\Support\ActivityLogger;
 use App\Traits\Notifiable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -42,7 +43,7 @@ class AccessRequestAdminController extends Controller
         }
 
         if ($request->action === 'accept') {
-            if (User::where('email', $accessRequest->email)->exists()) {
+            if (User::withTrashed()->where('email', $accessRequest->email)->exists()) {
                 return SendResponse(409, 'A user with this email already exists.');
             }
 
@@ -83,6 +84,11 @@ class AccessRequestAdminController extends Controller
                 'The request from "' . $accessRequest->name . '" was accepted and an account was created.'
             );
 
+            ActivityLogger::log(ActivityLogger::ACCESS_REQUEST_ACCEPTED, $accessRequest, [
+                'email' => $accessRequest->email,
+                'user_id' => $userId,
+            ], $request->user());
+
             return SendResponse(200, 'Request accepted. A student account was created.', [
                 'user_id' => $userId,
             ]);
@@ -98,6 +104,10 @@ class AccessRequestAdminController extends Controller
             'Access request refused',
             'The request from "' . $accessRequest->name . '" was refused.'
         );
+
+        ActivityLogger::log(ActivityLogger::ACCESS_REQUEST_REFUSED, $accessRequest, [
+            'email' => $accessRequest->email,
+        ], $request->user());
 
         return SendResponse(200, 'Request refused.');
     }

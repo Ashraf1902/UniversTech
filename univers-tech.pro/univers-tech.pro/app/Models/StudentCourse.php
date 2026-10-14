@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\LogsActivity;
 
 class StudentCourse extends Model
 {
-    use HasFactory;
+    use HasFactory, LogsActivity;
 
     protected $guarded = [];
 
@@ -17,6 +18,17 @@ class StudentCourse extends Model
         'progress',
         'last_lecture_id',
     ];
+
+    /**
+     * Watching lectures updates progress/last_lecture_id constantly; those are
+     * study-state, not auditable events, so they never trigger a log entry.
+     *
+     * @return array<int, string>
+     */
+    protected function activityLogIgnoredAttributes(): array
+    {
+        return ['progress', 'last_lecture_id'];
+    }
 
     public function student()
     {

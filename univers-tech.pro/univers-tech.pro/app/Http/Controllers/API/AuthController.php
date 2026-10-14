@@ -4,6 +4,7 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
+use App\Support\ActivityLogger;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 
@@ -12,6 +13,11 @@ class AuthController extends Controller
     public function login(LoginRequest $request)
     {
         if (! Auth::attempt($request->only('email', 'password'))) {
+            ActivityLogger::log(ActivityLogger::LOGIN_FAILED, null, [
+                'email' => $request->email,
+                'guard' => 'student',
+            ]);
+
             return SendResponse(401, 'Invalid credentials.');
         }
 
@@ -23,6 +29,12 @@ class AuthController extends Controller
             if ($request->hasSession()) {
                 $request->session()->invalidate();
             }
+
+            ActivityLogger::log(ActivityLogger::LOGIN_FAILED, null, [
+                'email' => $request->email,
+                'guard' => 'student',
+                'reason' => 'wrong_role',
+            ]);
 
             return SendResponse(403, 'This account is not a student account.');
         }
@@ -36,8 +48,19 @@ class AuthController extends Controller
 
             $user->revokeTokens();
 
+            ActivityLogger::log(ActivityLogger::LOGIN_FAILED, null, [
+                'email' => $request->email,
+                'guard' => 'student',
+                'reason' => 'inactive',
+            ]);
+
             return SendResponse(403, $user->statusMessage());
         }
+
+        ActivityLogger::log(ActivityLogger::LOGIN, $user, [
+            'email' => $user->email,
+            'guard' => 'student',
+        ], $user);
 
         if (EnsureFrontendRequestsAreStateful::fromFrontend($request)) {
             $request->session()->regenerate();

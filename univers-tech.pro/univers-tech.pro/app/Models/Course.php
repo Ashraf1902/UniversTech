@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
+use App\Traits\LogsActivity;
 
 class Course extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, LogsActivity;
 
     protected $guarded = [];
 
