@@ -12,18 +12,35 @@ class AccountStatusTest extends TestCase
 {
     use RefreshDatabase;
 
+    private int $adminId;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->adminId = Admin::factory()->create(['is_super_admin' => true])->id;
+    }
+
     private function makeActiveStudent(array $attributes = []): User
     {
         return User::factory()->create(array_merge([
             'type' => User::TYPE_STUDENT,
             'status' => User::STATUS_ACTIVE,
             'password' => bcrypt('password'),
+            'admin_id' => $this->adminId,
+            'department_id' => null,
+            'level_id' => null,
         ], $attributes));
     }
 
     public function test_new_accounts_default_to_active_status(): void
     {
-        $user = User::factory()->create(['type' => User::TYPE_STUDENT]);
+        $user = User::factory()->create([
+            'type' => User::TYPE_STUDENT,
+            'admin_id' => $this->adminId,
+            'department_id' => null,
+            'level_id' => null,
+        ]);
 
         $this->assertSame(User::STATUS_ACTIVE, $user->fresh()->status);
     }
@@ -44,6 +61,9 @@ class AccountStatusTest extends TestCase
             'type' => User::TYPE_PROFESSOR,
             'status' => User::STATUS_GRADUATED,
             'password' => bcrypt('password'),
+            'admin_id' => $this->adminId,
+            'department_id' => null,
+            'level_id' => null,
         ]);
 
         $this->postJson('/api/prof/auth/login', [

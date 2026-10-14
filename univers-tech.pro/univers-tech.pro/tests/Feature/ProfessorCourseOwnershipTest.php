@@ -46,8 +46,18 @@ class ProfessorCourseOwnershipTest extends TestCase
         $department = Department::factory()->create(['id' => 1, 'admin_id' => $admin->id]);
         $level = Level::factory()->create(['id' => 1]);
 
-        $this->professorA = User::factory()->create(['type' => User::TYPE_PROFESSOR]);
-        $this->professorB = User::factory()->create(['type' => User::TYPE_PROFESSOR]);
+        $this->professorA = User::factory()->create([
+            'type' => User::TYPE_PROFESSOR,
+            'admin_id' => $admin->id,
+            'department_id' => null,
+            'level_id' => null,
+        ]);
+        $this->professorB = User::factory()->create([
+            'type' => User::TYPE_PROFESSOR,
+            'admin_id' => $admin->id,
+            'department_id' => null,
+            'level_id' => null,
+        ]);
 
         $this->courseA = Course::create([
             'course_name' => 'Algorithms',
@@ -60,6 +70,7 @@ class ProfessorCourseOwnershipTest extends TestCase
 
         $this->student = User::factory()->create([
             'type' => User::TYPE_STUDENT,
+            'admin_id' => $admin->id,
             'department_id' => null,
             'level_id' => null,
         ]);
