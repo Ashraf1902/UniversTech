@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { APP_ROOTS } from '../lib/api'
+import { APP_ROOTS, CHANGE_PASSWORD_PATHS, request } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { useI18n } from '../lib/i18n'
-import { Avatar, I } from '../lib/ui'
-import { request } from '../lib/api'
+import { Avatar, Btn, Field, I, Modal, useToast } from '../lib/ui'
 
 export const NAV = {
   student: [
@@ -51,6 +50,103 @@ export function RoleGate({ role, children }) {
   return children
 }
 
+function ChangePasswordModal({ open, onClose, role }) {
+  const { t } = useI18n()
+  const toast = useToast()
+  const [current, setCurrent] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [show, setShow] = useState(false)
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    if (!open) {
+      setCurrent('')
+      setPassword('')
+      setConfirm('')
+      setShow(false)
+      setBusy(false)
+    }
+  }, [open])
+
+  const submit = async (e) => {
+    e.preventDefault()
+    if (password !== confirm) {
+      toast.error(t('passwordsDoNotMatch'))
+      return
+    }
+    setBusy(true)
+    try {
+      await request(CHANGE_PASSWORD_PATHS[role], {
+        method: 'POST',
+        data: { current_password: current, password, password_confirmation: confirm },
+      })
+      toast.success(t('passwordChangedToast'))
+      onClose()
+    } catch (err) {
+      toast.error(err.message || t('somethingWrong'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={t('changePasswordTitle')}
+      footer={
+        <>
+          <Btn variant="ghost" onClick={onClose}>{t('cancel')}</Btn>
+          <Btn type="submit" form="ut-change-password" loading={busy} iconRight={busy ? undefined : 'check'}>
+            {t('saveChanges')}
+          </Btn>
+        </>
+      }
+    >
+      <p className="subt" style={{ marginBottom: 18 }}>{t('changePasswordSub')}</p>
+      <form id="ut-change-password" onSubmit={submit}>
+        <Field label={t('currentPassword')}>
+          <input
+            className="input"
+            type={show ? 'text' : 'password'}
+            required
+            value={current}
+            onChange={(e) => setCurrent(e.target.value)}
+            autoComplete="current-password"
+          />
+        </Field>
+        <Field label={t('newPassword')} hint={t('passwordMinChars')}>
+          <input
+            className="input"
+            type={show ? 'text' : 'password'}
+            required
+            minLength={6}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="new-password"
+          />
+        </Field>
+        <Field label={t('confirmPassword')}>
+          <input
+            className="input"
+            type={show ? 'text' : 'password'}
+            required
+            minLength={6}
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            autoComplete="new-password"
+          />
+        </Field>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--muted)', fontSize: '0.85rem' }}>
+          <input type="checkbox" checked={show} onChange={(e) => setShow(e.target.checked)} />
+          {t('showPasswords')}
+        </label>
+      </form>
+    </Modal>
+  )
+}
+
 export default function DashboardLayout({ role }) {
   const { user, logout } = useAuth()
   const { t, lang, setLang } = useI18n()
@@ -58,6 +154,7 @@ export default function DashboardLayout({ role }) {
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const [menu, setMenu] = useState(false)
+  const [pwdOpen, setPwdOpen] = useState(false)
   const [unread, setUnread] = useState(0)
 
   const nav = useMemo(() => {
@@ -138,6 +235,10 @@ export default function DashboardLayout({ role }) {
           </button>
           {menu ? (
             <div className="card" style={{ padding: 8, marginTop: 8 }}>
+              <button className="nav-item" style={{ width: '100%' }} onClick={() => { setMenu(false); setPwdOpen(true) }}>
+                <I name="lock" size={18} />
+                <span>{t('changePassword')}</span>
+              </button>
               <button className="nav-item" style={{ width: '100%' }} onClick={doLogout}>
                 <I name="logout" size={18} />
                 <span>{t('signOut')}</span>
@@ -184,6 +285,8 @@ export default function DashboardLayout({ role }) {
           <Outlet />
         </main>
       </div>
+
+      <ChangePasswordModal open={pwdOpen} onClose={() => setPwdOpen(false)} role={role} />
     </div>
   )
 }

@@ -54,6 +54,19 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Frontend URL
+    |--------------------------------------------------------------------------
+    |
+    | The base URL of the React frontend. Used to build links that are sent to
+    | users by email (password reset, access-request decisions). Never
+    | hard-code the frontend domain in application code.
+    |
+    */
+
+    'frontend_url' => env('FRONTEND_URL', env('APP_URL', 'http://localhost')),
+
     'asset_url' => env('ASSET_URL', null),
 
     /*

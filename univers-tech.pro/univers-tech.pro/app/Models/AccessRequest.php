@@ -25,6 +25,7 @@ class AccessRequest extends Model
         'status',
         'admin_id',
         'decided_at',
+        'rejection_reason',
     ];
 
     protected $casts = [

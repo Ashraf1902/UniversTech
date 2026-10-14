@@ -4,12 +4,16 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AdminRespondAccessRequest;
+use App\Mail\AccessRequestApprovedMail;
+use App\Mail\AccessRequestRejectedMail;
 use App\Models\AccessRequest;
 use App\Models\User;
 use App\Support\ActivityLogger;
+use App\Support\PasswordRealm;
 use App\Traits\Notifiable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 class AccessRequestAdminController extends Controller
 {
@@ -84,6 +88,12 @@ class AccessRequestAdminController extends Controller
                 'The request from "' . $accessRequest->name . '" was accepted and an account was created.'
             );
 
+            Mail::to($accessRequest->email)->queue(new AccessRequestApprovedMail(
+                $accessRequest->name,
+                $accessRequest->email,
+                PasswordRealm::loginUrl(PasswordRealm::STUDENT),
+            ));
+
             ActivityLogger::log(ActivityLogger::ACCESS_REQUEST_ACCEPTED, $accessRequest, [
                 'email' => $accessRequest->email,
                 'user_id' => $userId,
@@ -98,6 +108,7 @@ class AccessRequestAdminController extends Controller
             'status' => AccessRequest::STATUS_REFUSED,
             'decided_at' => now(),
             'admin_id' => $request->user()->id,
+            'rejection_reason' => $request->input('reason'),
         ]);
 
         $this->notifyAdmin(
@@ -105,8 +116,15 @@ class AccessRequestAdminController extends Controller
             'The request from "' . $accessRequest->name . '" was refused.'
         );
 
+        Mail::to($accessRequest->email)->queue(new AccessRequestRejectedMail(
+            $accessRequest->name,
+            $request->input('reason'),
+            PasswordRealm::loginUrl(PasswordRealm::STUDENT),
+        ));
+
         ActivityLogger::log(ActivityLogger::ACCESS_REQUEST_REFUSED, $accessRequest, [
             'email' => $accessRequest->email,
+            'reason' => $request->input('reason'),
         ], $request->user());
 
         return SendResponse(200, 'Request refused.');
@@ -127,6 +145,7 @@ class AccessRequestAdminController extends Controller
             'created_at' => $item->created_at,
             'decided_at' => $item->decided_at,
             'decided_by' => $item->admin?->name,
+            'rejection_reason' => $item->rejection_reason,
         ];
     }
 }

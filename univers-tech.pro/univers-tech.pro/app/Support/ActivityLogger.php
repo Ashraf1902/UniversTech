@@ -32,6 +32,10 @@ class ActivityLogger
     public const ACCESS_REQUEST_ACCEPTED = 'access_request_accepted';
     public const ACCESS_REQUEST_REFUSED = 'access_request_refused';
 
+    // Credentials
+    public const PASSWORD_RESET = 'password_reset';
+    public const PASSWORD_CHANGED = 'password_changed';
+
     // Administration
     public const ADMIN_CREATED = 'admin_created';
     public const ADMIN_UPDATED = 'admin_updated';

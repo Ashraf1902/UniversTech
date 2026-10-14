@@ -6,7 +6,7 @@ Generated: 10/14/2026 04:08:40
 - [x] Stage 0: Recon, todo list, coverage matrix
 - [x] Stage 1: Security hardening (P1, X2) — 18 tests pass (SQLite via env override; CI uses MySQL)
 - [x] Stage 2: Audit log, soft deletes, admin scopes (N2, N3, A5) — 32 tests pass (SQLite via env override; CI uses MySQL); pending owner approval
-- [ ] Stage 3: Email, password reset, access requests (X1, A6)
+- [x] Stage 3: Email, password reset, access requests (X1, A6) — 48 tests pass (SQLite via env override; CI uses MySQL); frontend build green; pending owner approval
 - [ ] Stage 4: Enrollment status, registration rules, manual enrollment (X3, S1, A4)
 - [ ] Stage 5: Grade lifecycle, components, appeals (P2, S5)
 - [ ] Stage 6: Semester rollover (A1)

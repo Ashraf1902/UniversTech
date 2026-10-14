@@ -19,6 +19,7 @@ class AdminRespondAccessRequest extends FormRequest
         return [
             'id' => 'required|exists:access_requests,id',
             'action' => 'required|in:accept,refuse',
+            'reason' => 'required_if:action,refuse|nullable|string|max:1000',
         ];
     }
 }

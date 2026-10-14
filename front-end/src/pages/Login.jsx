@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { APP_ROOTS, request } from '../lib/api'
+import { APP_ROOTS, FORGOT_PASSWORD_PATHS, request } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { useI18n } from '../lib/i18n'
 import { Btn, Field, I, Reveal, useToast } from '../lib/ui'
@@ -32,6 +32,8 @@ export default function Login() {
   const [regShow, setRegShow] = useState(false)
   const [registering, setRegistering] = useState(false)
   const [sent, setSent] = useState(false)
+  const [resetSent, setResetSent] = useState(false)
+  const [sendingReset, setSendingReset] = useState(false)
 
   const { login, isAuthed, session } = useAuth()
   const { t, lang, setLang } = useI18n()
@@ -110,6 +112,24 @@ export default function Login() {
 
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value })
 
+  const openForgot = () => {
+    setResetSent(false)
+    setTab('forgot')
+  }
+
+  const sendReset = async (e) => {
+    e.preventDefault()
+    setSendingReset(true)
+    try {
+      await request(FORGOT_PASSWORD_PATHS[role], { method: 'POST', data: { email: email.trim() } })
+      setResetSent(true)
+    } catch (err) {
+      toast.error(err.message || t('somethingWrong'))
+    } finally {
+      setSendingReset(false)
+    }
+  }
+
   const current = slide % Math.max(events.length, 1)
 
   return (
@@ -177,26 +197,28 @@ export default function Login() {
 
       <main className="auth-form">
         <Reveal className="auth-card">
-          <div className="auth-tabs" role="tablist">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={tab === 'login'}
-              className={`atab ${tab === 'login' ? 'on' : ''}`}
-              onClick={() => setTab('login')}
-            >
-              <I name="shield" size={16} /> {t('tabSignIn')}
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={tab === 'register'}
-              className={`atab ${tab === 'register' ? 'on' : ''}`}
-              onClick={() => setTab('register')}
-            >
-              <I name="plus" size={16} /> {t('tabCreateAccount')}
-            </button>
-          </div>
+          {tab !== 'forgot' ? (
+            <div className="auth-tabs" role="tablist">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={tab === 'login'}
+                className={`atab ${tab === 'login' ? 'on' : ''}`}
+                onClick={() => setTab('login')}
+              >
+                <I name="shield" size={16} /> {t('tabSignIn')}
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={tab === 'register'}
+                className={`atab ${tab === 'register' ? 'on' : ''}`}
+                onClick={() => setTab('register')}
+              >
+                <I name="plus" size={16} /> {t('tabCreateAccount')}
+              </button>
+            </div>
+          ) : null}
 
           {sent ? (
             <div className="auth-panel">
@@ -208,6 +230,65 @@ export default function Login() {
               <Btn className="btn-block" size="lg" icon="arrow" onClick={() => { setSent(false); setTab('login'); setForm({ ...form, regEmail: form.regEmail, regPassword: '' }) }}>
                 {t('backToSignIn')}
               </Btn>
+            </div>
+          ) : tab === 'forgot' ? (
+            <div className="auth-panel">
+              {resetSent ? (
+                <>
+                  <div className="sent-icon">
+                    <I name="mail" size={28} />
+                  </div>
+                  <h2 className="title">{t('resetLinkSentTitle')}</h2>
+                  <p className="subt">{t('resetLinkSentSub')}</p>
+                  <Btn className="btn-block" size="lg" icon="arrow" onClick={() => { setResetSent(false); setTab('login') }}>
+                    {t('backToSignIn')}
+                  </Btn>
+                </>
+              ) : (
+                <>
+                  <button type="button" className="auth-back" onClick={() => setTab('login')}>
+                    <I name="arrow" size={16} style={{ transform: 'rotate(180deg)' }} /> {t('backToSignIn')}
+                  </button>
+                  <h2 className="title">{t('forgotPasswordTitle')}</h2>
+                  <p className="subt">{t('forgotPasswordSub')}</p>
+
+                  <div className="role-tabs">
+                    {ROLES.map((r) => (
+                      <button
+                        key={r.key}
+                        type="button"
+                        className={`role-tab ${role === r.key ? 'on' : ''}`}
+                        onClick={() => setRole(r.key)}
+                      >
+                        <I name={r.icon} size={18} />
+                        {t(r.labelKey)}
+                      </button>
+                    ))}
+                  </div>
+
+                  <form onSubmit={sendReset}>
+                    <Field label={t('email')}>
+                      <div style={{ position: 'relative' }}>
+                        <I name="mail" size={17} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--faint)' }} />
+                        <input
+                          className="input"
+                          type="email"
+                          required
+                          placeholder={t('emailPh')}
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          style={{ paddingLeft: 42 }}
+                          autoComplete="email"
+                        />
+                      </div>
+                    </Field>
+
+                    <Btn type="submit" className="btn-block" size="lg" loading={sendingReset} iconRight={sendingReset ? undefined : 'arrow'}>
+                      {sendingReset ? t('sendingResetLink') : t('sendResetLink')}
+                    </Btn>
+                  </form>
+                </>
+              )}
             </div>
           ) : tab === 'login' ? (
             <div className="auth-panel">
@@ -268,6 +349,12 @@ export default function Login() {
                     </button>
                   </div>
                 </Field>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+                  <button type="button" className="linkish" onClick={openForgot}>
+                    {t('forgotPassword')}
+                  </button>
+                </div>
 
                 <Btn type="submit" className="btn-block" size="lg" loading={loading} iconRight={loading ? undefined : 'arrow'}>
                   {loading ? t('signingIn') : t('signInAs', { role: t(ROLES.find((r) => r.key === role)?.labelKey) })}

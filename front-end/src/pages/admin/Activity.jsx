@@ -18,6 +18,8 @@ const ACTION_META = {
   admin_created: { key: 'actionAdminCreated', tone: 'grn' },
   admin_updated: { key: 'actionAdminUpdated', tone: 'cy' },
   admin_deleted: { key: 'actionAdminDeleted', tone: 'red' },
+  password_reset: { key: 'actionPasswordReset', tone: 'amb' },
+  password_changed: { key: 'actionPasswordChanged', tone: 'cy' },
   ai_override: { key: 'actionAiOverride', tone: 'vio' },
 }
 

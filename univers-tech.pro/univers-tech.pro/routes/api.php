@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\SemesterAdminController;
 use App\Http\Controllers\API\AuthController as UserAuthController;
 use App\Http\Controllers\API\AccessRequestController;
 use App\Http\Controllers\API\PublicController;
+use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Professor\AttendaceProfessorController;
 use App\Http\Controllers\Professor\AuthController as ProfessorAuthController;
 use App\Http\Controllers\Professor\CourseProfessorController;
@@ -36,14 +37,26 @@ Route::get('/health', fn () => response()->json(['status' => 'ok']));
 // Authentication
 Route::prefix('auth')->group(function () {
     Route::post('login', [UserAuthController::class, 'login'])->middleware('throttle:5,1');
+    Route::post('forgot-password', [PasswordController::class, 'forgot'])
+        ->defaults('realm', 'student')->middleware('throttle:5,1');
+    Route::post('reset-password', [PasswordController::class, 'reset'])
+        ->defaults('realm', 'student')->middleware('throttle:5,1');
 });
 
 Route::prefix('prof/auth')->group(function () {
     Route::post('login', [ProfessorAuthController::class, 'login'])->middleware('throttle:5,1');
+    Route::post('forgot-password', [PasswordController::class, 'forgot'])
+        ->defaults('realm', 'professor')->middleware('throttle:5,1');
+    Route::post('reset-password', [PasswordController::class, 'reset'])
+        ->defaults('realm', 'professor')->middleware('throttle:5,1');
 });
 
 Route::prefix('admin/auth')->group(function () {
     Route::post('login', [AdminAuthController::class, 'login'])->middleware('throttle:5,1');
+    Route::post('forgot-password', [PasswordController::class, 'forgot'])
+        ->defaults('realm', 'admin')->middleware('throttle:5,1');
+    Route::post('reset-password', [PasswordController::class, 'reset'])
+        ->defaults('realm', 'admin')->middleware('throttle:5,1');
 });
 
 // Public routes
@@ -56,6 +69,7 @@ Route::prefix('public')->group(function () {
 // Admin routes
 Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(function () {
     Route::post('auth/logout', [AdminAuthController::class, 'logout']);
+    Route::post('auth/change-password', [PasswordController::class, 'change']);
     Route::get('profile', [AdminAuthController::class, 'me']);
 });
 
@@ -162,6 +176,7 @@ Route::middleware(['auth:sanctum', 'role:professor', 'active'])->group(function 
     Route::get('professor/grade/get/all', [GradeProfessorController::class, 'index']);
     Route::delete('professor/grade/delete/{id}', [GradeProfessorController::class, 'delete']);
     Route::post('professor/auth/logout', [ProfessorAuthController::class, 'logout']);
+    Route::post('prof/auth/change-password', [PasswordController::class, 'change']);
     Route::get('professor/profile', [ProfessorAuthController::class, 'me']);
     Route::get('professor/event/get/new', [EventProfessorController::class, 'latestEvents']);
     Route::get('professor/notifications', [ProfessorNotificationsController::class, 'notifications']);

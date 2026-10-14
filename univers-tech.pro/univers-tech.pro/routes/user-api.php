@@ -6,6 +6,7 @@ use App\Http\Controllers\API\Student\LogoutController;
 use App\Http\Controllers\API\Student\NotificationsController;
 use App\Http\Controllers\API\Student\PaymentController;
 use App\Http\Controllers\API\Student\UserController;
+use App\Http\Controllers\Auth\PasswordController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -26,6 +27,7 @@ Route::middleware(['role:student', 'active'])->group(function () {
     Route::get('', UserController::class);
     Route::get('logout', LogoutController::class);
     Route::get('facts', FactsController::class);
+    Route::post('change-password', [PasswordController::class, 'change']);
 
     // Notifications
     Route::prefix('notifications')->group(function () {

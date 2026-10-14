@@ -173,6 +173,24 @@ export const LOGOUT_PATHS = {
   admin: '/api/admin/auth/logout',
 }
 
+export const FORGOT_PASSWORD_PATHS = {
+  student: '/api/auth/forgot-password',
+  professor: '/api/prof/auth/forgot-password',
+  admin: '/api/admin/auth/forgot-password',
+}
+
+export const RESET_PASSWORD_PATHS = {
+  student: '/api/auth/reset-password',
+  professor: '/api/prof/auth/reset-password',
+  admin: '/api/admin/auth/reset-password',
+}
+
+export const CHANGE_PASSWORD_PATHS = {
+  student: '/api/user/change-password',
+  professor: '/api/prof/auth/change-password',
+  admin: '/api/admin/auth/change-password',
+}
+
 export const APP_ROOTS = {
   student: '/app/student',
   professor: '/app/professor',

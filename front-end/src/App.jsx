@@ -5,6 +5,7 @@ import { AuthProvider } from './lib/auth'
 import { I18nProvider } from './lib/i18n'
 import { Loader, ToastProvider } from './lib/ui'
 import Login from './pages/Login'
+import ResetPassword from './pages/ResetPassword'
 import {
   StudentCatalog, StudentCourseDetail, StudentCourses, StudentHome, StudentNotifications, StudentReports, StudentSchedule,
 } from './pages/student'
@@ -46,6 +47,7 @@ export default function App() {
               <Routes>
                 <Route path="/" element={<Navigate to="/login" replace />} />
                 <Route path="/login" element={<Login />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
 
                 <Route
                   path="/app/student"
