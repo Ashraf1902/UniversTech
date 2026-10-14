@@ -77,6 +77,11 @@ class Course extends Model
         return $this->hasMany(Grade::class);
     }
 
+    public function gradeComponents()
+    {
+        return $this->hasMany(GradeComponent::class)->orderBy('position');
+    }
+
     public function admin()
     {
         return $this->belongsTo(Admin::class, 'admin_id');

@@ -5,19 +5,30 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\Grade;
+use App\Models\GradeAppeal;
 use App\Models\Semester;
 use App\Models\StudentCourse;
 use App\Models\User;
+use App\Services\GradeService;
+use App\Support\ActivityLogger;
+use App\Traits\Notifiable;
 use Illuminate\Http\Request;
 
 class GradeAdminController extends Controller
 {
+    use Notifiable;
+
+    public function __construct(private GradeService $grades)
+    {
+    }
+
     public function index(Request $request)
     {
         $request->validate([
             'student_id' => 'nullable|exists:users,id',
             'course_id' => 'nullable|exists:courses,id',
             'semester_id' => 'nullable|exists:semesters,id',
+            'status' => 'nullable|in:draft,published,locked',
         ]);
 
         $grades = ($request->boolean('deleted') ? Grade::onlyTrashed() : Grade::query())
@@ -25,6 +36,7 @@ class GradeAdminController extends Controller
             ->when($request->filled('student_id'), fn ($q) => $q->where('student_id', $request->student_id))
             ->when($request->filled('course_id'), fn ($q) => $q->where('course_id', $request->course_id))
             ->when($request->filled('semester_id'), fn ($q) => $q->where('semester_id', $request->semester_id))
+            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))
             ->when($request->filled('search'), function ($q) use ($request) {
                 $term = $request->search;
                 $q->where(function ($qq) use ($term) {
@@ -64,7 +76,10 @@ class GradeAdminController extends Controller
             return $existing;
         }
 
-        return Grade::create($data);
+        return Grade::create(array_merge($data, [
+            'status' => Grade::STATUS_PUBLISHED,
+            'published_at' => now(),
+        ]));
     }
 
     public function update(Request $request)
@@ -260,9 +275,153 @@ class GradeAdminController extends Controller
             'percentage' => $percentage,
             'gpa_points' => $gradeRow['gpa_points'],
             'letter_grade' => $gradeRow['letter_grade'],
+            'status' => $grade->status,
+            'published_at' => $grade->published_at,
+            'locked_at' => $grade->locked_at,
+            'edit_reason' => $grade->edit_reason,
             'created_at' => $grade->created_at,
             'updated_at' => $grade->updated_at,
             'deleted_at' => $grade->deleted_at,
+        ];
+    }
+
+    /**
+     * Lock a published grade so only an admin can change it (A: grade lifecycle).
+     */
+    public function lock(Request $request, $id)
+    {
+        $grade = Grade::with('course')->find($id);
+
+        if (! $grade) {
+            return SendResponse(404, 'Grade not found.');
+        }
+
+        if ($grade->isDraft()) {
+            return SendResponse(422, 'Publish the grade before locking it.');
+        }
+
+        $this->grades->lock($grade, $request->user());
+
+        return SendResponse(200, 'Grade locked successfully.', $this->formatGrade($grade->load(['student', 'course', 'semester'])));
+    }
+
+    public function unlock(Request $request, $id)
+    {
+        $grade = Grade::with('course')->find($id);
+
+        if (! $grade) {
+            return SendResponse(404, 'Grade not found.');
+        }
+
+        $this->grades->unlock($grade, $request->user());
+
+        return SendResponse(200, 'Grade unlocked successfully.', $this->formatGrade($grade->load(['student', 'course', 'semester'])));
+    }
+
+    /**
+     * Override grade marks (any state) with a mandatory reason.
+     */
+    public function override(Request $request)
+    {
+        $data = $request->validate([
+            'grade_id' => 'required|exists:grades,id',
+            'marks' => 'required|numeric|min:0',
+            'max_marks' => 'required|numeric|gt:0',
+            'reason' => 'required|string|max:2000',
+        ]);
+
+        if ($data['marks'] > $data['max_marks']) {
+            return SendResponse(422, 'The marks may not be greater than the maximum marks.');
+        }
+
+        $grade = Grade::with('course')->findOrFail($data['grade_id']);
+
+        $grade = $this->grades->override($grade, [
+            'marks' => $data['marks'],
+            'max_marks' => $data['max_marks'],
+        ], $data['reason'], $request->user());
+
+        return SendResponse(200, 'Grade overridden successfully.', $this->formatGrade($grade->load(['student', 'course', 'semester'])));
+    }
+
+    /**
+     * Appeals raised by students across all courses.
+     */
+    public function appeals(Request $request)
+    {
+        $request->validate([
+            'course_id' => 'nullable|exists:courses,id',
+            'status' => 'nullable|in:pending,accepted,rejected',
+        ]);
+
+        $appeals = GradeAppeal::query()
+            ->when($request->filled('course_id'), fn ($q) => $q->whereHas('grade', fn ($g) => $g->where('course_id', $request->course_id)))
+            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))
+            ->with(['grade.course', 'grade.semester', 'student'])
+            ->orderByDesc('created_at')
+            ->paginate(15)
+            ->through(fn (GradeAppeal $appeal) => $this->formatAppeal($appeal));
+
+        return SendResponse(200, 'Appeals fetched successfully.', $appeals);
+    }
+
+    public function respondAppeal(Request $request)
+    {
+        $data = $request->validate([
+            'appeal_id' => 'required|exists:grade_appeals,id',
+            'action' => 'required|in:accept,reject',
+            'note' => 'required|string|max:2000',
+        ]);
+
+        $appeal = GradeAppeal::with('grade.course')->findOrFail($data['appeal_id']);
+
+        if (! $appeal->isPending()) {
+            return SendResponse(422, 'This appeal has already been answered.');
+        }
+
+        $status = $data['action'] === 'accept' ? GradeAppeal::STATUS_ACCEPTED : GradeAppeal::STATUS_REJECTED;
+
+        $appeal->forceFill([
+            'status' => $status,
+            'response_note' => $data['note'],
+            'responded_by_type' => $request->user()->getMorphClass(),
+            'responded_by_id' => $request->user()->id,
+            'responded_at' => now(),
+        ])->save();
+
+        ActivityLogger::log(
+            ActivityLogger::GRADE_APPEAL_RESOLVED,
+            $appeal,
+            ['status' => $status, 'reason' => $data['note']],
+            $request->user(),
+            'Grade appeal ' . $status . '.'
+        );
+
+        $this->notifyStudent(
+            (int) $appeal->student_id,
+            'Grade appeal ' . $status,
+            'Your appeal for "' . ($appeal->grade?->course?->course_name ?? 'a course') . '" was ' . $status . '.',
+            null
+        );
+
+        return SendResponse(200, 'Appeal answered successfully.', $this->formatAppeal($appeal->load(['grade.course', 'student'])));
+    }
+
+    private function formatAppeal(GradeAppeal $appeal): array
+    {
+        return [
+            'id' => $appeal->id,
+            'status' => $appeal->status,
+            'reason' => $appeal->reason,
+            'response_note' => $appeal->response_note,
+            'responded_at' => $appeal->responded_at,
+            'created_at' => $appeal->created_at,
+            'student' => $appeal->student?->name,
+            'student_id' => $appeal->student_id,
+            'course' => $appeal->grade?->course?->course_name,
+            'course_id' => $appeal->grade?->course_id,
+            'marks' => $appeal->grade?->marks,
+            'max_marks' => $appeal->grade?->max_marks,
         ];
     }
 }

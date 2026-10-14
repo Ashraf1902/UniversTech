@@ -25,4 +25,12 @@ return [
     // drop a course (withdrawal window).
     'drop_window_days' => 14,
 
+    // Hours after publication during which a professor may still edit a
+    // published grade (with a required reason). After this, only an admin may
+    // change the grade.
+    'grade_edit_window_hours' => 48,
+
+    // Days after publication during which a student may appeal a grade.
+    'appeal_window_days' => 14,
+
 ];

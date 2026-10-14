@@ -10,10 +10,10 @@ import {
   StudentCatalog, StudentCourseDetail, StudentCourses, StudentHome, StudentNotifications, StudentReports, StudentSchedule,
 } from './pages/student'
 import {
-  ProfessorCourses, ProfessorGrades, ProfessorHome, ProfessorLectures, ProfessorNotifications, ProfessorQuizzes, ProfessorStudents,
+  ProfessorAppeals, ProfessorCourses, ProfessorGrades, ProfessorHome, ProfessorLectures, ProfessorNotifications, ProfessorQuizzes, ProfessorStudents,
 } from './pages/professor'
 import {
-  AdminAccounts, AdminAccessRequests, AdminActivity, AdminAdmins, AdminCourses, AdminDepartments, AdminEvents, AdminGrades, AdminHome, AdminSchedules, AdminSemesters, AdminSettings,
+  AdminAccounts, AdminAccessRequests, AdminActivity, AdminAdmins, AdminAppeals, AdminCourses, AdminDepartments, AdminEvents, AdminGrades, AdminHome, AdminSchedules, AdminSemesters, AdminSettings,
 } from './pages/admin'
 
 function UnauthorizedListener() {
@@ -80,6 +80,7 @@ export default function App() {
                   <Route path="lectures" element={<ProfessorLectures />} />
                   <Route path="quizzes" element={<ProfessorQuizzes />} />
                   <Route path="grades" element={<ProfessorGrades />} />
+                  <Route path="appeals" element={<ProfessorAppeals />} />
                   <Route path="notifications" element={<ProfessorNotifications />} />
                 </Route>
 
@@ -101,6 +102,7 @@ export default function App() {
                   <Route path="schedules" element={<AdminSchedules />} />
                   <Route path="events" element={<AdminEvents />} />
                   <Route path="grades" element={<AdminGrades />} />
+                  <Route path="appeals" element={<AdminAppeals />} />
                   <Route path="activity" element={<AdminActivity />} />
                   <Route path="settings" element={<AdminSettings />} />
                 </Route>

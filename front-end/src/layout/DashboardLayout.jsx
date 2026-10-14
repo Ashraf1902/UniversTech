@@ -21,6 +21,7 @@ export const NAV = {
     { to: '/app/professor/lectures', icon: 'file', key: 'lectures' },
     { to: '/app/professor/quizzes', icon: 'award', key: 'quizzes' },
     { to: '/app/professor/grades', icon: 'chart', key: 'grades' },
+    { to: '/app/professor/appeals', icon: 'mail', key: 'gradeAppeals' },
     { to: '/app/professor/notifications', icon: 'bell', key: 'notifications', notify: true },
   ],
   admin: [
@@ -33,6 +34,7 @@ export const NAV = {
     { to: '/app/admin/schedules', icon: 'clock', key: 'schedules', scope: 'schedules' },
     { to: '/app/admin/events', icon: 'spark', key: 'events', scope: 'events' },
     { to: '/app/admin/grades', icon: 'award', key: 'gradesCards', scope: 'grades' },
+    { to: '/app/admin/appeals', icon: 'mail', key: 'gradeAppeals', scope: 'grades' },
     { to: '/app/admin/activity', icon: 'file', key: 'activityLog', scope: 'activity' },
     { to: '/app/admin/settings', icon: 'lock', key: 'settings', scope: 'settings' },
     { to: '/app/admin/admins', icon: 'shield', key: 'adminsRoles', super: true },

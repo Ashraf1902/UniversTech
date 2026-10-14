@@ -3,11 +3,36 @@
 namespace App\Traits;
 
 use App\Jobs\FanOutNotification;
+use App\Models\Admin;
 use App\Models\Notification;
 use App\Models\User;
 
 trait Notifiable
 {
+    /**
+     * High-signal notification sent to every admin (e.g. a grade changed after
+     * publication/lock). Routed through this trait per Stage 2.
+     */
+    protected function notifyAllAdmins(string $title, string $content): void
+    {
+        $adminIds = Admin::query()->pluck('id');
+
+        if ($adminIds->isEmpty()) {
+            return;
+        }
+
+        FanOutNotification::dispatch(
+            $adminIds->map(fn (int $id) => [
+                'admin_id' => $id,
+                'title' => $title,
+                'content' => $content,
+                'type' => Notification::TYPE_NOTIFICATION,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ])->toArray()
+        );
+    }
+
     /**
      * Notify the admin who created the current record about an action.
      */

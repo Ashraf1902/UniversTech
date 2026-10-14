@@ -422,11 +422,15 @@ class EnrollmentRulesTest extends TestCase
             'credit_limit' => 21,
             'passing_score' => 60,
             'drop_window_days' => 7,
+            'grade_edit_window_hours' => 24,
+            'appeal_window_days' => 10,
         ])->assertOk();
 
         $this->assertSame(21, Settings::creditLimit());
         $this->assertSame(60, Settings::passingScore());
         $this->assertSame(7, Settings::dropWindowDays());
+        $this->assertSame(24, Settings::gradeEditWindowHours());
+        $this->assertSame(10, Settings::appealWindowDays());
 
         $this->assertDatabaseHas('activity_logs', ['action' => 'settings_updated']);
     }

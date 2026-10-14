@@ -11,12 +11,43 @@ class Grade extends Model
 {
     use HasFactory, SoftDeletes, LogsActivity;
 
+    public const STATUS_DRAFT = 'draft';
+    public const STATUS_PUBLISHED = 'published';
+    public const STATUS_LOCKED = 'locked';
+
+    public const STATUSES = [
+        self::STATUS_DRAFT,
+        self::STATUS_PUBLISHED,
+        self::STATUS_LOCKED,
+    ];
+
     protected $guarded = [];
 
     protected $casts = [
         'marks' => 'decimal:2',
         'max_marks' => 'decimal:2',
+        'published_at' => 'datetime',
+        'locked_at' => 'datetime',
     ];
+
+    /**
+     * Lifecycle transitions are logged explicitly by the grade service, so the
+     * generic "updated" entry only needs to capture marks/reason edits.
+     *
+     * @return array<int, string>
+     */
+    protected function activityLogIgnoredAttributes(): array
+    {
+        return [
+            'status',
+            'published_at',
+            'published_by_id',
+            'published_by_type',
+            'locked_at',
+            'locked_by_id',
+            'locked_by_type',
+        ];
+    }
 
     public function student()
     {
@@ -31,6 +62,59 @@ class Grade extends Model
     public function semester()
     {
         return $this->belongsTo(Semester::class);
+    }
+
+    public function componentScores()
+    {
+        return $this->hasMany(GradeComponentScore::class);
+    }
+
+    public function appeals()
+    {
+        return $this->hasMany(GradeAppeal::class);
+    }
+
+    public function publishedBy()
+    {
+        return $this->morphTo();
+    }
+
+    public function lockedBy()
+    {
+        return $this->morphTo();
+    }
+
+    public function scopeStatus($query, string $status)
+    {
+        return $query->where('status', $status);
+    }
+
+    /**
+     * Grades a student is allowed to see (published or locked).
+     */
+    public function scopeVisible($query)
+    {
+        return $query->whereIn('status', [self::STATUS_PUBLISHED, self::STATUS_LOCKED]);
+    }
+
+    public function isDraft(): bool
+    {
+        return $this->status === self::STATUS_DRAFT;
+    }
+
+    public function isPublished(): bool
+    {
+        return $this->status === self::STATUS_PUBLISHED;
+    }
+
+    public function isLocked(): bool
+    {
+        return $this->status === self::STATUS_LOCKED;
+    }
+
+    public function isVisibleToStudent(): bool
+    {
+        return ! $this->isDraft();
     }
 
     public static function percentageToGpa(float $percentage): array

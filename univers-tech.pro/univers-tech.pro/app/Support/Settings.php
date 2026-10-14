@@ -48,4 +48,14 @@ class Settings
     {
         return (int) static::get('drop_window_days');
     }
+
+    public static function gradeEditWindowHours(): int
+    {
+        return (int) static::get('grade_edit_window_hours');
+    }
+
+    public static function appealWindowDays(): int
+    {
+        return (int) static::get('appeal_window_days');
+    }
 }

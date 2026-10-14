@@ -1,15 +1,56 @@
-import { request } from '../../lib/api'
+import { Fragment, useState } from 'react'
+import { normalizePage, request } from '../../lib/api'
 import { useI18n } from '../../lib/i18n'
 import { useAsync } from '../../lib/hooks'
-import { Badge, Empty, Prog, RateBadge, Reveal, Ring, Spinner } from '../../lib/ui'
+import { Badge, Btn, Empty, Field, Modal, Prog, RateBadge, Reveal, Ring, Spinner, useToast } from '../../lib/ui'
 import { Head } from './_shared'
+
+function AppealStatus({ status }) {
+  const { t } = useI18n()
+  const tone = { pending: 'amb', accepted: 'grn', rejected: 'red' }[status] || ''
+  const label = { pending: t('status_pending'), accepted: t('status_accepted'), rejected: t('status_refused') }[status] || status
+  return <Badge tone={tone} dot>{label}</Badge>
+}
+
 export function StudentReports() {
   const { t } = useI18n()
-  const { data, loading } = useAsync(() => request('/api/user/reports'))
+  const toast = useToast()
+  const { data, loading, run } = useAsync(() => request('/api/user/reports'))
+  const appealsRes = useAsync(() => request('/api/user/grade/appeals'))
+  const appeals = normalizePage(appealsRes.data).items
+
+  const [appealRow, setAppealRow] = useState(null)
+  const [reason, setReason] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [reasonError, setReasonError] = useState('')
+
   if (loading) return <Spinner size={26} />
   const overall = data?.overall || {}
   const cards = data?.semester_cards || []
   const courses = data?.courses || []
+
+  const submitAppeal = async () => {
+    setBusy(true)
+    setReasonError('')
+    try {
+      await request('/api/user/grade/appeal', {
+        method: 'POST',
+        data: { grade_id: appealRow.id, reason },
+      })
+      toast.success(t('appealSubmitted'))
+      setAppealRow(null)
+      setReason('')
+      run().catch(() => {})
+      appealsRes.run().catch(() => {})
+    } catch (e) {
+      const fe = e?.payload?.data
+      const msg = fe && typeof fe === 'object' ? (fe.reason?.[0] || fe.grade_id?.[0]) : null
+      if (msg) setReasonError(msg)
+      else toast.error(e.message)
+    } finally {
+      setBusy(false)
+    }
+  }
 
   return (
     <>
@@ -66,21 +107,40 @@ export function StudentReports() {
                       <th>{t('marks')}</th>
                       <th>{t('percent')}</th>
                       <th style={{ textAlign: 'right' }}>{t('rate')}</th>
+                      <th style={{ textAlign: 'right' }}>{t('action')}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {(c.courses || []).map((row) => (
-                      <tr key={row.course_id}>
-                        <td className="cell-main">{row.course_name}<div style={{ fontSize: '0.74rem', color: 'var(--faint)', fontWeight: 400 }}>{row.course_code} · {t('crHours', { n: row.credit_hours })}</div></td>
-                        <td>{row.marks}/{row.max_marks}</td>
-                        <td style={{ minWidth: 110 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <Prog value={row.percentage} sm />
-                            <span style={{ fontSize: '0.78rem', color: 'var(--muted)', minWidth: 36 }}>{row.percentage}%</span>
-                          </div>
-                        </td>
-                        <td style={{ textAlign: 'right' }}><RateBadge rate={row.rate} /></td>
-                      </tr>
+                      <Fragment key={row.course_id}>
+                        <tr>
+                          <td className="cell-main">{row.course_name}<div style={{ fontSize: '0.74rem', color: 'var(--faint)', fontWeight: 400 }}>{row.course_code} · {t('crHours', { n: row.credit_hours })}</div></td>
+                          <td>{row.marks}/{row.max_marks}</td>
+                          <td style={{ minWidth: 110 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <Prog value={row.percentage} sm />
+                              <span style={{ fontSize: '0.78rem', color: 'var(--muted)', minWidth: 36 }}>{row.percentage}%</span>
+                            </div>
+                          </td>
+                          <td style={{ textAlign: 'right' }}><RateBadge rate={row.rate} /></td>
+                          <td style={{ textAlign: 'right' }}>
+                            <Btn size="sm" variant="soft" icon="mail" title={t('appealGrade')} onClick={() => { setAppealRow(row); setReason(''); setReasonError('') }} />
+                          </td>
+                        </tr>
+                        {row.components?.length ? (
+                          <tr>
+                            <td colSpan={5} style={{ paddingTop: 0 }}>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: '2px 0 8px' }}>
+                                {row.components.map((comp, ci) => (
+                                  <Badge key={ci} tone="vio">
+                                    {comp.name} · {comp.weight}% · {comp.marks != null ? `${comp.marks}/${comp.max_marks}` : t('notGraded')}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </td>
+                          </tr>
+                        ) : null}
+                      </Fragment>
                     ))}
                   </tbody>
                 </table>
@@ -93,6 +153,34 @@ export function StudentReports() {
           </Reveal>
         )}
       </div>
+
+      <Reveal className="card" style={{ marginTop: 24 }}>
+        <div className="card-head">
+          <h3>{t('myAppeals')}</h3>
+        </div>
+        {appeals.length ? (
+          <div className="table-wrap" style={{ border: 'none', background: 'transparent' }}>
+            <table className="table">
+              <thead>
+                <tr><th>{t('course')}</th><th>{t('appealReason')}</th><th>{t('status')}</th><th>{t('responseNote')}</th><th style={{ textAlign: 'right' }}>{t('submittedOn')}</th></tr>
+              </thead>
+              <tbody>
+                {appeals.map((a) => (
+                  <tr key={a.id}>
+                    <td className="cell-main">{a.course || '—'}</td>
+                    <td style={{ maxWidth: 320 }}>{a.reason}</td>
+                    <td><AppealStatus status={a.status} /></td>
+                    <td style={{ maxWidth: 320 }}>{a.response_note || '—'}</td>
+                    <td style={{ textAlign: 'right' }}>{a.created_at ? new Date(a.created_at).toLocaleDateString() : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <Empty icon="mail" title={t('noAppeals')} sub={t('noAppealsSub')} />
+        )}
+      </Reveal>
 
       <Reveal className="card" style={{ marginTop: 24 }}>
         <div className="card-head">
@@ -128,6 +216,23 @@ export function StudentReports() {
           <Empty icon="chart" title={t('noDataYet')} />
         )}
       </Reveal>
+
+      <Modal
+        open={Boolean(appealRow)}
+        onClose={() => setAppealRow(null)}
+        title={t('appealThisGrade')}
+        footer={<><Btn variant="ghost" onClick={() => setAppealRow(null)}>{t('cancel')}</Btn><Btn loading={busy} onClick={submitAppeal} icon="check" disabled={!reason}>{t('submitAppeal')}</Btn></>}
+      >
+        {appealRow ? (
+          <div className="card" style={{ marginBottom: 16, padding: 14 }}>
+            <div style={{ fontWeight: 600 }}>{appealRow.course_name}</div>
+            <div style={{ color: 'var(--muted)', fontSize: '0.85rem', marginTop: 6 }}>{appealRow.marks}/{appealRow.max_marks} · {appealRow.percentage}%</div>
+          </div>
+        ) : null}
+        <Field label={t('appealReason')} hint={t('appealReasonHint')} error={reasonError}>
+          <textarea className="input" rows={4} value={reason} onChange={(e) => setReason(e.target.value)} />
+        </Field>
+      </Modal>
     </>
   )
 }

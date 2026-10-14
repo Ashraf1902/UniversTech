@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\API\FactsController;
+use App\Http\Controllers\API\Student\AppealController;
 use App\Http\Controllers\API\Student\CoursesController;
 use App\Http\Controllers\API\Student\LogoutController;
 use App\Http\Controllers\API\Student\NotificationsController;
@@ -47,6 +48,10 @@ Route::middleware(['role:student', 'active'])->group(function () {
     // Schedule & reports
     Route::get('schedule', [CoursesController::class, 'schedule']);
     Route::get('reports', [CoursesController::class, 'reports']);
+
+    // Grade appeals
+    Route::get('grade/appeals', [AppealController::class, 'index']);
+    Route::post('grade/appeal', [AppealController::class, 'store']);
 
     // Registered-course content (requires a paid courses subscription)
     Route::middleware('paid-courses')->group(function () {

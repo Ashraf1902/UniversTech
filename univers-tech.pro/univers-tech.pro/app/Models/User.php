@@ -122,6 +122,11 @@ class User extends Authenticatable implements CanResetPasswordContract
         return $this->hasMany(Grade::class, 'student_id');
     }
 
+    public function gradeAppeals()
+    {
+        return $this->hasMany(GradeAppeal::class, 'student_id');
+    }
+
     public function studentCourses()
     {
         return $this->hasMany(StudentCourse::class, 'student_id');

@@ -274,7 +274,8 @@ class CoursesController extends Controller
             });
 
         $grades = Grade::where('student_id', auth()->id())
-            ->with(['course', 'semester'])
+            ->visible()
+            ->with(['course.gradeComponents', 'semester', 'componentScores'])
             ->orderBy('created_at')
             ->get();
 
@@ -333,6 +334,8 @@ class CoursesController extends Controller
         $percentage = $grade->max_marks > 0 ? round($grade->marks / $grade->max_marks * 100, 2) : 0;
         $gpaRow = Grade::percentageToGpa($percentage);
 
+        $components = $grade->course?->gradeComponents ?? collect();
+
         return [
             'course_id' => $grade->course_id,
             'course_name' => $grade->course?->course_name,
@@ -343,6 +346,20 @@ class CoursesController extends Controller
             'percentage' => $percentage,
             'gpa_points' => $gpaRow['gpa_points'],
             'rate' => $gpaRow['letter_grade'],
+            'status' => $grade->status,
+            'components' => $components->isNotEmpty()
+                ? $components->map(function ($component) use ($grade) {
+                    $score = $grade->componentScores->firstWhere('grade_component_id', $component->id);
+
+                    return [
+                        'name' => $component->name,
+                        'weight' => (float) $component->weight,
+                        'marks' => $score ? (float) $score->marks : null,
+                        'max_marks' => $score ? (float) $score->max_marks : null,
+                        'percentage' => $score ? $score->percentage() : null,
+                    ];
+                })->values()->all()
+                : [],
         ];
     }
 

@@ -160,6 +160,11 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
         Route::delete('grade/delete/{id}', [GradeAdminController::class, 'delete']);
         Route::post('grade/restore/{id}', [GradeAdminController::class, 'restore']);
         Route::delete('grade/purge/{id}', [GradeAdminController::class, 'purge']);
+        Route::post('grade/lock/{id}', [GradeAdminController::class, 'lock']);
+        Route::post('grade/unlock/{id}', [GradeAdminController::class, 'unlock']);
+        Route::post('grade/override', [GradeAdminController::class, 'override']);
+        Route::get('grade/appeal/get/all', [GradeAdminController::class, 'appeals']);
+        Route::post('grade/appeal/respond', [GradeAdminController::class, 'respondAppeal']);
         Route::get('semester-card', [GradeAdminController::class, 'semesterCard']);
     });
 
@@ -188,6 +193,11 @@ Route::middleware(['auth:sanctum', 'role:professor', 'active'])->group(function 
     Route::post('professor/grade/store', [GradeProfessorController::class, 'store']);
     Route::get('professor/grade/get/all', [GradeProfessorController::class, 'index']);
     Route::delete('professor/grade/delete/{id}', [GradeProfessorController::class, 'delete']);
+    Route::post('professor/grade/publish', [GradeProfessorController::class, 'publish']);
+    Route::get('professor/grade/component/get/all', [GradeProfessorController::class, 'components']);
+    Route::post('professor/grade/component/sync', [GradeProfessorController::class, 'syncComponents']);
+    Route::get('professor/appeal/get/all', [GradeProfessorController::class, 'appeals']);
+    Route::post('professor/appeal/respond', [GradeProfessorController::class, 'respondAppeal']);
     Route::post('professor/auth/logout', [ProfessorAuthController::class, 'logout']);
     Route::post('prof/auth/change-password', [PasswordController::class, 'change']);
     Route::get('professor/profile', [ProfessorAuthController::class, 'me']);

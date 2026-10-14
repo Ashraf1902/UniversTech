@@ -9,7 +9,7 @@ export function AdminSettings() {
   const { t } = useI18n()
   const toast = useToast()
   const { data, loading, run } = useAsync(() => request('/api/settings/get/all'), [])
-  const [form, setForm] = useState({ credit_limit: '', passing_score: '', drop_window_days: '' })
+  const [form, setForm] = useState({ credit_limit: '', passing_score: '', drop_window_days: '', grade_edit_window_hours: '', appeal_window_days: '' })
   const [defaults, setDefaults] = useState(null)
   const [busy, setBusy] = useState(false)
   const { errors, clear: clearErrors, apply: applyErrors } = useFieldErrors()
@@ -20,6 +20,8 @@ export function AdminSettings() {
       credit_limit: data.credit_limit ?? '',
       passing_score: data.passing_score ?? '',
       drop_window_days: data.drop_window_days ?? '',
+      grade_edit_window_hours: data.grade_edit_window_hours ?? '',
+      appeal_window_days: data.appeal_window_days ?? '',
     })
     setDefaults(data.defaults || null)
   }, [data])
@@ -34,6 +36,8 @@ export function AdminSettings() {
           credit_limit: Number(form.credit_limit),
           passing_score: Number(form.passing_score),
           drop_window_days: Number(form.drop_window_days),
+          grade_edit_window_hours: Number(form.grade_edit_window_hours),
+          appeal_window_days: Number(form.appeal_window_days),
         },
       })
       toast.success(t('settingsSaved'))
@@ -68,6 +72,14 @@ export function AdminSettings() {
           <Field label={t('dropWindowSetting')} hint={t('dropWindowSettingHint')} error={errors?.drop_window_days?.[0]}>
             <input className="input" type="number" min="0" max="365" value={form.drop_window_days} disabled={loading} onChange={(e) => setForm({ ...form, drop_window_days: e.target.value })} />
           </Field>
+          <div className="grid grid-2" style={{ gap: 14 }}>
+            <Field label={t('gradeEditWindowSetting')} hint={t('gradeEditWindowSettingHint')} error={errors?.grade_edit_window_hours?.[0]}>
+              <input className="input" type="number" min="0" max="8760" value={form.grade_edit_window_hours} disabled={loading} onChange={(e) => setForm({ ...form, grade_edit_window_hours: e.target.value })} />
+            </Field>
+            <Field label={t('appealWindowSetting')} hint={t('appealWindowSettingHint')} error={errors?.appeal_window_days?.[0]}>
+              <input className="input" type="number" min="0" max="365" value={form.appeal_window_days} disabled={loading} onChange={(e) => setForm({ ...form, appeal_window_days: e.target.value })} />
+            </Field>
+          </div>
         </form>
         {defaults ? (
           <p style={{ color: 'var(--muted)', fontSize: '0.82rem', marginTop: 18 }}>

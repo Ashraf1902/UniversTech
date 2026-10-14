@@ -18,6 +18,8 @@ class SettingAdminController extends Controller
             'credit_limit' => Settings::creditLimit(),
             'passing_score' => Settings::passingScore(),
             'drop_window_days' => Settings::dropWindowDays(),
+            'grade_edit_window_hours' => Settings::gradeEditWindowHours(),
+            'appeal_window_days' => Settings::appealWindowDays(),
             'defaults' => config('enrollment'),
         ]);
     }
@@ -31,6 +33,8 @@ class SettingAdminController extends Controller
             'credit_limit' => 'required|integer|min:0|max:60',
             'passing_score' => 'required|integer|min:0|max:100',
             'drop_window_days' => 'required|integer|min:0|max:365',
+            'grade_edit_window_hours' => 'required|integer|min:0|max:8760',
+            'appeal_window_days' => 'required|integer|min:0|max:365',
         ]);
 
         foreach ($data as $key => $value) {
@@ -49,6 +53,8 @@ class SettingAdminController extends Controller
             'credit_limit' => Settings::creditLimit(),
             'passing_score' => Settings::passingScore(),
             'drop_window_days' => Settings::dropWindowDays(),
+            'grade_edit_window_hours' => Settings::gradeEditWindowHours(),
+            'appeal_window_days' => Settings::appealWindowDays(),
         ]);
     }
 }

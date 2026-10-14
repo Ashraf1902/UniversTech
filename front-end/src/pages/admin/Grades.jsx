@@ -5,11 +5,19 @@ import { useAsync } from '../../lib/hooks'
 import { Badge, Btn, Empty, Field, Pager, Prog, RateBadge, Reveal, Spinner, useToast } from '../../lib/ui'
 import { useI18n } from '../../lib/i18n'
 import { DataTable, FormModal, Head, SearchBar, useDebounced, useFieldErrors, useOptions } from './_shared'
+
+export function GradeStatus({ status }) {
+  const { t } = useI18n()
+  const tone = { draft: 'amb', published: 'cy', locked: 'vio' }[status] || ''
+  const label = { draft: t('statusDraft'), published: t('statusPublished'), locked: t('statusLocked') }[status] || status
+  return <Badge tone={tone} dot>{label}</Badge>
+}
+
 function SemesterCardExplorer({ students, sems }) {
   const { t } = useI18n()
   const [studentId, setStudentId] = useState('')
   const [semesterId, setSemesterId] = useState('')
-  const card = useAsync(() => (studentId ? request(buildQuery('/api/semester-card', { student_id: studentId, semester_id: semesterId })) : Promise.resolve(null)), [studentId, semesterId])
+  const card = useAsync(() => (studentId ? request('/api/semester-card' + buildQuery({ student_id: studentId, semester_id: semesterId })) : Promise.resolve(null)), [studentId, semesterId])
   const d = card.data
 
   return (
@@ -92,7 +100,7 @@ export function AdminGrades() {
   const courses = useOptions('/api/course/get/all', (c) => ({ value: c.id, label: c.course_name }))
   const sems = useOptions('/api/semester/get/all', (s) => ({ value: s.id, label: `${s.name} (${s.academic_year})` }))
 
-  const [filter, setFilter] = useState({ student_id: '', course_id: '', semester_id: '' })
+  const [filter, setFilter] = useState({ student_id: '', course_id: '', semester_id: '', status: '' })
   const [q, setQ] = useState('')
   const search = useDebounced(q)
   const query = useMemo(() => buildQuery({ ...filter, search, deleted: archived ? 1 : undefined, page }), [filter, search, archived, page])
@@ -102,7 +110,12 @@ export function AdminGrades() {
 const [open, setOpen] = useState(false)
   const [form, setForm] = useState({ student_id: '', course_id: '', semester_id: '', marks: '', max_marks: '100' })
   const [busy, setBusy] = useState(false)
+  const [overrideOpen, setOverrideOpen] = useState(false)
+  const [overrideRow, setOverrideRow] = useState(null)
+  const [overrideForm, setOverrideForm] = useState({ marks: '', max_marks: '100', reason: '' })
+  const [overrideBusy, setOverrideBusy] = useState(false)
   const { errors, clear: clearErrors, apply: applyErrors } = useFieldErrors()
+  const overrideF = useFieldErrors()
 
   const submit = async () => {
     setBusy(true)
@@ -159,6 +172,57 @@ const remove = async (row) => {
     }
   }
 
+  const lock = async (row) => {
+    if (!window.confirm(t('confirmLockGrade'))) return
+    try {
+      await request(`/api/grade/lock/${row.id}`, { method: 'POST' })
+      toast.success(t('gradeLocked'))
+      list.run().catch(() => {})
+    } catch (e) {
+      toast.error(e.message)
+    }
+  }
+
+  const unlock = async (row) => {
+    if (!window.confirm(t('confirmUnlockGrade'))) return
+    try {
+      await request(`/api/grade/unlock/${row.id}`, { method: 'POST' })
+      toast.success(t('gradeUnlocked'))
+      list.run().catch(() => {})
+    } catch (e) {
+      toast.error(e.message)
+    }
+  }
+
+  const openOverride = (row) => {
+    setOverrideRow(row)
+    setOverrideForm({ marks: String(row.marks), max_marks: String(row.max_marks), reason: '' })
+    overrideF.clear()
+    setOverrideOpen(true)
+  }
+
+  const submitOverride = async () => {
+    setOverrideBusy(true)
+    try {
+      await request('/api/grade/override', {
+        method: 'POST',
+        data: {
+          grade_id: overrideRow.id,
+          marks: Number(overrideForm.marks),
+          max_marks: Number(overrideForm.max_marks),
+          reason: overrideForm.reason,
+        },
+      })
+      toast.success(t('gradeOverridden'))
+      setOverrideOpen(false)
+      list.run().catch(() => {})
+    } catch (e) {
+      if (!overrideF.apply(e)) toast.error(e.message)
+    } finally {
+      setOverrideBusy(false)
+    }
+  }
+
   return (
     <>
 <Head kicker={t('results')} title={t('gradesTitle')} sub={t('gradesSub')} actions={tab === 'grades' && !archived ? <Btn icon="plus" onClick={() => setOpen(true)}>{t('addGrade')}</Btn> : null} />
@@ -175,7 +239,15 @@ const remove = async (row) => {
           </div>
           <SearchBar value={q} onChange={(v) => { setQ(v); setPage(1) }} placeholder={t('searchGradesPh')} style={{ marginBottom: 22, maxWidth: 420 }} />
           <div className="card" style={{ marginBottom: 22 }}>
-            <div className="grid grid-3">
+            <div className="grid grid-2">
+              <Field label={t('status')}>
+                <select className="select" value={filter.status} onChange={(e) => { setFilter({ ...filter, status: e.target.value }); setPage(1) }}>
+                  <option value="">{t('allStatuses')}</option>
+                  <option value="draft">{t('statusDraft')}</option>
+                  <option value="published">{t('statusPublished')}</option>
+                  <option value="locked">{t('statusLocked')}</option>
+                </select>
+              </Field>
               <Field label={t('student')}>
                 <select className="select" value={filter.student_id} onChange={(e) => { setFilter({ ...filter, student_id: e.target.value }); setPage(1) }}>
                   <option value="">{t('allStudents')}</option>
@@ -206,7 +278,21 @@ const remove = async (row) => {
               { key: 'marks', label: t('marks'), render: (r) => `${r.marks}/${r.max_marks}` },
               { key: 'percentage', label: t('percent'), render: (r) => (<div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 130 }}><Prog value={r.percentage} sm /><span style={{ fontSize: '0.78rem' }}>{r.percentage}%</span></div>) },
               { key: 'letter_grade', label: t('rate'), render: (r) => <RateBadge rate={r.letter_grade} /> },
-              ...(archived ? [{ key: 'deleted_at', label: t('archivedOn'), render: (r) => (r.deleted_at ? new Date(r.deleted_at).toLocaleDateString() : '—') }] : []),
+              { key: 'status', label: t('status'), render: (r) => <GradeStatus status={r.status} /> },
+              ...(archived
+                ? [{ key: 'deleted_at', label: t('archivedOn'), render: (r) => (r.deleted_at ? new Date(r.deleted_at).toLocaleDateString() : '—') }]
+                : [{
+                    key: 'lifecycle',
+                    label: t('lifecycle'),
+                    align: 'right',
+                    render: (r) => (
+                      <div className="row-actions">
+                        {r.status === 'published' ? <Btn size="sm" variant="soft" icon="lock" title={t('lock')} onClick={() => lock(r)} /> : null}
+                        {r.status === 'locked' ? <Btn size="sm" variant="soft" icon="refresh" title={t('unlock')} onClick={() => unlock(r)} /> : null}
+                        <Btn size="sm" variant="soft" icon="edit" title={t('override')} onClick={() => openOverride(r)} />
+                      </div>
+                    ),
+                  }]),
             ]}
             onDelete={archived ? undefined : remove}
             onRestore={archived ? restore : undefined}
@@ -242,6 +328,30 @@ const remove = async (row) => {
             <option value="">{t('activeSemester')}</option>
             {sems.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
+        </Field>
+      </FormModal>
+
+      <FormModal
+        open={overrideOpen}
+        onClose={() => setOverrideOpen(false)}
+        title={t('overrideGrade')}
+        onSubmit={submitOverride}
+        busy={overrideBusy}
+        errors={overrideF.errors}
+        onFormClose={overrideF.clear}
+        submitLabel={t('override')}
+      >
+        {overrideRow ? (
+          <p className="subt" style={{ marginBottom: 12 }}>
+            {overrideRow.student} · {overrideRow.course} · <GradeStatus status={overrideRow.status} />
+          </p>
+        ) : null}
+        <div className="grid grid-2" style={{ gap: 14 }}>
+          <Field label={t('marks')} error={overrideF.errors?.marks?.[0]}><input className="input" type="number" min="0" value={overrideForm.marks} onChange={(e) => setOverrideForm({ ...overrideForm, marks: e.target.value })} /></Field>
+          <Field label={t('maxMarks')} error={overrideF.errors?.max_marks?.[0]}><input className="input" type="number" min="1" value={overrideForm.max_marks} onChange={(e) => setOverrideForm({ ...overrideForm, max_marks: e.target.value })} /></Field>
+        </div>
+        <Field label={t('overrideReason')} hint={t('overrideReasonHint')} error={overrideF.errors?.reason?.[0]}>
+          <textarea className="input" rows={3} value={overrideForm.reason} onChange={(e) => setOverrideForm({ ...overrideForm, reason: e.target.value })} />
         </Field>
       </FormModal>
     </>

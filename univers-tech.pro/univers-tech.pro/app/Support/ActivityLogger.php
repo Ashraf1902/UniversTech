@@ -39,6 +39,17 @@ class ActivityLogger
     // Enrollment
     public const ENROLLMENT_STATUS_CHANGED = 'enrollment_status_changed';
 
+    // Grade lifecycle
+    public const GRADE_PUBLISHED = 'grade_published';
+    public const GRADE_LOCKED = 'grade_locked';
+    public const GRADE_UNLOCKED = 'grade_unlocked';
+    public const GRADE_OVERRIDDEN = 'grade_overridden';
+    public const GRADE_COMPONENTS_UPDATED = 'grade_components_updated';
+
+    // Grade appeals
+    public const GRADE_APPEAL_SUBMITTED = 'grade_appeal_submitted';
+    public const GRADE_APPEAL_RESOLVED = 'grade_appeal_resolved';
+
     // Configuration
     public const SETTINGS_UPDATED = 'settings_updated';
 

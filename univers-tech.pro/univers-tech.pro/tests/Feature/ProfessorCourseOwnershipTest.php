@@ -103,6 +103,7 @@ class ProfessorCourseOwnershipTest extends TestCase
             'course_id' => $this->courseA->id,
             'marks' => 80,
             'max_marks' => 100,
+            'status' => Grade::STATUS_DRAFT,
         ]);
     }
 

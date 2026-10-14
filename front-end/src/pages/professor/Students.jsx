@@ -12,7 +12,7 @@ export function ProfessorStudents() {
   const courseId = Number(params.get('course')) || ''
   const toast = useToast()
 
-  const students = useAsync(() => (courseId ? request(buildQuery('/api/professors/course/student', { course_id: courseId })) : Promise.resolve(null)), [courseId])
+  const students = useAsync(() => (courseId ? request('/api/professors/course/student' + buildQuery({ course_id: courseId })) : Promise.resolve(null)), [courseId])
   const lectures = useAsync(() => (courseId ? request(`/api/lecture/get/all/${courseId}`) : Promise.resolve(null)), [courseId])
   const [target, setTarget] = useState(null)
   const [form, setForm] = useState({ lecture_id: '', date: new Date().toISOString().slice(0, 10), status: true, reason: '' })
