@@ -7,6 +7,7 @@ use App\Http\Controllers\API\Student\CoursesController;
 use App\Http\Controllers\API\Student\LogoutController;
 use App\Http\Controllers\API\Student\NotificationsController;
 use App\Http\Controllers\API\Student\PaymentController;
+use App\Http\Controllers\API\Student\PaymentsController;
 use App\Http\Controllers\API\Student\QuizzesController;
 use App\Http\Controllers\API\Student\UserController;
 use App\Http\Controllers\Auth\PasswordController;
@@ -41,6 +42,8 @@ Route::middleware(['role:student', 'active'])->group(function () {
 
     // Payments
     Route::post('make-payment', PaymentController::class);
+    Route::get('payments', [PaymentsController::class, 'index']);
+    Route::get('payment/{id}/receipt', [PaymentsController::class, 'receipt']);
 
     // Course catalog & registration
     Route::get('all-courses', [CoursesController::class, 'allCourses']);

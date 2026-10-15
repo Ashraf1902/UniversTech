@@ -88,4 +88,9 @@ class Settings
     {
         return (int) static::get('quiz_submission_max_kb', 10240);
     }
+
+    public static function flagRefundOnDrop(): bool
+    {
+        return filter_var(static::get('flag_refund_on_drop', true), FILTER_VALIDATE_BOOLEAN);
+    }
 }

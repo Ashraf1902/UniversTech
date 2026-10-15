@@ -26,6 +26,7 @@ class SettingAdminController extends Controller
             'quiz_allow_resubmit' => Settings::quizAllowResubmit(),
             'quiz_allow_late' => Settings::quizAllowLate(),
             'quiz_submission_max_kb' => Settings::quizSubmissionMaxKb(),
+            'flag_refund_on_drop' => Settings::flagRefundOnDrop(),
             'defaults' => config('enrollment'),
         ]);
     }
@@ -47,6 +48,7 @@ class SettingAdminController extends Controller
             'quiz_allow_resubmit' => 'nullable|boolean',
             'quiz_allow_late' => 'nullable|boolean',
             'quiz_submission_max_kb' => 'nullable|integer|min:1|max:102400',
+            'flag_refund_on_drop' => 'nullable|boolean',
         ]);
 
         // Attendance policy fields were added in Stage 7: keep older clients
@@ -59,6 +61,9 @@ class SettingAdminController extends Controller
         $data['quiz_allow_resubmit'] = array_key_exists('quiz_allow_resubmit', $data) ? (int) $data['quiz_allow_resubmit'] : (int) Settings::quizAllowResubmit();
         $data['quiz_allow_late'] = array_key_exists('quiz_allow_late', $data) ? (int) $data['quiz_allow_late'] : (int) Settings::quizAllowLate();
         $data['quiz_submission_max_kb'] = $data['quiz_submission_max_kb'] ?? Settings::quizSubmissionMaxKb();
+
+        // Payment policy fields were added in Stage 9 (same fallback).
+        $data['flag_refund_on_drop'] = array_key_exists('flag_refund_on_drop', $data) ? (int) $data['flag_refund_on_drop'] : (int) Settings::flagRefundOnDrop();
 
         if ($data['attendance_bar_threshold'] < $data['attendance_warn_threshold']) {
             return SendResponse(422, 'error in body request', [
@@ -98,6 +103,7 @@ class SettingAdminController extends Controller
             'quiz_allow_resubmit' => Settings::quizAllowResubmit(),
             'quiz_allow_late' => Settings::quizAllowLate(),
             'quiz_submission_max_kb' => Settings::quizSubmissionMaxKb(),
+            'flag_refund_on_drop' => Settings::flagRefundOnDrop(),
         ];
     }
 }

@@ -57,4 +57,8 @@ return [
     // Maximum size (in kilobytes) accepted for a quiz submission upload.
     'quiz_submission_max_kb' => 10240,
 
+    // Whether dropping a course flags a possible refund for admin review.
+    // The payment is never refunded automatically (S4).
+    'flag_refund_on_drop' => true,
+
 ];

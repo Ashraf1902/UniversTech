@@ -17,9 +17,11 @@ class PaidCourses
      */
     public function handle(Request $request, Closure $next)
     {
+        // A payment grants access while it is paid or waived; a refund removes
+        // that access (S4).
         $hasPaidForCourses = auth()->user()->payments()
             ->where('type', Payment::TYPE_COURSES)
-            ->where('status', Payment::STATUS_PAID)
+            ->whereIn('status', [Payment::STATUS_PAID, Payment::STATUS_WAIVED])
             ->whereYear('created_at', now()->year)
             ->exists();
 

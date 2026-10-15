@@ -9,7 +9,7 @@ export function AdminSettings() {
   const { t } = useI18n()
   const toast = useToast()
   const { data, loading, run } = useAsync(() => request('/api/settings/get/all'), [])
-  const [form, setForm] = useState({ credit_limit: '', passing_score: '', drop_window_days: '', grade_edit_window_hours: '', appeal_window_days: '', attendance_edit_window_hours: '', attendance_warn_threshold: '', attendance_bar_threshold: '', quiz_allow_resubmit: '0', quiz_allow_late: '0', quiz_submission_max_kb: '' })
+  const [form, setForm] = useState({ credit_limit: '', passing_score: '', drop_window_days: '', grade_edit_window_hours: '', appeal_window_days: '', attendance_edit_window_hours: '', attendance_warn_threshold: '', attendance_bar_threshold: '', quiz_allow_resubmit: '0', quiz_allow_late: '0', quiz_submission_max_kb: '', flag_refund_on_drop: '1' })
   const [defaults, setDefaults] = useState(null)
   const [busy, setBusy] = useState(false)
   const { errors, clear: clearErrors, apply: applyErrors } = useFieldErrors()
@@ -28,6 +28,7 @@ export function AdminSettings() {
       quiz_allow_resubmit: data.quiz_allow_resubmit ? '1' : '0',
       quiz_allow_late: data.quiz_allow_late ? '1' : '0',
       quiz_submission_max_kb: data.quiz_submission_max_kb ?? '',
+      flag_refund_on_drop: data.flag_refund_on_drop ? '1' : '0',
     })
     setDefaults(data.defaults || null)
   }, [data])
@@ -50,6 +51,7 @@ export function AdminSettings() {
           quiz_allow_resubmit: Number(form.quiz_allow_resubmit),
           quiz_allow_late: Number(form.quiz_allow_late),
           quiz_submission_max_kb: Number(form.quiz_submission_max_kb),
+          flag_refund_on_drop: Number(form.flag_refund_on_drop),
         },
       })
       toast.success(t('settingsSaved'))
@@ -119,6 +121,12 @@ export function AdminSettings() {
           </div>
           <Field label={t('quizMaxSizeSetting')} hint={t('quizMaxSizeSettingHint')} error={errors?.quiz_submission_max_kb?.[0]}>
             <input className="input" type="number" min="1" max="102400" value={form.quiz_submission_max_kb} disabled={loading} onChange={(e) => setForm({ ...form, quiz_submission_max_kb: e.target.value })} />
+          </Field>
+          <Field label={t('flagRefundSetting')} hint={t('flagRefundSettingHint')} error={errors?.flag_refund_on_drop?.[0]}>
+            <select className="select" value={form.flag_refund_on_drop} disabled={loading} onChange={(e) => setForm({ ...form, flag_refund_on_drop: e.target.value })}>
+              <option value="0">{t('no')}</option>
+              <option value="1">{t('yes')}</option>
+            </select>
           </Field>
         </form>
         {defaults ? (

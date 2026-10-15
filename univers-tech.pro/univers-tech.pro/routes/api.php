@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\DepartmentAdminController;
 use App\Http\Controllers\Admin\EnrollmentAdminController;
 use App\Http\Controllers\Admin\EventAdminController;
 use App\Http\Controllers\Admin\GradeAdminController;
+use App\Http\Controllers\Admin\PaymentAdminController;
 use App\Http\Controllers\Admin\ScheduleAdminController;
 use App\Http\Controllers\Admin\RolloverAdminController;
 use App\Http\Controllers\Admin\SemesterAdminController;
@@ -136,6 +137,12 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::middleware('admin-scope:settings')->group(function () {
         Route::get('settings/get/all', [SettingAdminController::class, 'index']);
         Route::post('settings/update', [SettingAdminController::class, 'update']);
+    });
+
+    // Payments (S4, A4)
+    Route::middleware('admin-scope:payments')->group(function () {
+        Route::get('payment/get/all', [PaymentAdminController::class, 'index']);
+        Route::post('payment/override', [PaymentAdminController::class, 'override']);
     });
 
     // Semesters

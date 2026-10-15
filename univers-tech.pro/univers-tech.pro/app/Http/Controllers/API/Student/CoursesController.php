@@ -11,11 +11,13 @@ use App\Models\Attendance;
 use App\Models\Course;
 use App\Models\Grade;
 use App\Models\Lecture;
+use App\Models\Payment;
 use App\Models\Schedule;
 use App\Models\Semester;
 use App\Models\StudentCourse;
 use App\Models\StudentLecture;
 use App\Services\EnrollmentService;
+use App\Support\ActivityLogger;
 use App\Support\Settings;
 use App\Traits\Notifiable;
 use Illuminate\Http\Request;
@@ -83,7 +85,48 @@ class CoursesController extends Controller
             ]);
         }
 
+        $this->flagRefundReview($course);
+
         return SendResponse(200, 'Course dropped successfully.');
+    }
+
+    /**
+     * Flag a possible refund for admin review when a course is dropped (S4).
+     * The payment is never refunded automatically.
+     */
+    private function flagRefundReview(Course $course): void
+    {
+        if (! Settings::flagRefundOnDrop()) {
+            return;
+        }
+
+        $payment = auth()->user()->payments()
+            ->where('type', Payment::TYPE_COURSES)
+            ->whereIn('status', [Payment::STATUS_PAID, Payment::STATUS_WAIVED])
+            ->whereYear('created_at', now()->year)
+            ->latest()
+            ->first();
+
+        if (! $payment) {
+            return;
+        }
+
+        ActivityLogger::log(
+            ActivityLogger::PAYMENT_REFUND_REQUESTED,
+            $payment,
+            [
+                'course_id' => $course->id,
+                'course_name' => $course->course_name,
+                'student_id' => auth()->id(),
+            ],
+            auth()->user(),
+            'Course dropped; refund review requested.'
+        );
+
+        $this->notifyAllAdmins(
+            'Refund review requested',
+            auth()->user()->name . ' dropped "' . $course->course_name . '" and may be due a refund.'
+        );
     }
 
     /**

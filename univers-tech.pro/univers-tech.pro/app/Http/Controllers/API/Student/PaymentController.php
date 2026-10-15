@@ -4,6 +4,7 @@ namespace App\Http\Controllers\API\Student;
 
 use App\Http\Controllers\Controller;
 use App\Models\Payment;
+use App\Models\Semester;
 use App\Traits\Notifiable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -36,6 +37,12 @@ class PaymentController extends Controller
                 'amount' => Payment::priceFor($type),
                 'type' => $type,
                 'status' => Payment::STATUS_PAID,
+                'semester_id' => Semester::where('is_active', true)->value('id'),
+                'paid_at' => now(),
+            ]);
+
+            $created->update([
+                'receipt_number' => Payment::receiptNumber($created->id, $created->paid_at),
             ]);
 
             $this->notifyAdmin(
@@ -91,6 +98,9 @@ class PaymentController extends Controller
             'amount' => $payment->amount,
             'type' => $payment->type,
             'status' => $payment->status,
+            'receipt_number' => $payment->receipt_number,
+            'paid_at' => $payment->paid_at,
+            'semester_id' => $payment->semester_id,
             'created_at' => $payment->created_at,
         ];
     }

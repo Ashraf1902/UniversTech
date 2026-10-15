@@ -7,13 +7,13 @@ import { Loader, ToastProvider } from './lib/ui'
 import Login from './pages/Login'
 import ResetPassword from './pages/ResetPassword'
 import {
-  StudentAttendance, StudentCatalog, StudentCourseDetail, StudentCourses, StudentHome, StudentNotifications, StudentReports, StudentSchedule, StudentQuizzes,
+  StudentAttendance, StudentCatalog, StudentCourseDetail, StudentCourses, StudentHome, StudentNotifications, StudentPayments, StudentReports, StudentSchedule, StudentQuizzes,
 } from './pages/student'
 import {
   ProfessorAppeals, ProfessorCourses, ProfessorGrades, ProfessorHome, ProfessorLectures, ProfessorNotifications, ProfessorQuizzes, ProfessorStudents,
 } from './pages/professor'
 import {
-  AdminAccounts, AdminAccessRequests, AdminActivity, AdminAdmins, AdminAppeals, AdminAttendance, AdminCourses, AdminDepartments, AdminEvents, AdminGrades, AdminHome, AdminSchedules, AdminSemesters, AdminRollover, AdminSettings,
+  AdminAccounts, AdminAccessRequests, AdminActivity, AdminAdmins, AdminAppeals, AdminAttendance, AdminCourses, AdminDepartments, AdminEvents, AdminGrades, AdminHome, AdminPayments, AdminSchedules, AdminSemesters, AdminRollover, AdminSettings,
 } from './pages/admin'
 
 function UnauthorizedListener() {
@@ -63,7 +63,8 @@ export default function App() {
                   <Route path="course/:id" element={<StudentCourseDetail />} />
           <Route path="schedule" element={<StudentSchedule />} />
           <Route path="attendance" element={<StudentAttendance />} />
-          <Route path="quizzes" element={<StudentQuizzes />} />
+                  <Route path="quizzes" element={<StudentQuizzes />} />
+                  <Route path="payments" element={<StudentPayments />} />
                   <Route path="reports" element={<StudentReports />} />
                   <Route path="notifications" element={<StudentNotifications />} />
                 </Route>
@@ -105,6 +106,7 @@ export default function App() {
                   <Route path="schedules" element={<AdminSchedules />} />
                   <Route path="events" element={<AdminEvents />} />
                   <Route path="grades" element={<AdminGrades />} />
+                  <Route path="payments" element={<AdminPayments />} />
                   <Route path="attendance" element={<AdminAttendance />} />
                   <Route path="appeals" element={<AdminAppeals />} />
                   <Route path="activity" element={<AdminActivity />} />

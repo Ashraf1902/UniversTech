@@ -54,6 +54,10 @@ class ActivityLogger
     public const QUIZ_SUBMISSION_SUBMITTED = 'quiz_submission_submitted';
     public const QUIZ_SUBMISSION_GRADED = 'quiz_submission_graded';
 
+    // Payments
+    public const PAYMENT_OVERRIDDEN = 'payment_overridden';
+    public const PAYMENT_REFUND_REQUESTED = 'payment_refund_requested';
+
     // Semester rollover
     public const SEMESTER_CLOSED = 'semester_closed';
     public const STUDENT_PROMOTED = 'student_promoted';
