@@ -26,6 +26,7 @@ export const NAV = {
     { to: '/app/professor/quizzes', icon: 'award', key: 'quizzes' },
     { to: '/app/professor/grades', icon: 'chart', key: 'grades' },
     { to: '/app/professor/appeals', icon: 'mail', key: 'gradeAppeals' },
+  { to: '/app/professor/announcements', icon: 'info', key: 'announcements' },
     { to: '/app/professor/notifications', icon: 'bell', key: 'notifications', notify: true },
   ],
   admin: [
@@ -39,6 +40,7 @@ export const NAV = {
     { to: '/app/admin/rollover', icon: 'refresh', key: 'rollover', scope: 'semesters' },
     { to: '/app/admin/schedules', icon: 'clock', key: 'schedules', scope: 'schedules' },
     { to: '/app/admin/events', icon: 'spark', key: 'events', scope: 'events' },
+  { to: '/app/admin/announcements', icon: 'info', key: 'announcements', scope: 'courses' },
     { to: '/app/admin/grades', icon: 'award', key: 'gradesCards', scope: 'grades' },
     { to: '/app/admin/payments', icon: 'wallet', key: 'rolePayments', scope: 'payments' },
     { to: '/app/admin/appeals', icon: 'mail', key: 'gradeAppeals', scope: 'grades' },

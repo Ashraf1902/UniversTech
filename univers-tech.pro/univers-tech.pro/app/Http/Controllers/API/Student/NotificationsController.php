@@ -12,7 +12,7 @@ class NotificationsController extends Controller
     public function notifications()
     {
         $notifications = Notification::where('student_id', auth()->id())
-            ->with(['professor', 'admin'])
+            ->with(['professor', 'admin', 'course:id,course_name'])
             ->latest()
             ->paginate(15);
 
@@ -22,6 +22,14 @@ class NotificationsController extends Controller
     public function events()
     {
         $events = Notification::where('type', Notification::TYPE_EVENT)
+            ->where(function ($query) {
+                $query->where('student_id', auth()->id())
+                    ->orWhere(function ($query) {
+                        $query->whereNull('student_id')
+                            ->whereNull('professor_id')
+                            ->whereNotNull('admin_id');
+                    });
+            })
             ->with(['admin'])
             ->latest()
             ->paginate(15);
@@ -39,7 +47,7 @@ class NotificationsController extends Controller
                         ->whereNotNull('admin_id');
                 });
         })
-            ->with(['professor', 'admin'])
+            ->with(['professor', 'admin', 'course:id,course_name'])
             ->latest()
             ->paginate(15);
 

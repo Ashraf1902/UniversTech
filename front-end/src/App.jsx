@@ -10,10 +10,10 @@ import {
   StudentAttendance, StudentCatalog, StudentCourseDetail, StudentCourses, StudentHome, StudentNotifications, StudentPayments, StudentReports, StudentSchedule, StudentQuizzes,
 } from './pages/student'
 import {
-  ProfessorAppeals, ProfessorCourses, ProfessorGrades, ProfessorHome, ProfessorLectures, ProfessorNotifications, ProfessorQuizzes, ProfessorSchedule, ProfessorStudents,
+  ProfessorAnnouncements, ProfessorAppeals, ProfessorCourses, ProfessorGrades, ProfessorHome, ProfessorLectures, ProfessorNotifications, ProfessorQuizzes, ProfessorSchedule, ProfessorStudents,
 } from './pages/professor'
 import {
-  AdminAccounts, AdminAccessRequests, AdminActivity, AdminAdmins, AdminAppeals, AdminAttendance, AdminCourses, AdminDepartments, AdminEvents, AdminGrades, AdminHome, AdminPayments, AdminSchedules, AdminSemesters, AdminRollover, AdminSettings,
+  AdminAccounts, AdminAccessRequests, AdminActivity, AdminAdmins, AdminAnnouncements, AdminAppeals, AdminAttendance, AdminCourses, AdminDepartments, AdminEvents, AdminGrades, AdminHome, AdminPayments, AdminSchedules, AdminSemesters, AdminRollover, AdminSettings,
 } from './pages/admin'
 
 function UnauthorizedListener() {
@@ -83,6 +83,7 @@ export default function App() {
                   <Route path="lectures" element={<ProfessorLectures />} />
                   <Route path="quizzes" element={<ProfessorQuizzes />} />
                   <Route path="timetable" element={<ProfessorSchedule />} />
+                  <Route path="announcements" element={<ProfessorAnnouncements />} />
                   <Route path="grades" element={<ProfessorGrades />} />
                   <Route path="appeals" element={<ProfessorAppeals />} />
                   <Route path="notifications" element={<ProfessorNotifications />} />
@@ -106,6 +107,7 @@ export default function App() {
                   <Route path="rollover" element={<AdminRollover />} />
                   <Route path="schedules" element={<AdminSchedules />} />
                   <Route path="events" element={<AdminEvents />} />
+                  <Route path="announcements" element={<AdminAnnouncements />} />
                   <Route path="grades" element={<AdminGrades />} />
                   <Route path="payments" element={<AdminPayments />} />
                   <Route path="attendance" element={<AdminAttendance />} />

@@ -12,7 +12,8 @@ class PublicController extends Controller
 {
     public function events(Request $request)
     {
-        $events = Event::orderByDesc('created_at')
+        $events = Event::where('audience', Event::AUDIENCE_ALL)
+            ->orderByDesc('created_at')
             ->limit(6)
             ->get()
             ->map(fn (Event $event) => [

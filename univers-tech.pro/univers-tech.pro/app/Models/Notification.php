@@ -18,6 +18,18 @@ class Notification extends Model
     const TYPE_NOTIFICATION = false;
     const TYPE_EVENT = true;
 
+    const CATEGORY_ANNOUNCEMENT = 'announcement';
+
+    public function course()
+    {
+        return $this->belongsTo(Course::class);
+    }
+
+    public function scopeAnnouncements($query)
+    {
+        return $query->where('category', self::CATEGORY_ANNOUNCEMENT);
+    }
+
     public function student()
     {
         return $this->belongsTo(User::class, 'student_id');

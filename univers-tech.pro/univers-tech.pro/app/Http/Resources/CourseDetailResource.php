@@ -27,6 +27,19 @@ class CourseDetailResource extends JsonResource
             'progress_percent' => $progress,
             'lectures' => LecturesResource::collection($lectures),
             'quizzes' => QuizResource::collection($this->course->quizzes),
+            'announcements' => $this->course->announcements()
+                ->with('professor:id,name')
+                ->latest()
+                ->get()
+                ->map(fn ($announcement) => [
+                    'id' => $announcement->id,
+                    'title' => $announcement->title,
+                    'body' => $announcement->body,
+                    'author' => $announcement->professor?->name,
+                    'attachment' => $announcement->attachment ? url('uploads/' . $announcement->attachment) : null,
+                    'created_at' => $announcement->created_at->diffForHumans(),
+                ])
+                ->values(),
         ];
     }
 }

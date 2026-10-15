@@ -1,3 +1,4 @@
+export { ProfessorAnnouncements } from './Announcements.jsx'
 export { ProfessorAppeals } from './Appeals.jsx'
 export { ProfessorCourses } from './Courses.jsx'
 export { ProfessorGrades } from './Grades.jsx'

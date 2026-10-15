@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AccountAdminController;
 use App\Http\Controllers\Admin\AccessRequestAdminController;
 use App\Http\Controllers\Admin\ActivityAdminController;
+use App\Http\Controllers\Admin\AnnouncementAdminController;
 use App\Http\Controllers\Admin\AdminAuthController;
 use App\Http\Controllers\Admin\AdminManagementController;
 use App\Http\Controllers\Admin\AttendanceAdminController;
@@ -21,6 +22,7 @@ use App\Http\Controllers\API\AuthController as UserAuthController;
 use App\Http\Controllers\API\AccessRequestController;
 use App\Http\Controllers\API\PublicController;
 use App\Http\Controllers\Auth\PasswordController;
+use App\Http\Controllers\Professor\AnnouncementProfessorController;
 use App\Http\Controllers\Professor\AttendaceProfessorController;
 use App\Http\Controllers\Professor\AuthController as ProfessorAuthController;
 use App\Http\Controllers\Professor\CourseProfessorController;
@@ -133,6 +135,10 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
         Route::get('course/enrollment/get/all', [EnrollmentAdminController::class, 'students']);
         Route::post('course/enrollment/enroll', [EnrollmentAdminController::class, 'enroll']);
         Route::post('course/enrollment/unenroll', [EnrollmentAdminController::class, 'unenroll']);
+
+        // Course announcements moderation (P3)
+        Route::get('announcement/get/all', [AnnouncementAdminController::class, 'index']);
+        Route::delete('announcement/delete/{id}', [AnnouncementAdminController::class, 'delete']);
     });
 
     // Enrollment settings (§0.7)
@@ -244,4 +250,10 @@ Route::middleware(['auth:sanctum', 'role:professor', 'active'])->group(function 
     Route::get('professor/profile', [ProfessorAuthController::class, 'me']);
     Route::get('professor/event/get/new', [EventProfessorController::class, 'latestEvents']);
     Route::get('professor/notifications', [ProfessorNotificationsController::class, 'notifications']);
+
+    // Course announcements (P3)
+    Route::get('professor/announcement/get/all', [AnnouncementProfessorController::class, 'index']);
+    Route::post('professor/announcement/store', [AnnouncementProfessorController::class, 'store']);
+    Route::post('professor/announcement/update', [AnnouncementProfessorController::class, 'update']);
+    Route::delete('professor/announcement/delete/{id}', [AnnouncementProfessorController::class, 'delete']);
 });

@@ -151,4 +151,9 @@ class User extends Authenticatable implements CanResetPasswordContract
     {
         return $this->hasMany(Payment::class, 'user_id');
     }
+
+    public function announcements()
+    {
+        return $this->hasMany(Announcement::class, 'professor_id');
+    }
 }

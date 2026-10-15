@@ -59,6 +59,33 @@ export function StudentCourseDetail() {
 
           <Reveal className="card" delay={0.08}>
             <div className="card-head">
+              <h3>{t('announcements')}</h3>
+              <Badge tone="vio">{t('totalCount', { n: course.announcements?.length || 0 })}</Badge>
+            </div>
+            {course.announcements?.length ? (
+              course.announcements.map((a) => (
+                <div className="list-row" key={a.id} style={{ alignItems: 'flex-start' }}>
+                  <span className="av" style={{ background: 'rgba(139,92,246,.16)', color: '#c4b5fd', width: 40, height: 40 }}>
+                    <I name="info" size={17} />
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: '0.92rem' }}>{a.title}</div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--muted)', marginTop: 6, whiteSpace: 'pre-line' }}>{a.body}</div>
+                    <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                      {a.author ? <Badge tone="cy">{t('profPrefix')} {a.author}</Badge> : null}
+                      {a.created_at ? <Badge>{a.created_at}</Badge> : null}
+                      {a.attachment ? <a href={a.attachment} target="_blank" rel="noreferrer" className="badge amb">{t('attachment')}</a> : null}
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <Empty icon="info" title={t('noAnnouncements')} sub={t('noAnnouncementsSub')} />
+            )}
+          </Reveal>
+
+          <Reveal className="card" delay={0.08}>
+            <div className="card-head">
               <h3>{t('quizzes')}</h3>
               <Badge tone="pnk">{t('totalCount', { n: course.quizzes?.length || 0 })}</Badge>
             </div>

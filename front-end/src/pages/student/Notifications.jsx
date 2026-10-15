@@ -45,6 +45,7 @@ export function StudentNotifications() {
                   </div>
                   <p style={{ color: 'var(--muted)', fontSize: '0.88rem', marginTop: 8, whiteSpace: 'pre-line' }}>{n.content}</p>
                   <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                    {n.category === 'announcement' && n.course_name ? <Badge tone="grn"><I name="book" size={12} /> {n.course_name}</Badge> : null}
                     {n.professor ? <Badge tone="cy">{t('profPrefix')} {n.professor}</Badge> : null}
                     {n.admin ? <Badge tone="vio">{n.admin}</Badge> : null}
                     {n.image_path ? <a href={n.image_path} target="_blank" rel="noreferrer" className="badge amb">{t('attachment')}</a> : null}

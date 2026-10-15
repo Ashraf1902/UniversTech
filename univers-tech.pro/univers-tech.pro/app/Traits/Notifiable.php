@@ -104,6 +104,63 @@ trait Notifiable
     }
 
     /**
+     * Notify a specific set of students about an event (type=EVENT).
+     *
+     * @param  array<int, int>  $studentIds
+     */
+    protected function notifyEventToStudents(array $studentIds, string $title, string $content, ?int $adminId = null): void
+    {
+        $studentIds = array_values(array_unique(array_map('intval', $studentIds)));
+
+        if (empty($studentIds)) {
+            return;
+        }
+
+        $adminId = $adminId ?? request()->user()?->id;
+
+        FanOutNotification::dispatch(
+            array_map(fn (int $id) => [
+                'student_id' => $id,
+                'title' => $title,
+                'content' => $content,
+                'admin_id' => $adminId,
+                'type' => Notification::TYPE_EVENT,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ], $studentIds)
+        );
+    }
+
+    /**
+     * Fan out a course announcement to the given students.
+     *
+     * @param  array<int, int>  $studentIds
+     */
+    protected function notifyCourseAnnouncement(array $studentIds, int $professorId, int $courseId, int $announcementId, string $title, string $content): void
+    {
+        $studentIds = array_values(array_unique(array_map('intval', $studentIds)));
+
+        if (empty($studentIds)) {
+            return;
+        }
+
+        FanOutNotification::dispatch(
+            array_map(fn (int $id) => [
+                'student_id' => $id,
+                'professor_id' => $professorId,
+                'course_id' => $courseId,
+                'announcement_id' => $announcementId,
+                'category' => Notification::CATEGORY_ANNOUNCEMENT,
+                'title' => $title,
+                'content' => $content,
+                'type' => Notification::TYPE_NOTIFICATION,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ], $studentIds)
+        );
+    }
+
+    /**
      * Notify multiple students about an event (type=EVENT).
      */
     protected function notifyStudents(array $studentIds, string $title, string $content, ?int $professorId = null): void

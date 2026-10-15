@@ -32,6 +32,11 @@ class AdminUpdateEventRequest extends FormRequest
             'title' => 'min:1|max:50',
             'content' => 'min:1',
             'image' => 'image|mimes:jpeg,png,jpg,gif,svg,webp|max:5120',
+            'audience' => 'nullable|in:all,targeted',
+            'departments' => 'nullable|array',
+            'departments.*' => 'exists:departments,id',
+            'levels' => 'nullable|array',
+            'levels.*' => 'exists:levels,id',
         ];
     }
 }

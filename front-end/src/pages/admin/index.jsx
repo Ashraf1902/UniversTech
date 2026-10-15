@@ -1,6 +1,7 @@
 export { AdminAccounts } from './Accounts.jsx'
 export { AdminAccessRequests } from './AccessRequests.jsx'
 export { AdminActivity } from './Activity.jsx'
+export { AdminAnnouncements } from './Announcements.jsx'
 export { AdminAppeals } from './Appeals.jsx'
 export { AdminAttendance } from './Attendance.jsx'
 export { AdminAdmins } from './Admins.jsx'
