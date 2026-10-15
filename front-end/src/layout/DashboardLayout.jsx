@@ -31,6 +31,7 @@ export const NAV = {
     { to: '/app/admin/departments', icon: 'building', key: 'departments', scope: 'departments' },
     { to: '/app/admin/courses', icon: 'book', key: 'courses', scope: 'courses' },
     { to: '/app/admin/semesters', icon: 'calendar', key: 'semesters', scope: 'semesters' },
+    { to: '/app/admin/rollover', icon: 'refresh', key: 'rollover', scope: 'semesters' },
     { to: '/app/admin/schedules', icon: 'clock', key: 'schedules', scope: 'schedules' },
     { to: '/app/admin/events', icon: 'spark', key: 'events', scope: 'events' },
     { to: '/app/admin/grades', icon: 'award', key: 'gradesCards', scope: 'grades' },

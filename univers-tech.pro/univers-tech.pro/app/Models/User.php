@@ -132,6 +132,11 @@ class User extends Authenticatable implements CanResetPasswordContract
         return $this->hasMany(StudentCourse::class, 'student_id');
     }
 
+    public function promotions()
+    {
+        return $this->hasMany(StudentPromotion::class, 'student_id');
+    }
+
     public function notifications()
     {
         return $this->hasMany(Notification::class, 'student_id');

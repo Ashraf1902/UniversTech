@@ -9,7 +9,7 @@ Generated: 10/14/2026 04:08:40
 - [x] Stage 3: Email, password reset, access requests (X1, A6) — 48 tests pass (SQLite via env override; CI uses MySQL); frontend build green; pending owner approval
 - [x] Stage 4: Enrollment status, registration rules, manual enrollment (X3, S1, A4) — 66 tests pass (18 new; SQLite via env override; CI uses MySQL); frontend build green; pending owner approval
 - [x] Stage 5: Grade lifecycle, components, appeals (P2, S5) — 80 tests pass (14 new; SQLite via env override; CI uses MySQL); frontend build green; pending owner approval
-- [ ] Stage 6: Semester rollover (A1)
+- [x] Stage 6: Semester rollover (A1) - 87 tests pass (+7 new; SQLite via env override; CI uses MySQL); frontend build green; pending owner approval
 - [ ] Stage 7: Attendance (N1, P5, S2)
 - [ ] Stage 8: Quiz submissions (S3)
 - [ ] Stage 9: Payments (S4, A4)

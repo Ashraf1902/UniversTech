@@ -13,7 +13,7 @@ import {
   ProfessorAppeals, ProfessorCourses, ProfessorGrades, ProfessorHome, ProfessorLectures, ProfessorNotifications, ProfessorQuizzes, ProfessorStudents,
 } from './pages/professor'
 import {
-  AdminAccounts, AdminAccessRequests, AdminActivity, AdminAdmins, AdminAppeals, AdminCourses, AdminDepartments, AdminEvents, AdminGrades, AdminHome, AdminSchedules, AdminSemesters, AdminSettings,
+  AdminAccounts, AdminAccessRequests, AdminActivity, AdminAdmins, AdminAppeals, AdminCourses, AdminDepartments, AdminEvents, AdminGrades, AdminHome, AdminSchedules, AdminSemesters, AdminRollover, AdminSettings,
 } from './pages/admin'
 
 function UnauthorizedListener() {
@@ -99,6 +99,7 @@ export default function App() {
                   <Route path="departments" element={<AdminDepartments />} />
                   <Route path="courses" element={<AdminCourses />} />
                   <Route path="semesters" element={<AdminSemesters />} />
+                  <Route path="rollover" element={<AdminRollover />} />
                   <Route path="schedules" element={<AdminSchedules />} />
                   <Route path="events" element={<AdminEvents />} />
                   <Route path="grades" element={<AdminGrades />} />

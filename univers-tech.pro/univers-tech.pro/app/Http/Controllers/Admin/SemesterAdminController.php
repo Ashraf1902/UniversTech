@@ -58,6 +58,11 @@ class SemesterAdminController extends Controller
 
         $semester = Semester::find($request->semester_id);
 
+        // Enforce single active semester: when activating, deactivate others.
+        if (array_key_exists('is_active', $data) && $data['is_active']) {
+            Semester::where('id', '!=', $semester->id)->update(['is_active' => false]);
+        }
+
         $semester->update($data);
 
         return SendResponse(200, 'Semester updated successfully.', $semester);

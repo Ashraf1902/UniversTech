@@ -16,7 +16,18 @@ class Semester extends Model
         'is_active' => 'boolean',
         'registration_opens_at' => 'datetime',
         'registration_closes_at' => 'datetime',
+        'closed_at' => 'datetime',
     ];
+
+    public function studentPromotions()
+    {
+        return $this->hasMany(StudentPromotion::class, 'from_semester_id');
+    }
+
+    public function isClosed(): bool
+    {
+        return $this->closed_at !== null;
+    }
 
     public function courses()
     {

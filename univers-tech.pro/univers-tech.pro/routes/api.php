@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\EnrollmentAdminController;
 use App\Http\Controllers\Admin\EventAdminController;
 use App\Http\Controllers\Admin\GradeAdminController;
 use App\Http\Controllers\Admin\ScheduleAdminController;
+use App\Http\Controllers\Admin\RolloverAdminController;
 use App\Http\Controllers\Admin\SemesterAdminController;
 use App\Http\Controllers\Admin\SettingAdminController;
 use App\Http\Controllers\API\AuthController as UserAuthController;
@@ -142,6 +143,13 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
         Route::get('semester/get/all', [SemesterAdminController::class, 'index']);
         Route::post('semester/update', [SemesterAdminController::class, 'update']);
         Route::delete('semester/delete/{id}', [SemesterAdminController::class, 'delete']);
+
+        // Semester rollover
+        Route::get('rollover/close/preview', [RolloverAdminController::class, 'closePreview']);
+        Route::post('rollover/semester/close', [RolloverAdminController::class, 'close']);
+        Route::get('rollover/promotion/preview', [RolloverAdminController::class, 'promotionPreview']);
+        Route::post('rollover/promotion/apply', [RolloverAdminController::class, 'promotionApply']);
+        Route::get('rollover/unresolved', [RolloverAdminController::class, 'unresolved']);
     });
 
     // Schedules
