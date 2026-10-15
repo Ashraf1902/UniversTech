@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\EnrollmentAdminController;
 use App\Http\Controllers\Admin\EventAdminController;
 use App\Http\Controllers\Admin\GradeAdminController;
 use App\Http\Controllers\Admin\PaymentAdminController;
+use App\Http\Controllers\Admin\RoomAdminController;
 use App\Http\Controllers\Admin\ScheduleAdminController;
 use App\Http\Controllers\Admin\RolloverAdminController;
 use App\Http\Controllers\Admin\SemesterAdminController;
@@ -28,6 +29,7 @@ use App\Http\Controllers\Professor\GradeProfessorController;
 use App\Http\Controllers\Professor\LectureProfessorController;
 use App\Http\Controllers\Professor\ProfessorNotificationsController;
 use App\Http\Controllers\Professor\QuizProfessorController;
+use App\Http\Controllers\Professor\ScheduleProfessorController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -166,6 +168,13 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
         Route::get('schedule/get/all', [ScheduleAdminController::class, 'index']);
         Route::post('schedule/update', [ScheduleAdminController::class, 'update']);
         Route::delete('schedule/delete/{id}', [ScheduleAdminController::class, 'delete']);
+        Route::get('schedule/conflicts', [ScheduleAdminController::class, 'conflicts']);
+
+        // Rooms
+        Route::get('room/get/all', [RoomAdminController::class, 'index']);
+        Route::post('room/store', [RoomAdminController::class, 'store']);
+        Route::post('room/update', [RoomAdminController::class, 'update']);
+        Route::delete('room/delete/{id}', [RoomAdminController::class, 'delete']);
     });
 
     // Grades & semester card
@@ -212,6 +221,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
 Route::middleware(['auth:sanctum', 'role:professor', 'active'])->group(function () {
     Route::get('professors/courses', [CourseProfessorController::class, 'getProfessorCourses']);
     Route::get('professors/course/student', [CourseProfessorController::class, 'getCoursesStudent']);
+    Route::get('professor/schedule', [ScheduleProfessorController::class, 'index']);
     Route::post('professors/make/attendance', [AttendaceProfessorController::class, 'storeAttendace']);
     Route::post('professors/update/attendance', [AttendaceProfessorController::class, 'updateAttendace']);
     Route::post('lecture/store', [LectureProfessorController::class, 'store']);

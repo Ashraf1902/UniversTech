@@ -10,7 +10,7 @@ import {
   StudentAttendance, StudentCatalog, StudentCourseDetail, StudentCourses, StudentHome, StudentNotifications, StudentPayments, StudentReports, StudentSchedule, StudentQuizzes,
 } from './pages/student'
 import {
-  ProfessorAppeals, ProfessorCourses, ProfessorGrades, ProfessorHome, ProfessorLectures, ProfessorNotifications, ProfessorQuizzes, ProfessorStudents,
+  ProfessorAppeals, ProfessorCourses, ProfessorGrades, ProfessorHome, ProfessorLectures, ProfessorNotifications, ProfessorQuizzes, ProfessorSchedule, ProfessorStudents,
 } from './pages/professor'
 import {
   AdminAccounts, AdminAccessRequests, AdminActivity, AdminAdmins, AdminAppeals, AdminAttendance, AdminCourses, AdminDepartments, AdminEvents, AdminGrades, AdminHome, AdminPayments, AdminSchedules, AdminSemesters, AdminRollover, AdminSettings,
@@ -82,6 +82,7 @@ export default function App() {
                   <Route path="students" element={<ProfessorStudents />} />
                   <Route path="lectures" element={<ProfessorLectures />} />
                   <Route path="quizzes" element={<ProfessorQuizzes />} />
+                  <Route path="timetable" element={<ProfessorSchedule />} />
                   <Route path="grades" element={<ProfessorGrades />} />
                   <Route path="appeals" element={<ProfessorAppeals />} />
                   <Route path="notifications" element={<ProfessorNotifications />} />

@@ -17,6 +17,7 @@ class Schedule extends Model
         'semester_id',
         'department_id',
         'course_id',
+        'room_id',
         'day_of_week',
         'start_time',
         'end_time',
@@ -51,5 +52,10 @@ class Schedule extends Model
     public function course()
     {
         return $this->belongsTo(Course::class);
+    }
+
+    public function room()
+    {
+        return $this->belongsTo(Room::class);
     }
 }

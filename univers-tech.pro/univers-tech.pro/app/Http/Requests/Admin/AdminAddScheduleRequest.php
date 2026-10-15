@@ -21,6 +21,7 @@ class AdminAddScheduleRequest extends FormRequest
             'semester_id' => 'required|exists:semesters,id',
             'department_id' => 'nullable|exists:departments,id',
             'course_id' => 'required|exists:courses,id',
+            'room_id' => 'nullable|exists:rooms,id',
             'day_of_week' => 'required|string|in:Saturday,Sunday,Monday,Tuesday,Wednesday,Thursday,Friday',
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',

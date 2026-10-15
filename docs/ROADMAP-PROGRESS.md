@@ -13,6 +13,7 @@ Generated: 10/14/2026 04:08:40
 - [x] Stage 7: Attendance (N1, P5, S2) - 104 tests pass (+17 new; SQLite via env override; CI uses MySQL); frontend build green; fixed corrupted Stage 5/6 ar.js strings; pending owner approval
 - [x] Stage 8: Quiz submissions (S3) - 117 tests pass (+13 new; SQLite via env override; CI uses MySQL); frontend build green; pending owner approval
 - [x] Stage 9: Payments (S4, A4) - 126 tests pass (+9 new; SQLite via env override; CI uses MySQL); migration reversible; frontend build green; pending owner approval
-- [ ] Stage 10: Schedules (A3, P4)- [ ] Stage 11: Announcements/events (P3, A7)
+- [x] Stage 10: Schedules (A3, P4) - 138 tests pass (+12 new; SQLite via env override; CI uses MySQL); rooms table + room_id, room/professor conflict blocking + level+department warning sharing ScheduleOverlap, existing-conflict report, professor timetable (own courses, active semester); migration reversible; frontend build green; pending owner approval
+- [ ] Stage 11: Announcements/events (P3, A7)
 - [ ] Stage 12: Bulk import, reports (A2, A8)
 - [ ] Stage 13: Final QA, docs, sign-off

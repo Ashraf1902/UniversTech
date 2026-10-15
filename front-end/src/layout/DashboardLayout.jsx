@@ -20,6 +20,7 @@ export const NAV = {
   professor: [
     { to: '/app/professor', end: true, icon: 'grid', key: 'overview' },
     { to: '/app/professor/courses', icon: 'book', key: 'myCourses' },
+    { to: '/app/professor/timetable', icon: 'calendar', key: 'myTimetable' },
     { to: '/app/professor/students', icon: 'users', key: 'studentsAttendance' },
     { to: '/app/professor/lectures', icon: 'file', key: 'lectures' },
     { to: '/app/professor/quizzes', icon: 'award', key: 'quizzes' },
