@@ -50,6 +50,10 @@ class ActivityLogger
     public const GRADE_APPEAL_SUBMITTED = 'grade_appeal_submitted';
     public const GRADE_APPEAL_RESOLVED = 'grade_appeal_resolved';
 
+    // Quiz submissions
+    public const QUIZ_SUBMISSION_SUBMITTED = 'quiz_submission_submitted';
+    public const QUIZ_SUBMISSION_GRADED = 'quiz_submission_graded';
+
     // Semester rollover
     public const SEMESTER_CLOSED = 'semester_closed';
     public const STUDENT_PROMOTED = 'student_promoted';

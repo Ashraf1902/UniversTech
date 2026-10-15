@@ -11,7 +11,7 @@ Generated: 10/14/2026 04:08:40
 - [x] Stage 5: Grade lifecycle, components, appeals (P2, S5) — 80 tests pass (14 new; SQLite via env override; CI uses MySQL); frontend build green; pending owner approval
 - [x] Stage 6: Semester rollover (A1) - 87 tests pass (+7 new; SQLite via env override; CI uses MySQL); frontend build green; pending owner approval
 - [x] Stage 7: Attendance (N1, P5, S2) - 104 tests pass (+17 new; SQLite via env override; CI uses MySQL); frontend build green; fixed corrupted Stage 5/6 ar.js strings; pending owner approval
-- [ ] Stage 8: Quiz submissions (S3)
+- [x] Stage 8: Quiz submissions (S3) - 117 tests pass (+13 new; SQLite via env override; CI uses MySQL); frontend build green; pending owner approval
 - [ ] Stage 9: Payments (S4, A4)
 - [ ] Stage 10: Schedules (A3, P4)
 - [ ] Stage 11: Announcements/events (P3, A7)

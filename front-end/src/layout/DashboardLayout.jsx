@@ -12,6 +12,7 @@ export const NAV = {
     { to: '/app/student/catalog', icon: 'layers', key: 'courseCatalog' },
     { to: '/app/student/schedule', icon: 'calendar', key: 'schedule' },
     { to: '/app/student/attendance', icon: 'check', key: 'myAttendance' },
+  { to: '/app/student/quizzes', icon: 'award', key: 'myQuizzes' },
     { to: '/app/student/reports', icon: 'chart', key: 'reportsGpa' },
     { to: '/app/student/notifications', icon: 'bell', key: 'notifications', notify: true },
   ],

@@ -20,6 +20,7 @@ class ProfessorAddQuizRequest extends FormRequest
             'name' => 'required|min:1|max:50',
             'pdf' => 'required|file|mimes:pdf',
             'course_id' => 'required|exists:courses,id',
+            'max_score' => 'nullable|numeric|min:0|max:9999.99',
             'due_at' => 'nullable|date|after_or_equal:today',
         ];
     }

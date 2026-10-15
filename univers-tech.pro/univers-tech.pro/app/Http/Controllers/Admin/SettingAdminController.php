@@ -23,6 +23,9 @@ class SettingAdminController extends Controller
             'attendance_edit_window_hours' => Settings::attendanceEditWindowHours(),
             'attendance_warn_threshold' => Settings::attendanceWarnThreshold(),
             'attendance_bar_threshold' => Settings::attendanceBarThreshold(),
+            'quiz_allow_resubmit' => Settings::quizAllowResubmit(),
+            'quiz_allow_late' => Settings::quizAllowLate(),
+            'quiz_submission_max_kb' => Settings::quizSubmissionMaxKb(),
             'defaults' => config('enrollment'),
         ]);
     }
@@ -41,6 +44,9 @@ class SettingAdminController extends Controller
             'attendance_edit_window_hours' => 'nullable|integer|min:0|max:8760',
             'attendance_warn_threshold' => 'nullable|integer|min:0|max:100',
             'attendance_bar_threshold' => 'nullable|integer|min:0|max:100',
+            'quiz_allow_resubmit' => 'nullable|boolean',
+            'quiz_allow_late' => 'nullable|boolean',
+            'quiz_submission_max_kb' => 'nullable|integer|min:1|max:102400',
         ]);
 
         // Attendance policy fields were added in Stage 7: keep older clients
@@ -48,6 +54,11 @@ class SettingAdminController extends Controller
         $data['attendance_edit_window_hours'] = $data['attendance_edit_window_hours'] ?? Settings::attendanceEditWindowHours();
         $data['attendance_warn_threshold'] = $data['attendance_warn_threshold'] ?? Settings::attendanceWarnThreshold();
         $data['attendance_bar_threshold'] = $data['attendance_bar_threshold'] ?? Settings::attendanceBarThreshold();
+
+        // Quiz submission policy fields were added in Stage 8 (same fallback).
+        $data['quiz_allow_resubmit'] = array_key_exists('quiz_allow_resubmit', $data) ? (int) $data['quiz_allow_resubmit'] : (int) Settings::quizAllowResubmit();
+        $data['quiz_allow_late'] = array_key_exists('quiz_allow_late', $data) ? (int) $data['quiz_allow_late'] : (int) Settings::quizAllowLate();
+        $data['quiz_submission_max_kb'] = $data['quiz_submission_max_kb'] ?? Settings::quizSubmissionMaxKb();
 
         if ($data['attendance_bar_threshold'] < $data['attendance_warn_threshold']) {
             return SendResponse(422, 'error in body request', [
@@ -84,6 +95,9 @@ class SettingAdminController extends Controller
             'attendance_edit_window_hours' => Settings::attendanceEditWindowHours(),
             'attendance_warn_threshold' => Settings::attendanceWarnThreshold(),
             'attendance_bar_threshold' => Settings::attendanceBarThreshold(),
+            'quiz_allow_resubmit' => Settings::quizAllowResubmit(),
+            'quiz_allow_late' => Settings::quizAllowLate(),
+            'quiz_submission_max_kb' => Settings::quizSubmissionMaxKb(),
         ];
     }
 }

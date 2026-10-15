@@ -46,4 +46,15 @@ return [
     // Days after publication during which a student may appeal a grade.
     'appeal_window_days' => 14,
 
+    // Whether a student may resubmit a quiz answer until the deadline. When
+    // false (default) a quiz can only be submitted once.
+    'quiz_allow_resubmit' => false,
+
+    // Whether submissions after the quiz deadline are accepted. When false
+    // (default) late submissions are rejected.
+    'quiz_allow_late' => false,
+
+    // Maximum size (in kilobytes) accepted for a quiz submission upload.
+    'quiz_submission_max_kb' => 10240,
+
 ];

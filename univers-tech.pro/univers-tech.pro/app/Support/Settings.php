@@ -73,4 +73,19 @@ class Settings
     {
         return (int) static::get('attendance_bar_threshold', 25);
     }
+
+    public static function quizAllowResubmit(): bool
+    {
+        return filter_var(static::get('quiz_allow_resubmit', false), FILTER_VALIDATE_BOOLEAN);
+    }
+
+    public static function quizAllowLate(): bool
+    {
+        return filter_var(static::get('quiz_allow_late', false), FILTER_VALIDATE_BOOLEAN);
+    }
+
+    public static function quizSubmissionMaxKb(): int
+    {
+        return (int) static::get('quiz_submission_max_kb', 10240);
+    }
 }

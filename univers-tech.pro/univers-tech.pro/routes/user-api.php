@@ -7,6 +7,7 @@ use App\Http\Controllers\API\Student\CoursesController;
 use App\Http\Controllers\API\Student\LogoutController;
 use App\Http\Controllers\API\Student\NotificationsController;
 use App\Http\Controllers\API\Student\PaymentController;
+use App\Http\Controllers\API\Student\QuizzesController;
 use App\Http\Controllers\API\Student\UserController;
 use App\Http\Controllers\Auth\PasswordController;
 use Illuminate\Support\Facades\Route;
@@ -63,5 +64,10 @@ Route::middleware(['role:student', 'active'])->group(function () {
         Route::get('course/{id}', [CoursesController::class, 'showCourse']);
         Route::get('lecture/{lecture_id}', [CoursesController::class, 'showLecture']);
         Route::put('update_progress', [CoursesController::class, 'updateProgress']);
+
+        // Quiz submissions (S3)
+        Route::get('quizzes', [QuizzesController::class, 'index']);
+        Route::get('quiz/{id}', [QuizzesController::class, 'show']);
+        Route::post('quiz/{id}/submit', [QuizzesController::class, 'submit']);
     });
 });

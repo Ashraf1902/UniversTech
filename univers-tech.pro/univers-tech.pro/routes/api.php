@@ -211,6 +211,8 @@ Route::middleware(['auth:sanctum', 'role:professor', 'active'])->group(function 
     Route::get('lecture/get/all/{id}', [LectureProfessorController::class, 'getLecturesCourse']);
     Route::post('quiz/store', [QuizProfessorController::class, 'store']);
     Route::get('quiz/get/all/{id}', [QuizProfessorController::class, 'getQuizzesCourse']);
+    Route::get('quiz/submissions/{id}', [QuizProfessorController::class, 'submissions']);
+    Route::post('quiz/submission/grade', [QuizProfessorController::class, 'gradeSubmission']);
     Route::delete('quiz/delete/{id}', [QuizProfessorController::class, 'delete']);
     Route::post('professor/grade/store', [GradeProfessorController::class, 'store']);
     Route::get('professor/grade/get/all', [GradeProfessorController::class, 'index']);

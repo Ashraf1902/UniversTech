@@ -9,7 +9,7 @@ export function AdminSettings() {
   const { t } = useI18n()
   const toast = useToast()
   const { data, loading, run } = useAsync(() => request('/api/settings/get/all'), [])
-  const [form, setForm] = useState({ credit_limit: '', passing_score: '', drop_window_days: '', grade_edit_window_hours: '', appeal_window_days: '', attendance_edit_window_hours: '', attendance_warn_threshold: '', attendance_bar_threshold: '' })
+  const [form, setForm] = useState({ credit_limit: '', passing_score: '', drop_window_days: '', grade_edit_window_hours: '', appeal_window_days: '', attendance_edit_window_hours: '', attendance_warn_threshold: '', attendance_bar_threshold: '', quiz_allow_resubmit: '0', quiz_allow_late: '0', quiz_submission_max_kb: '' })
   const [defaults, setDefaults] = useState(null)
   const [busy, setBusy] = useState(false)
   const { errors, clear: clearErrors, apply: applyErrors } = useFieldErrors()
@@ -25,6 +25,9 @@ export function AdminSettings() {
       attendance_edit_window_hours: data.attendance_edit_window_hours ?? '',
       attendance_warn_threshold: data.attendance_warn_threshold ?? '',
       attendance_bar_threshold: data.attendance_bar_threshold ?? '',
+      quiz_allow_resubmit: data.quiz_allow_resubmit ? '1' : '0',
+      quiz_allow_late: data.quiz_allow_late ? '1' : '0',
+      quiz_submission_max_kb: data.quiz_submission_max_kb ?? '',
     })
     setDefaults(data.defaults || null)
   }, [data])
@@ -44,6 +47,9 @@ export function AdminSettings() {
           attendance_edit_window_hours: Number(form.attendance_edit_window_hours),
           attendance_warn_threshold: Number(form.attendance_warn_threshold),
           attendance_bar_threshold: Number(form.attendance_bar_threshold),
+          quiz_allow_resubmit: Number(form.quiz_allow_resubmit),
+          quiz_allow_late: Number(form.quiz_allow_late),
+          quiz_submission_max_kb: Number(form.quiz_submission_max_kb),
         },
       })
       toast.success(t('settingsSaved'))
@@ -96,6 +102,23 @@ export function AdminSettings() {
           </div>
           <Field label={t('attendanceBarSetting')} hint={t('attendanceBarSettingHint')} error={errors?.attendance_bar_threshold?.[0]}>
             <input className="input" type="number" min="0" max="100" value={form.attendance_bar_threshold} disabled={loading} onChange={(e) => setForm({ ...form, attendance_bar_threshold: e.target.value })} />
+          </Field>
+          <div className="grid grid-2" style={{ gap: 14 }}>
+            <Field label={t('quizAllowResubmitSetting')} hint={t('quizAllowResubmitSettingHint')} error={errors?.quiz_allow_resubmit?.[0]}>
+              <select className="select" value={form.quiz_allow_resubmit} disabled={loading} onChange={(e) => setForm({ ...form, quiz_allow_resubmit: e.target.value })}>
+                <option value="0">{t('no')}</option>
+                <option value="1">{t('yes')}</option>
+              </select>
+            </Field>
+            <Field label={t('quizAllowLateSetting')} hint={t('quizAllowLateSettingHint')} error={errors?.quiz_allow_late?.[0]}>
+              <select className="select" value={form.quiz_allow_late} disabled={loading} onChange={(e) => setForm({ ...form, quiz_allow_late: e.target.value })}>
+                <option value="0">{t('no')}</option>
+                <option value="1">{t('yes')}</option>
+              </select>
+            </Field>
+          </div>
+          <Field label={t('quizMaxSizeSetting')} hint={t('quizMaxSizeSettingHint')} error={errors?.quiz_submission_max_kb?.[0]}>
+            <input className="input" type="number" min="1" max="102400" value={form.quiz_submission_max_kb} disabled={loading} onChange={(e) => setForm({ ...form, quiz_submission_max_kb: e.target.value })} />
           </Field>
         </form>
         {defaults ? (

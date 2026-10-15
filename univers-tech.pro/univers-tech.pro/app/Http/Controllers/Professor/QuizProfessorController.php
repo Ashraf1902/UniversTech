@@ -4,9 +4,12 @@ namespace App\Http\Controllers\Professor;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Professor\ProfessorAddQuizRequest;
+use App\Http\Requests\Professor\ProfessorGradeQuizSubmissionRequest;
 use App\Models\Course;
 use App\Models\Quiz;
+use App\Models\QuizSubmission;
 use App\Models\StudentCourse;
+use App\Support\ActivityLogger;
 use App\Traits\AuthorizesCourseOwnership;
 use App\Traits\File\UploadFile;
 use App\Traits\Notifiable;
@@ -25,13 +28,17 @@ class QuizProfessorController extends Controller
         }
 
         $quizzes = Quiz::where('course_id', $id)
+            ->withCount('submissions')
             ->orderByDesc('created_at')
             ->paginate(15)
             ->through(fn (Quiz $quiz) => [
                 'id' => $quiz->id,
                 'name' => $quiz->name,
                 'content' => url('uploads/' . $quiz->content),
+                'max_score' => $quiz->max_score,
                 'due_at' => $quiz->due_at,
+                'published_at' => $quiz->published_at,
+                'submissions_count' => $quiz->submissions_count,
                 'created_at' => $quiz->created_at,
                 'updated_at' => $quiz->updated_at,
             ]);
@@ -71,7 +78,9 @@ class QuizProfessorController extends Controller
             'name' => $request->name,
             'content' => $path,
             'course_id' => $request->course_id,
+            'max_score' => $request->max_score ?? 100,
             'due_at' => $request->due_at,
+            'published_at' => now(),
         ]);
 
         $studentIds = StudentCourse::where('course_id', $course->id)
@@ -94,5 +103,115 @@ class QuizProfessorController extends Controller
         );
 
         return SendResponse(201, 'Quiz uploaded successfully.');
+    }
+
+    /**
+     * List every submission for a quiz belonging to one of the professor's
+     * own courses.
+     */
+    public function submissions(Request $request, $id)
+    {
+        $quiz = Quiz::with('course')->find($id);
+
+        if (! $quiz) {
+            return SendResponse(404, 'Quiz not found.');
+        }
+
+        if ($blocked = $this->authorizeCourseOwnership($request, $quiz->course, 'You are not allowed to view these submissions.')) {
+            return $blocked;
+        }
+
+        $submissions = QuizSubmission::where('quiz_id', $quiz->id)
+            ->with('student:id,name,email')
+            ->orderByDesc('submitted_at')
+            ->paginate(20)
+            ->through(fn (QuizSubmission $submission) => [
+                'id' => $submission->id,
+                'student' => $submission->student ? [
+                    'id' => $submission->student->id,
+                    'name' => $submission->student->name,
+                    'email' => $submission->student->email,
+                ] : null,
+                'file' => $submission->file ? url('uploads/' . $submission->file) : null,
+                'answer_text' => $submission->answer_text,
+                'submitted_at' => $submission->submitted_at,
+                'score' => $submission->score,
+                'feedback' => $submission->feedback,
+                'graded_at' => $submission->graded_at,
+            ]);
+
+        return SendResponse(200, 'Submissions fetched successfully.', [
+            'quiz' => [
+                'id' => $quiz->id,
+                'name' => $quiz->name,
+                'max_score' => $quiz->max_score,
+            ],
+            'submissions' => $submissions,
+        ]);
+    }
+
+    /**
+     * Grade a single submission (score within the quiz maximum + feedback).
+     */
+    public function gradeSubmission(ProfessorGradeQuizSubmissionRequest $request)
+    {
+        $submission = QuizSubmission::with(['quiz.course', 'student'])->find($request->submission_id);
+
+        if (! $submission || ! $submission->quiz) {
+            return SendResponse(404, 'Submission not found.');
+        }
+
+        if ($blocked = $this->authorizeCourseOwnership($request, $submission->quiz->course, 'You are not allowed to grade this submission.')) {
+            return $blocked;
+        }
+
+        $maxScore = (float) $submission->quiz->max_score;
+
+        if ((float) $request->score > $maxScore) {
+            return SendResponse(422, 'error in body request', [
+                'score' => ['The score may not be greater than the maximum score (' . $maxScore . ').'],
+            ]);
+        }
+
+        $previousScore = $submission->score;
+
+        $submission->update([
+            'score' => $request->score,
+            'feedback' => $request->feedback,
+            'graded_by_type' => $request->user()->getMorphClass(),
+            'graded_by_id' => $request->user()->id,
+            'graded_at' => now(),
+        ]);
+
+        ActivityLogger::log(
+            ActivityLogger::QUIZ_SUBMISSION_GRADED,
+            $submission,
+            [
+                'quiz_id' => $submission->quiz_id,
+                'student_id' => $submission->student_id,
+                'score' => (float) $submission->score,
+                'max_score' => $maxScore,
+                'previous_score' => $previousScore,
+                'feedback' => $submission->feedback,
+            ],
+            null,
+            'Quiz submission graded.'
+        );
+
+        $this->notifyStudent(
+            $submission->student_id,
+            'Quiz graded',
+            'Your submission for "' . $submission->quiz->name . '" was graded'
+                . ($submission->score !== null ? ' (' . $submission->score . '/' . $maxScore . ')' : '')
+                . '.',
+            $request->user()->id
+        );
+
+        return SendResponse(200, 'Submission graded successfully.', [
+            'id' => $submission->id,
+            'score' => $submission->score,
+            'feedback' => $submission->feedback,
+            'graded_at' => $submission->graded_at,
+        ]);
     }
 }

@@ -7,7 +7,7 @@ import { Loader, ToastProvider } from './lib/ui'
 import Login from './pages/Login'
 import ResetPassword from './pages/ResetPassword'
 import {
-  StudentAttendance, StudentCatalog, StudentCourseDetail, StudentCourses, StudentHome, StudentNotifications, StudentReports, StudentSchedule,
+  StudentAttendance, StudentCatalog, StudentCourseDetail, StudentCourses, StudentHome, StudentNotifications, StudentReports, StudentSchedule, StudentQuizzes,
 } from './pages/student'
 import {
   ProfessorAppeals, ProfessorCourses, ProfessorGrades, ProfessorHome, ProfessorLectures, ProfessorNotifications, ProfessorQuizzes, ProfessorStudents,
@@ -61,8 +61,9 @@ export default function App() {
                   <Route path="courses" element={<StudentCourses />} />
                   <Route path="catalog" element={<StudentCatalog />} />
                   <Route path="course/:id" element={<StudentCourseDetail />} />
-                  <Route path="schedule" element={<StudentSchedule />} />
-                  <Route path="attendance" element={<StudentAttendance />} />
+          <Route path="schedule" element={<StudentSchedule />} />
+          <Route path="attendance" element={<StudentAttendance />} />
+          <Route path="quizzes" element={<StudentQuizzes />} />
                   <Route path="reports" element={<StudentReports />} />
                   <Route path="notifications" element={<StudentNotifications />} />
                 </Route>
