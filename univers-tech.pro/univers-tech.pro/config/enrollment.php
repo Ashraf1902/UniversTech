@@ -30,6 +30,19 @@ return [
     // change the grade.
     'grade_edit_window_hours' => 48,
 
+    // Hours after an attendance record is created during which a professor may
+    // still correct their own attendance record. After this, only an admin may
+    // change it.
+    'attendance_edit_window_hours' => 48,
+
+    // Absence percentage per course at which the student gets a warning
+    // notification (sent once per course per threshold).
+    'attendance_warn_threshold' => 15,
+
+    // Absence percentage per course at which the student is flagged as
+    // "exam barred" (informational for now, does not block grades).
+    'attendance_bar_threshold' => 25,
+
     // Days after publication during which a student may appeal a grade.
     'appeal_window_days' => 14,
 

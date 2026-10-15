@@ -62,14 +62,26 @@ export function ProfessorStudents() {
               {list.map((s) => {
                 const att = s.attendances || []
                 const present = att.filter((a) => a.status).length
+                const summary = s.attendance_summary
+                const statusMeta = {
+                  ok: { tone: 'grn', key: 'status_ok' },
+                  warning: { tone: 'amb', key: 'status_warning' },
+                  barred: { tone: 'red', key: 'status_barred' },
+                }[summary?.status] || null
                 return (
                   <tr key={s.id}>
                     <td className="cell-main">{s.name}</td>
                     <td>{s.email}</td>
-                    <td>{s.gender === 'Female' ? t('female') : s.gender === 'Male' ? t('male') : (s.gender || '—')}</td>
+                    <td>{s.gender === 'Female' ? t('female') : s.gender === 'Male' ? t('male') : (s.gender || '-')}</td>
                     <td>
                       <Badge tone="grn">{t('presentCount', { n: present })}</Badge>{' '}
                       <Badge tone={att.length - present ? 'red' : ''}>{t('absentCount', { n: att.length - present })}</Badge>
+                      {statusMeta ? (
+                        <>
+                          {' '}
+                          <Badge tone={statusMeta.tone} dot>{t(statusMeta.key)}</Badge>
+                        </>
+                      ) : null}
                     </td>
                     <td style={{ textAlign: 'right' }}>
                       <Btn size="sm" icon="check" onClick={() => { clearErrors(); setTarget(s); setForm((f) => ({ ...f, lecture_id: lectureList[0]?.id || '' })) }}>{t('attendance')}</Btn>

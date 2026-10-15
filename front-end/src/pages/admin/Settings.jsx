@@ -9,7 +9,7 @@ export function AdminSettings() {
   const { t } = useI18n()
   const toast = useToast()
   const { data, loading, run } = useAsync(() => request('/api/settings/get/all'), [])
-  const [form, setForm] = useState({ credit_limit: '', passing_score: '', drop_window_days: '', grade_edit_window_hours: '', appeal_window_days: '' })
+  const [form, setForm] = useState({ credit_limit: '', passing_score: '', drop_window_days: '', grade_edit_window_hours: '', appeal_window_days: '', attendance_edit_window_hours: '', attendance_warn_threshold: '', attendance_bar_threshold: '' })
   const [defaults, setDefaults] = useState(null)
   const [busy, setBusy] = useState(false)
   const { errors, clear: clearErrors, apply: applyErrors } = useFieldErrors()
@@ -22,6 +22,9 @@ export function AdminSettings() {
       drop_window_days: data.drop_window_days ?? '',
       grade_edit_window_hours: data.grade_edit_window_hours ?? '',
       appeal_window_days: data.appeal_window_days ?? '',
+      attendance_edit_window_hours: data.attendance_edit_window_hours ?? '',
+      attendance_warn_threshold: data.attendance_warn_threshold ?? '',
+      attendance_bar_threshold: data.attendance_bar_threshold ?? '',
     })
     setDefaults(data.defaults || null)
   }, [data])
@@ -38,6 +41,9 @@ export function AdminSettings() {
           drop_window_days: Number(form.drop_window_days),
           grade_edit_window_hours: Number(form.grade_edit_window_hours),
           appeal_window_days: Number(form.appeal_window_days),
+          attendance_edit_window_hours: Number(form.attendance_edit_window_hours),
+          attendance_warn_threshold: Number(form.attendance_warn_threshold),
+          attendance_bar_threshold: Number(form.attendance_bar_threshold),
         },
       })
       toast.success(t('settingsSaved'))
@@ -80,6 +86,17 @@ export function AdminSettings() {
               <input className="input" type="number" min="0" max="365" value={form.appeal_window_days} disabled={loading} onChange={(e) => setForm({ ...form, appeal_window_days: e.target.value })} />
             </Field>
           </div>
+          <div className="grid grid-2" style={{ gap: 14 }}>
+            <Field label={t('attendanceEditWindowSetting')} hint={t('attendanceEditWindowSettingHint')} error={errors?.attendance_edit_window_hours?.[0]}>
+              <input className="input" type="number" min="0" max="8760" value={form.attendance_edit_window_hours} disabled={loading} onChange={(e) => setForm({ ...form, attendance_edit_window_hours: e.target.value })} />
+            </Field>
+            <Field label={t('attendanceWarnSetting')} hint={t('attendanceWarnSettingHint')} error={errors?.attendance_warn_threshold?.[0]}>
+              <input className="input" type="number" min="0" max="100" value={form.attendance_warn_threshold} disabled={loading} onChange={(e) => setForm({ ...form, attendance_warn_threshold: e.target.value })} />
+            </Field>
+          </div>
+          <Field label={t('attendanceBarSetting')} hint={t('attendanceBarSettingHint')} error={errors?.attendance_bar_threshold?.[0]}>
+            <input className="input" type="number" min="0" max="100" value={form.attendance_bar_threshold} disabled={loading} onChange={(e) => setForm({ ...form, attendance_bar_threshold: e.target.value })} />
+          </Field>
         </form>
         {defaults ? (
           <p style={{ color: 'var(--muted)', fontSize: '0.82rem', marginTop: 18 }}>

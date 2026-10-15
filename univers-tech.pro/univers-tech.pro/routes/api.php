@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\AccessRequestAdminController;
 use App\Http\Controllers\Admin\ActivityAdminController;
 use App\Http\Controllers\Admin\AdminAuthController;
 use App\Http\Controllers\Admin\AdminManagementController;
+use App\Http\Controllers\Admin\AttendanceAdminController;
 use App\Http\Controllers\Admin\CourseAdminController;
 use App\Http\Controllers\Admin\DepartmentAdminController;
 use App\Http\Controllers\Admin\EnrollmentAdminController;
@@ -186,6 +187,18 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::middleware('admin-scope:activity')->group(function () {
         Route::get('activity/get/all', [ActivityAdminController::class, 'index']);
     });
+
+    // Attendance
+    Route::middleware('admin-scope:attendances')->group(function () {
+        Route::get('attendance/get/all', [AttendanceAdminController::class, 'index']);
+        Route::get('attendance/courses', [AttendanceAdminController::class, 'courses']);
+        Route::get('attendance/lectures', [AttendanceAdminController::class, 'lectures']);
+        Route::get('attendance/roster', [AttendanceAdminController::class, 'roster']);
+        Route::post('attendance/store', [AttendanceAdminController::class, 'store']);
+        Route::post('attendance/update', [AttendanceAdminController::class, 'update']);
+        Route::delete('attendance/delete/{id}', [AttendanceAdminController::class, 'delete']);
+        Route::post('attendance/restore/{id}', [AttendanceAdminController::class, 'restore']);
+    });
 });
 
 // Professor routes
@@ -193,6 +206,7 @@ Route::middleware(['auth:sanctum', 'role:professor', 'active'])->group(function 
     Route::get('professors/courses', [CourseProfessorController::class, 'getProfessorCourses']);
     Route::get('professors/course/student', [CourseProfessorController::class, 'getCoursesStudent']);
     Route::post('professors/make/attendance', [AttendaceProfessorController::class, 'storeAttendace']);
+    Route::post('professors/update/attendance', [AttendaceProfessorController::class, 'updateAttendace']);
     Route::post('lecture/store', [LectureProfessorController::class, 'store']);
     Route::get('lecture/get/all/{id}', [LectureProfessorController::class, 'getLecturesCourse']);
     Route::post('quiz/store', [QuizProfessorController::class, 'store']);

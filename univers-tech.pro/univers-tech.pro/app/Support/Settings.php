@@ -58,4 +58,19 @@ class Settings
     {
         return (int) static::get('appeal_window_days');
     }
+
+    public static function attendanceEditWindowHours(): int
+    {
+        return (int) static::get('attendance_edit_window_hours', 48);
+    }
+
+    public static function attendanceWarnThreshold(): int
+    {
+        return (int) static::get('attendance_warn_threshold', 15);
+    }
+
+    public static function attendanceBarThreshold(): int
+    {
+        return (int) static::get('attendance_bar_threshold', 25);
+    }
 }

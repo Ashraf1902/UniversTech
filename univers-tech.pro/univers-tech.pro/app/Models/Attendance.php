@@ -4,11 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Traits\LogsActivity;
 
 class Attendance extends Model
 {
-    use HasFactory, LogsActivity;
+    use HasFactory, SoftDeletes, LogsActivity;
 
     protected $table = 'attendances';
 
@@ -19,7 +20,9 @@ class Attendance extends Model
         'student_id',
         'professor_id',
         'lec_id',
-        'course_id'
+        'course_id',
+        'recorded_by_type',
+        'recorded_by_id',
     ];
 
     protected $casts = [
@@ -45,5 +48,10 @@ class Attendance extends Model
     public function course()
     {
         return $this->belongsTo(Course::class, 'course_id');
+    }
+
+    public function recordedBy()
+    {
+        return $this->morphTo();
     }
 }

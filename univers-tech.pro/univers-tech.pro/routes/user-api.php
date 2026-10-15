@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\API\FactsController;
 use App\Http\Controllers\API\Student\AppealController;
+use App\Http\Controllers\API\Student\AttendanceController;
 use App\Http\Controllers\API\Student\CoursesController;
 use App\Http\Controllers\API\Student\LogoutController;
 use App\Http\Controllers\API\Student\NotificationsController;
@@ -48,6 +49,9 @@ Route::middleware(['role:student', 'active'])->group(function () {
     // Schedule & reports
     Route::get('schedule', [CoursesController::class, 'schedule']);
     Route::get('reports', [CoursesController::class, 'reports']);
+
+    // Attendance view & absence warnings (S2)
+    Route::get('attendance', [AttendanceController::class, 'index']);
 
     // Grade appeals
     Route::get('grade/appeals', [AppealController::class, 'index']);

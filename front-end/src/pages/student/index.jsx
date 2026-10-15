@@ -1,4 +1,5 @@
 export { StudentCatalog } from './Catalog.jsx'
+export { StudentAttendance } from './Attendance.jsx'
 export { StudentCourseDetail } from './CourseDetail.jsx'
 export { StudentCourses } from './Courses.jsx'
 export { StudentHome } from './Home.jsx'
