@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Attendance;
 use App\Models\Payment;
 use App\Models\StudentCourse;
+use App\Services\ImportService;
 use App\Support\ActivityLogger;
 use App\Support\Settings;
 use Illuminate\Contracts\Database\Query\Builder as BuilderContract;
@@ -428,6 +429,9 @@ class ReportAdminController extends Controller
 
         return response()->streamDownload(function () use ($rows, $map, $headers) {
             $out = fopen('php://output', 'w');
+
+            // UTF-8 BOM so Excel renders Arabic department / course names.
+            fwrite($out, ImportService::BOM);
             fputcsv($out, $headers);
 
             foreach ($rows as $row) {

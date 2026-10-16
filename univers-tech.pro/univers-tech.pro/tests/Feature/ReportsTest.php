@@ -12,6 +12,7 @@ use App\Models\Payment;
 use App\Models\Semester;
 use App\Models\StudentCourse;
 use App\Models\User;
+use App\Services\ImportService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -50,7 +51,7 @@ class ReportsTest extends TestCase
 
         $this->superAdmin = Admin::factory()->create(['id' => 1, 'is_super_admin' => true]);
         $this->semester = Semester::create(['name' => 'First', 'academic_year' => '2026/2027', 'is_active' => true]);
-        $this->departmentA = Department::factory()->create(['admin_id' => $this->superAdmin->id]);
+        $this->departmentA = Department::factory()->create(['admin_id' => $this->superAdmin->id, 'name' => 'قسم الحاسبات']);
         $this->departmentB = Department::factory()->create(['admin_id' => $this->superAdmin->id]);
         $this->levelOne = Level::factory()->create();
         $this->levelTwo = Level::factory()->create();
@@ -358,8 +359,22 @@ class ReportsTest extends TestCase
         $this->assertStringContainsString('text/csv', $response->headers->get('content-type'));
 
         $body = $response->streamedContent();
+        $this->assertStringStartsWith(ImportService::BOM, $body);
         $this->assertStringContainsString('Period,Payments,Total,Collected', $body);
         $this->assertStringContainsString('2026-09', $body);
+    }
+
+    public function test_enrollment_export_preserves_arabic_department_names(): void
+    {
+        $this->actingAsAdmin(['reports']);
+
+        $response = $this->get('/api/report/enrollment?export=csv')->assertOk();
+        $this->assertStringContainsString('text/csv', $response->headers->get('content-type'));
+
+        $body = $response->streamedContent();
+        $this->assertStringStartsWith(ImportService::BOM, $body);
+        $this->assertStringContainsString('قسم الحاسبات', $body);
+        $this->assertStringContainsString('Alpha', $body);
     }
 
     private function makePayment(User $student, float $amount, string $status, string $createdAt, ?string $paidAt = null): Payment

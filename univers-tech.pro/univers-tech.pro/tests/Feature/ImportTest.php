@@ -120,8 +120,11 @@ class ImportTest extends TestCase
         $response->assertOk();
 
         $body = $response->streamedContent();
+        $this->assertStringStartsWith(ImportService::BOM, $body);
         $this->assertStringContainsString(implode(',', self::STUDENT_HEADERS), $body);
         $this->assertStringContainsString('sara.ahmed@example.com', $body);
+        // Arabic sample value survives so Excel (with the BOM) renders it.
+        $this->assertStringContainsString('سارة أحمد', $body);
     }
 
     public function test_courses_template_downloads_with_the_exact_columns(): void
@@ -133,8 +136,44 @@ class ImportTest extends TestCase
         $response->assertOk();
 
         $body = $response->streamedContent();
+        $this->assertStringStartsWith(ImportService::BOM, $body);
         $this->assertStringContainsString(implode(',', self::COURSE_HEADERS), $body);
         $this->assertStringContainsString('CS201', $body);
+        $this->assertStringContainsString('هياكل البيانات', $body);
+    }
+
+    public function test_preview_accepts_a_utf8_bom_and_arabic_names(): void
+    {
+        $this->actingAsAdmin(['accounts']);
+
+        $csv = ImportService::BOM . $this->csv(self::STUDENT_HEADERS, [
+            $this->studentRow(['name' => 'أحمد محمد', 'email' => 'ahmed@example.com']),
+        ]);
+
+        $response = $this->post('/api/import/students/preview', ['file' => $this->upload('students.csv', $csv)])
+            ->assertOk()
+            ->assertJsonPath('data.summary.total', 1)
+            ->assertJsonPath('data.summary.valid', 1)
+            ->assertJsonPath('data.summary.invalid', 0);
+
+        $this->assertSame('أحمد محمد', $response->json('data.rows.0.data.name'));
+        $this->assertDatabaseCount('students', 0);
+    }
+
+    public function test_apply_imports_arabic_names_without_a_utf8_bom(): void
+    {
+        $this->actingAsAdmin(['accounts']);
+
+        $csv = $this->csv(self::STUDENT_HEADERS, [
+            $this->studentRow(['name' => 'منى عبد الله', 'email' => 'mona@example.com']),
+        ]);
+
+        $this->post('/api/import/students/apply', ['file' => $this->upload('students.csv', $csv)])
+            ->assertOk()
+            ->assertJsonPath('data.imported', 1)
+            ->assertJsonPath('data.skipped', 0);
+
+        $this->assertDatabaseHas('users', ['email' => 'mona@example.com', 'name' => 'منى عبد الله']);
     }
 
     public function test_preview_validates_rows_without_writing_anything(): void

@@ -43,6 +43,12 @@ class ImportService
     public const MAX_FILE_KB = 2048;
 
     /**
+     * UTF-8 byte-order mark. Prefixed to downloads so Excel detects the
+     * encoding and renders Arabic values correctly; stripped on the way back in.
+     */
+    public const BOM = "\xEF\xBB\xBF";
+
+    /**
      * The exact template columns per import type (order matters for the
      * downloadable template; uploads are matched by header name).
      *
@@ -57,8 +63,8 @@ class ImportService
      * @var array<string, array<int, string>>
      */
     private const SAMPLE = [
-        self::TYPE_STUDENTS => ['Sara Ahmed', 'sara.ahmed@example.com', 'female', '29901011234567', '01012345678', '1', '1', 'first'],
-        self::TYPE_COURSES => ['Data Structures', 'CS201', '3', '60', '1', 'professor@example.com', '1'],
+        self::TYPE_STUDENTS => ['سارة أحمد', 'sara.ahmed@example.com', 'female', '29901011234567', '01012345678', '1', '1', 'first'],
+        self::TYPE_COURSES => ['هياكل البيانات', 'CS201', '3', '60', '1', 'professor@example.com', '1'],
     ];
 
     /**
@@ -84,7 +90,7 @@ class ImportService
             implode(',', $this->sampleRow($type)),
         ];
 
-        return implode("\r\n", $lines) . "\r\n";
+        return self::BOM . implode("\r\n", $lines) . "\r\n";
     }
 
     /**
@@ -114,8 +120,8 @@ class ImportService
                     $data
                 );
                 // Strip a UTF-8 BOM from the first header cell.
-                if (isset($header[0])) {
-                    $header[0] = preg_replace('/^\xEF\xBB\xBF/', '', $header[0]);
+                if (isset($header[0]) && str_starts_with($header[0], self::BOM)) {
+                    $header[0] = substr($header[0], strlen(self::BOM));
                 }
 
                 $positions = [];
