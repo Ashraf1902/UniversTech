@@ -9,15 +9,19 @@ const REPORTS = {
   enrollment: '/api/report/enrollment',
   payments: '/api/report/payments',
   attendance: '/api/report/attendance',
+  unassigned: '/api/report/unassigned',
 }
 
 const FILTERS = {
   enrollment: ['semester_id', 'department_id', 'level_id'],
   payments: ['semester_id', 'department_id', 'level_id', 'date_from', 'date_to'],
   attendance: ['semester_id', 'department_id', 'level_id', 'course_id'],
+  unassigned: [],
 }
 
-const TYPES = ['enrollment', 'payments', 'attendance']
+const EXPORTABLE = ['enrollment', 'payments', 'attendance']
+
+const TYPES = ['enrollment', 'payments', 'attendance', 'unassigned']
 
 export function AdminReports() {
   const { t } = useI18n()
@@ -68,16 +72,24 @@ export function AdminReports() {
         title={t('reports')}
         sub={t('reportsSub')}
         actions={
-          <Btn variant="soft" icon="download" onClick={exportCsv}>
-            {t('exportCsv')}
-          </Btn>
+          EXPORTABLE.includes(tab) ? (
+            <Btn variant="soft" icon="download" onClick={exportCsv}>
+              {t('exportCsv')}
+            </Btn>
+          ) : null
         }
       />
 
       <div className="seg" style={{ marginBottom: 22, maxWidth: 480 }}>
         {TYPES.map((type) => (
           <button key={type} className={tab === type ? 'on' : ''} onClick={() => switchTab(type)}>
-            {type === 'enrollment' ? t('enrollmentReport') : type === 'payments' ? t('paymentsReport') : t('attendanceReport')}
+            {type === 'enrollment'
+              ? t('enrollmentReport')
+              : type === 'payments'
+              ? t('paymentsReport')
+              : type === 'attendance'
+              ? t('attendanceReport')
+              : t('unassignedReport')}
           </button>
         ))}
       </div>
@@ -118,8 +130,10 @@ export function AdminReports() {
         <EnrollmentReport data={data} />
       ) : tab === 'payments' ? (
         <PaymentsReport data={data} />
-      ) : (
+      ) : tab === 'attendance' ? (
         <AttendanceReport data={data} />
+      ) : (
+        <UnassignedReport data={data} />
       )}
     </>
   )
@@ -263,6 +277,42 @@ function AttendanceReport({ data }) {
               label: t('status'),
               render: (r) => (r.status === 'barred' ? <Badge tone="red" dot>{t('barred')}</Badge> : <Badge tone="amb" dot>{t('warning')}</Badge>),
             },
+          ]}
+        />
+      </div>
+    </>
+  )
+}
+
+function UnassignedReport({ data }) {
+  const { t } = useI18n()
+  const totals = data.totals || {}
+  return (
+    <>
+      <div className="grid grid-2" style={{ marginBottom: 22 }}>
+        <StatCard icon="book" label={t('unassignedCourses')} value={totals.courses ?? 0} tone="amb" />
+        <StatCard icon="file" label={t('unassignedEnrollments')} value={totals.enrollments ?? 0} tone="cy" />
+      </div>
+      <div className="card" style={{ marginBottom: 22 }}>
+        <div className="card-head"><h3>{t('unassignedCourses')}</h3></div>
+        <DataTable
+          rows={data.courses || []}
+          columns={[
+            { key: 'course_name', label: t('courseName'), main: true },
+            { key: 'course_code', label: t('courseCode') },
+            { key: 'department', label: t('department'), render: (r) => r.department || '—' },
+            { key: 'professor', label: t('professor'), render: (r) => r.professor || '—' },
+          ]}
+        />
+      </div>
+      <div className="card">
+        <div className="card-head"><h3>{t('unassignedEnrollments')}</h3></div>
+        <DataTable
+          rows={data.enrollments || []}
+          columns={[
+            { key: 'student_name', label: t('studentName'), main: true },
+            { key: 'course_name', label: t('courseName') },
+            { key: 'status', label: t('status') },
           ]}
         />
       </div>

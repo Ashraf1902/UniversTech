@@ -36,7 +36,7 @@ class AdminUpdateCourseRequest extends FormRequest
             'course_code' => ['string', 'max:255', Rule::unique('courses', 'course_code')->ignore($courseId)],
             'cover_image' => 'image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             'department_id' => 'exists:departments,id',
-            'semester_id' => 'exists:semesters,id',
+            'semester_id' => 'required|exists:semesters,id',
             'professor_id' => 'exists:users,id',
             'prerequisite_course_ids' => 'nullable|array',
             'prerequisite_course_ids.*' => 'integer|exists:courses,id',

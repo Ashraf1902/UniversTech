@@ -75,7 +75,7 @@ The old `password`-only super-admin accounts are no longer the sole credentials.
 
 ## STAGE 13 — Open follow-ups (deferred, not part of this roadmap)
 
-- Change the validation status code from **420 → 422** (roadmap §0.4/Appendix B); codebase and tests consistently use 422.
+- Validation status code settled at **422** across codebase and tests (roadmap §0.4/Appendix B referenced 420 — obsolete).
 - Split remaining large page modules; further componentize admin pages.
 - Token storage / cookie-auth migration; containerization; CI pipeline.
 - Real Stripe payments (demo mode remains default).

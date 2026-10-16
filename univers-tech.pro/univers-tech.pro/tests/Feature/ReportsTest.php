@@ -338,6 +338,7 @@ class ReportsTest extends TestCase
         $this->get('/api/report/enrollment')->assertStatus(403);
         $this->get('/api/report/payments')->assertStatus(403);
         $this->get('/api/report/attendance')->assertStatus(403);
+        $this->get('/api/report/unassigned')->assertStatus(403);
     }
 
     public function test_a_super_admin_can_view_reports(): void
@@ -347,6 +348,48 @@ class ReportsTest extends TestCase
         $this->get('/api/report/enrollment')->assertOk();
         $this->get('/api/report/payments')->assertOk();
         $this->get('/api/report/attendance')->assertOk();
+        $this->get('/api/report/unassigned')->assertOk();
+    }
+
+    public function test_unassigned_report_lists_courses_and_enrollments_without_a_semester(): void
+    {
+        $orphanCourse = Course::create([
+            'course_name' => 'Gamma',
+            'course_code' => 'CCC101',
+            'no_of_hours' => 3,
+            'capacity' => 5,
+            'department_id' => $this->departmentA->id,
+            'professor_id' => $this->professor->id,
+            'admin_id' => $this->superAdmin->id,
+            'semester_id' => null,
+        ]);
+
+        $orphanEnrollment = StudentCourse::create([
+            'student_id' => $this->studentOne->id,
+            'course_id' => $orphanCourse->id,
+            'progress' => 0,
+            'status' => StudentCourse::STATUS_REGISTERED,
+            'status_changed_at' => now(),
+            'semester_id' => null,
+        ]);
+
+        $this->actingAsAdmin(['reports']);
+
+        $response = $this->get('/api/report/unassigned')->assertOk();
+
+        $this->assertSame(1, $response->json('data.totals.courses'));
+        $this->assertSame(1, $response->json('data.totals.enrollments'));
+
+        $courses = collect($response->json('data.courses'));
+        $this->assertCount(1, $courses);
+        $this->assertSame($orphanCourse->id, $courses[0]['id']);
+        $this->assertSame('Gamma', $courses[0]['course_name']);
+
+        $enrollments = collect($response->json('data.enrollments'));
+        $this->assertCount(1, $enrollments);
+        $this->assertSame($orphanEnrollment->id, $enrollments[0]['id']);
+        $this->assertSame($this->studentOne->id, $enrollments[0]['student_id']);
+        $this->assertSame($orphanCourse->id, $enrollments[0]['course_id']);
     }
 
     public function test_reports_can_be_exported_to_csv(): void

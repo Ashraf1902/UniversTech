@@ -178,7 +178,7 @@ Three auth realms, each with its own login/logout flow and Sanctum tokens:
 
 - Responses use `{ status, message, data }` via the `SendResponse()` helper (`app/Helpers.php`). The client unwraps `data` and throws `ApiError(message, status, payload)` on non-2xx.
 - List endpoints are paginated Laravel paginators / `Resource::collection` (`{ data, links, meta }`), normalized by `normalizePage()`.
-- Validation failures return **422** with a `data` map of field → messages (the frontend surfaces the first field error).
+- Validation failures return **422** with the envelope `{ status: 422, message: "error in body request", data: { "<field>": ["<message>", …] } }` (the renderer wraps `$e->errors()` into `data`; the frontend throws `ApiError` and surfaces the first message of the first field).
 - File uploads use `multipart/form-data`; the wrapper deliberately does not set `Content-Type` so the browser adds the boundary.
 
 ### File uploads
@@ -403,9 +403,9 @@ D:\UniversTech
 2. **Vite is IPv6-bound in this workspace** — always use `http://localhost:5173`, not `127.0.0.1:5173`.
 3. **i18n interpolation** — `t(key, vars)` only substitutes `{word}` placeholders; it cannot embed JSX.
 4. **Windows PowerShell + JSON payloads** — use `[IO.File]::WriteAllText`; `Set-Content -Encoding UTF8` adds a BOM that breaks Laravel JSON parsing.
-4. **CP1252 consoles** — printing Arabic from PowerShell/Python needs `encode('unicode_escape')`.
+5. **CP1252 consoles** — printing Arabic from PowerShell/Python needs `encode('unicode_escape')`.
 6. **`AttendaceProfessorController`** keeps its original (misspelled) class name for route backward-compatibility.
-6. **Validation status code** — the codebase uses **422** (the older docs mentioned 420).
+7. **Validation status code** — the codebase uses **422** (see [API conventions](#api-conventions)).
 
 ---
 
@@ -413,7 +413,7 @@ D:\UniversTech
 
 Deferred / noticed, deliberately **not** part of the completed roadmap:
 
-- Change requests to alter the validation status code (422 vs 420) — kept 422.
+- Change requests to alter the validation status code — kept **422**.
 - Split the remaining larger page modules; further extract shared admin components.
 - Token storage / cookie-auth migration, containerization, CI pipeline definition.
 - Real Stripe integration (demo mode is the default).

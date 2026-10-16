@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
+use App\Models\Course;
 use App\Models\Payment;
 use App\Models\StudentCourse;
 use App\Services\ImportService;
@@ -85,6 +86,59 @@ class ReportAdminController extends Controller
         }
 
         return SendResponse(200, 'Attendance report generated successfully.', $report);
+    }
+
+    /**
+     * Data-hygiene report: courses and enrollments that have no semester.
+     *
+     * Every course should belong to a semester so it appears in the correct
+     * term's catalog; a null `student_courses.semester_id` means an enrollment
+     * that the rollover / credit-limit logic cannot place in a term. Archived
+     * (soft-deleted) courses are excluded.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function unassigned(Request $request)
+    {
+        $courses = Course::query()
+            ->whereNull('semester_id')
+            ->with(['department', 'professor'])
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(fn (Course $course) => [
+                'id' => $course->id,
+                'course_name' => $course->course_name,
+                'course_code' => $course->course_code,
+                'department' => $course->department?->name,
+                'professor' => $course->professor?->name,
+                'created_at' => $course->created_at,
+            ])
+            ->all();
+
+        $enrollments = StudentCourse::query()
+            ->whereNull('semester_id')
+            ->with(['student', 'course'])
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(fn (StudentCourse $enrollment) => [
+                'id' => $enrollment->id,
+                'student_id' => $enrollment->student_id,
+                'student_name' => $enrollment->student?->name,
+                'course_id' => $enrollment->course_id,
+                'course_name' => $enrollment->course?->course_name,
+                'status' => $enrollment->status,
+                'created_at' => $enrollment->created_at,
+            ])
+            ->all();
+
+        return SendResponse(200, 'Unassigned semesters report generated successfully.', [
+            'courses' => $courses,
+            'enrollments' => $enrollments,
+            'totals' => [
+                'courses' => count($courses),
+                'enrollments' => count($enrollments),
+            ],
+        ]);
     }
 
     /**

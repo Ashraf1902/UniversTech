@@ -161,9 +161,9 @@ const remove = async (row) => {
               {depts.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </Field>
-          <Field label={t('semesterOptional')} error={errors?.semester_id?.[0]}>
+          <Field label={t('semester')} error={errors?.semester_id?.[0]}>
             <select className="select" value={form.semester_id} onChange={(e) => setForm({ ...form, semester_id: e.target.value })}>
-              <option value="">{t('anyOption')}</option>
+              <option value="">{t('select')}</option>
               {sems.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </Field>

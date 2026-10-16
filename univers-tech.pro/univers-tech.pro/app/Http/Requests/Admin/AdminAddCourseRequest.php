@@ -33,7 +33,7 @@ class AdminAddCourseRequest extends FormRequest
             'cover_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             'department_id' => 'nullable|exists:departments,id',
             'professor_id' => 'required|exists:users,id',
-            'semester_id' => 'nullable|exists:semesters,id',
+            'semester_id' => 'required|exists:semesters,id',
             'prerequisite_course_ids' => 'nullable|array',
             'prerequisite_course_ids.*' => 'integer|exists:courses,id',
         ];

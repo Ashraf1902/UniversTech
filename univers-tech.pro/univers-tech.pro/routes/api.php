@@ -239,6 +239,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
         Route::get('report/enrollment', [ReportAdminController::class, 'enrollment']);
         Route::get('report/payments', [ReportAdminController::class, 'payments']);
         Route::get('report/attendance', [ReportAdminController::class, 'attendance']);
+        Route::get('report/unassigned', [ReportAdminController::class, 'unassigned']);
     });
 });
 

@@ -98,7 +98,11 @@ trait Notifiable
     protected function notifyAllStudents(string $title, string $content, ?int $adminId = null): void
     {
         $studentIds = User::where('type', User::TYPE_STUDENT)->pluck('id');
-        $adminId = $adminId ?? request()->user()?->id;
+
+        // notifications.admin_id references the admins table; never write a
+        // User (professor/student) id there.
+        $actor = request()->user();
+        $adminId = $adminId ?? ($actor instanceof Admin ? $actor->id : null);
 
         if ($studentIds->isEmpty()) {
             return;

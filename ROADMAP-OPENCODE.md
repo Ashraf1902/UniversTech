@@ -24,7 +24,7 @@ The requirements were written from the project README, not from the code. For ea
 ### 0.4 Engineering conventions (match the existing codebase)
 **Backend (Laravel):**
 - Follow existing patterns: dedicated `FormRequest` per mutation, `SendResponse()` envelope `{status, message, data}`, `FetchRequestError` for validation failures, API Resources for output, existing `Notifiable` trait for notifications.
-- **Keep the HTTP 420 validation convention as-is.** Changing it to 422 is a separate task and the frontend currently depends on 420. Do not touch it in this roadmap.
+- **Validation failures use HTTP 422.** The codebase and tests expect 422 with a `data` map of field → messages; keep it that way.
 - Migrations must be **additive and reversible** (working `down()`), never destructive to existing data. Backfill sensible defaults for existing rows.
 - The `users` → `students`/`professors` profile split (expand-contract plan) is in progress. **Read role-specific fields via the `student()` / `professor()` relationships. Do not add new reads or writes against role columns on `users`.**
 - Any new fan-out notification (many recipients) must go through a **queued job** (`ShouldQueue`), not a synchronous loop.
@@ -485,7 +485,7 @@ All limits are **configurable settings** (see §0.7). Defaults are assumptions f
 
 ## Appendix B — Things deliberately out of scope here
 
-- Changing the validation status code from 420 to 422.
+- Revisiting the validation status code (settled: **422**).
 - Splitting the large `admin.jsx` / `student.jsx` / `professor.jsx` files.
 - Token storage / cookie-auth migration, containerization, CI.
 - Backend hosting and deployment (Wasmer/other host decision is separate).
