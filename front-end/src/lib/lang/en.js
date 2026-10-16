@@ -226,6 +226,7 @@ export default {
   close: 'Close',
   cancel: 'Cancel',
   save: 'Save',
+  refresh: 'Refresh',
   upload: 'Upload',
   openAction: 'Open',
   back: 'Back',

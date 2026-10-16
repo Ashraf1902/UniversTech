@@ -226,6 +226,7 @@
   close: 'إغلاق',
   cancel: 'إلغاء',
   save: 'حفظ',
+  refresh: 'تحديث',
   upload: 'رفع',
   openAction: 'فتح',
   back: 'رجوع',

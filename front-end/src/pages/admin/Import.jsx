@@ -141,6 +141,7 @@ export function AdminImport() {
             className="input"
             type="file"
             accept=".csv,text/csv"
+            aria-label={tab === 'students' ? t('importStudents') : t('importCourses')}
             onChange={(e) => {
               setFile(e.target.files?.[0] || null)
               setPreview(null)

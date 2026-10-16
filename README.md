@@ -2,25 +2,27 @@
 
 > _Campus, elevated._ — An animated, super-hero styled e-learning & university management platform for students, professors, and university administrators.
 
-UniversTech is a full-stack web application that runs an entire campus experience in one place: course catalogs and registration, paid course access, lectures and quizzes, attendance, grades and GPA reports, schedules, events, notifications, and multi-role administration with granular role-based permissions.
+UniversTech runs an entire campus experience in one place: course catalogs and registration, paid course access, lectures and quizzes, attendance, grades and GPA reports, schedules with room/conflict checks, events with audience targeting, notifications, bulk CSV import, reporting, and multi-role administration with granular role-based permissions.
 
 It is built as **two decoupled applications** that talk over a JSON REST API:
 
 | Piece | Location | Stack |
 | --- | --- | --- |
 | **Frontend (SPA)** | `D:\UniversTech\front-end` | React 18 + Vite 5 + React Router 6 |
-| **Backend (API)** | `D:\UniversTech\univers-tech.pro\univers-tech.pro` | Laravel 13 (PHP 8.3) + MySQL + Laravel Sanctum |
+| **Backend (API)** | `D:\UniversTech\univers-tech.pro\univers-tech.pro` | Laravel 13 · PHP 8.4 · Sanctum · MySQL 8 (Postgres on Render) |
+
+> The repository root is `D:\UniversTech`. The Laravel app lives one level down in the nested `univers-tech.pro\univers-tech.pro` folder, and the React app is the sibling `front-end` folder.
 
 ---
 
-## Table of Contents
+## Table of contents
 
 - [Architecture overview](#architecture-overview)
 - [Roles & features](#roles--features)
-  - [Public / Guest](#public--guest)
+  - [Public / guest](#public--guest)
   - [Student](#student)
   - [Professor](#professor)
-  - [Admin & super admin](#admin--super-admin)
+  - [Admin (scoped) & super admin](#admin-scoped--super-admin)
 - [Technical design](#technical-design)
   - [Frontend](#frontend)
   - [Backend](#backend)
@@ -29,16 +31,16 @@ It is built as **two decoupled applications** that talk over a JSON REST API:
   - [File uploads](#file-uploads)
   - [Internationalization (i18n)](#internationalization-i18n)
 - [Data model](#data-model)
+- [Admin scopes](#admin-scopes)
+- [Configurable settings](#configurable-settings)
 - [Scheduled jobs](#scheduled-jobs)
 - [Getting started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Backend setup](#backend-setup)
-  - [Frontend setup](#frontend-setup)
-  - [Required services](#required-services)
-- [Default accounts](#default-accounts)
+- [Demo accounts](#demo-accounts)
 - [Project structure](#project-structure)
 - [Key commands](#key-commands)
+- [Testing](#testing)
 - [Known caveats & gotchas](#known-caveats--gotchas)
+- [Follow-ups](#follow-ups)
 
 ---
 
@@ -46,74 +48,85 @@ It is built as **two decoupled applications** that talk over a JSON REST API:
 
 ```
 ┌─────────────────────────┐        /api/* (proxy)        ┌──────────────────────────────┐
-│  React SPA (Vite dev)   │ ──────────────────────────► │  Laravel API (PHP built-in   │
-│  localhost:5173         │                              │  server) 127.0.0.1:8000     │
-│                         │                              │  - Sanctum token auth       │
-│  single .jsx entry +    │                              │  - role / scope middleware  │
-│  role-scoped dashboards │                              │  - MySQL (univars_tech)     │
+│  React SPA (Vite dev)   │ ──────────────────────────► │  Laravel API                 │
+│  localhost:5173         │                              │  (php artisan serve / -t)    │
+│                         │                              │  - Sanctum token auth        │
+│  role-scoped dashboards │                              │  - role / scope middleware   │
+│  (student/prof/admin)   │                              │  - MySQL 8 (or Postgres)     │
 └─────────────────────────┘                              └──────────────────────────────┘
-                                                                    │
+                                                                     │
                                                    uploads served from public/uploads
                                                        (junction → public_html/uploads)
 ```
 
-- The **frontend** is a browser router app (`BrowserRouter`) with three role-scoped sections under `/app/student`, `/app/professor`, and `/app/admin`.
-- The **backend** exposes a JSON API under `/api` and authenticates requests with **Laravel Sanctum** bearer tokens.
-- During development the Vite dev server proxies every `/api/*` request to `http://127.0.0.1:8000` (see `front-end/vite.config.js`). Because of this, the frontend calls relative paths like `/api/user/courses` — no hard-coded API host is needed. A `VITE_API_URL` env var can override the base if the backend is hosted elsewhere.
+- The **frontend** is a `BrowserRouter` app with three role-scoped sections under `/app/student`, `/app/professor`, and `/app/admin`.
+- The **backend** exposes a JSON API under `/api` and authenticates with **Laravel Sanctum** bearer tokens.
+- During development the Vite dev server proxies every `/api/*` request to `http://127.0.0.1:8000` (see `front-end/vite.config.js`). The frontend therefore calls relative paths such as `/api/user/courses`; set `VITE_API_URL` only if the API is hosted elsewhere.
 
 ---
 
 ## Roles & features
 
-### Public / Guest
+### Public / guest
 
-The **login screen** doubles as a mini campus landing page and is also a one-stop entry point for all roles:
+The **login screen** doubles as a campus landing page and the entry point for all three roles:
 
-- Event carousel — the 6 latest events with their image and title (`/api/public/events`), auto-rotating every 4.5s.
+- Event carousel — the latest events with image and title (`/api/public/events`).
 - **Role tabs** (Student / Professor / Admin) switch the sign-in form between the three login endpoints.
-- **Registration via access request** — guests fill a sign-up form (name, email, password, gender, optional phone/national id/level/department). This is **not** auto-approval: it creates an `AccessRequest` that an admin must approve before the account becomes active.
+- **Registration via access request** — guests submit a sign-up form (name, email, password, gender, optional phone/national id/level/department). This is **not** auto-approval: it creates an `AccessRequest` an admin must approve before the account becomes active. Decisions can email the applicant (approve/reject) with an optional rejection reason.
+- **Password reset** — `POST /api/…/forgot-password` emails a reset link (`FRONTEND_URL`), and the SPA's `ResetPassword` screen completes the flow.
 - Language toggle (English / Arabic) with full RTL switch.
-- Static "facts" counters (students / professors / departments) shown on the page.
 
 ### Student
 
-After login (guard: `role:student`):
+After login (guard: `role:student` + `active`):
 
 - **Home** — profile snapshot, upcoming schedule, notifications, quick actions.
-- **My Courses** — courses the student registered for and paid for. Paginated list with cover images, professor, progress bars, and a link into each course.
-- **Course Catalog** — browse all offered courses; select any number and **register** (creates enrollments). Subscribing is gated by payment (see below).
-- **Course detail / lectures** — per-course page listing its lectures (PDFs / content) with a built-in reader; **watches progress** via `update_progress` (tracked per lecture in a per-student `student_lectures` table).
-- **Schedule** — weekly timetable for the active semester, sorted by day, from the schedules table.
-- **Reports & GPA** — per-semester final scores with letter rates, plus cumulative GPA across all graded subjects.
-- **Notifications** — tabs for notifications / events / announcements (feeds come from one endpoint with a tab path segment).
-- **Payments** — a "make payment" action (courses or yearly) creates a payment record; Stripe is integrated but **demo mode** is the default and returns success without a real charge.
+- **My courses** — registered courses (paginated) with cover images, professor, progress bars, and a link into each course.
+- **Catalog** — browse offered courses and register; registration is gated by the enrollment window, credit limit, capacity, prerequisites, and schedule-conflict rules. Subscribing is gated by payment.
+- **Course detail / lectures** — per-course lectures with a reader and progress tracking (`student_lectures`).
+- **Quizzes** — view quiz/submission state and submit answers/files before the deadline (score + feedback once graded).
+- **Attendance** — per-course attendance summary with absence warnings / exam-bar indicators.
+- **Schedule** — weekly timetable for the active semester.
+- **Reports & GPA** — per-semester final scores with letter rates plus cumulative GPA; can open grade appeals within the appeal window.
+- **Notifications** — tabs for notifications / events / announcements.
+- **Payments** — pay for courses or a year; view history and download receipts.
 
 ### Professor
 
-After login (guard: `role:professor`):
+After login (guard: `role:professor` + `active`, plus per-course ownership checks):
 
 - **Home** — profile, assigned courses, latest events, notifications.
-- **My Courses** — list of courses assigned to the professor.
-- **Students & attendance** — pick a course, see enrolled students, record attendance per lecture (`make/attendance`).
-- **Lectures** — create/upload lectures (multipart upload: file content + title/description) per course; list existing ones.
-- **Quizzes** — create quizzes per course (multipart upload supporting files), list and delete them.
-- **Grades** — enter student grades per course (score, comment), list, and delete them. These feed the student reports/GPA.
-- **Notifications** — inbox endpoint for everything the platform sends the professor.
+- **Courses** — assigned courses.
+- **Students / attendance** — per-course roster; record and correct attendance within the edit window.
+- **Lectures** — create/edit lectures with file uploads.
+- **Quizzes** — create quizzes and grade submissions.
+- **Grades** — enter grades and grade components; publish to the lifecycle (draft → published → locked); edit within the edit window with a reason.
+- **Appeals** — respond to students' grade appeals on owned courses.
+- **Announcements** — post course announcements to registered students (queued fan-out).
+- **Schedule** — own weekly timetable for the active semester.
+- **Notifications** — bell feed.
 
-### Admin & super admin
+### Admin (scoped) & super admin
 
-After login (guard: `role:admin`), the admin dashboard is split into management panels. Navigation is **filtered by permissions** (scope):
+After login (guard: `role:admin`), admin modules are gated by **scopes**. A super admin sees everything; a scoped admin sees only their assigned modules (`CheckAdminScope`).
 
-- **Control Center** (home) — counts/quick insights (students, professors, departments, events, etc.).
-- **Accounts** — manage student & professor accounts: create, view, edit, delete. Consistent user fields include gender, national id, phone, credit points, semester, type, department, level, job title.
-- **Access Requests** — review guest sign-ups and **approve/reject** them (`access-request/respond`).
-- **Departments** — create, edit, delete, and list departments (with abbreviation).
-- **Courses** — create, edit, delete, and list courses (title, code, credits, cover image, professor, department, level, semester).
-- **Semesters** — manage semesters; the active one drives schedules and reports.
-- **Schedules** — define the weekly timetable: day, times, section type (lecture/seminar/lab), level, semester, department, course, and an optional image.
-- **Events** — publish campus events with title, content, and a **photo** (image upload). Publishing pushes a notification to **all students** and to the admin.
-- **Grades / semester card** — manage grades and generate per-student semester cards.
-- **Admins & Roles** (super admin only) — create, edit, and delete administrator accounts and pick **which modules each admin can manage** (role chips). See [Authentication & authorization](#authentication--authorization).
+- **Control Center** — KPI tiles and insights.
+- **Accounts** — manage student/professor accounts (create, edit, delete, status).
+- **Access requests** — approve/reject guest sign-ups.
+- **Departments / Courses / Semesters / Schedules** — core academic setup; schedules include room assignment and conflict checks.
+- **Enrollment** — manual enroll/unenroll and view enrollment state.
+- **Grades / Appeals** — grade override and appeal moderation.
+- **Attendance** — admin attendance management and corrections.
+- **Payments** — payment records with override (mark paid/waived/refunded).
+- **Events** — publish events with image and audience targeting (all / by department / by level).
+- **Announcements** — course announcement moderation.
+- **Rollover** — semester rollover (promote/graduate students, close semester, lock grades).
+- **Import** — two-step CSV import of students/courses (preview then apply).
+- **Reports** — enrollment / payments / attendance aggregates with CSV export.
+- **Activity** — audit log viewer.
+- **Settings** — edit the runtime policy values (see [Configurable settings](#configurable-settings)).
+- **Admins & roles** (super admin only) — create/edit/delete admin accounts and assign scopes.
 
 ---
 
@@ -121,102 +134,132 @@ After login (guard: `role:admin`), the admin dashboard is split into management 
 
 ### Frontend
 
-A dependency-light React SPA. The only runtime packages are `react`, `react-dom`, and `react-router-dom` — everything else (icons, modals, toasts, loaders, tables, forms) is **hand-rolled** in `src/lib/ui.jsx` with inline SVG icons.
+A dependency-light React SPA. The only runtime packages are `react`, `react-dom`, and `react-router-dom`; icons, modals, toasts, loaders, and tables are hand-rolled in `src/lib/ui.jsx` with inline SVG icons.
 
-- **State/API layer** — `src/lib/api.js` exposes a `request(path, {method, data|formData})` fetch wrapper: attaches the bearer token, sends JSON or multipart, normalizes Laravel pagination (`normalizePage`), builds query strings (`buildQuery`), and throws `ApiError` with status + payload. On a 401 it fires an `ut:unauthorized` custom event that global listeners use to bounce to login.
-- **Auth** — `src/lib/auth.jsx` (React context) stores the token/session in `localStorage` (`ut:session`), and provides `login(role, email, password)`, `logout()`, plus `role`/`user`/`isAuthed`. Repeated tokens survive reload.
-- **Async hook** — `src/lib/hooks.js` `useAsync(fn, deps)` manages loading/data/error with a rerunnable `run()`.
-- **i18n** — `src/lib/i18n.jsx` provides `useI18n()` with `{ lang, setLang, t, isRTL, dir }`. Dictionaries live in `src/lib/lang/{en,ar}.js` (115 keys each). `t()` supports simple `{token}` string interpolation but **cannot inject JSX** — keep interpolations inside a full sentence.
-- **UI kit** — `src/lib/ui.jsx` (≈640 lines): `I` icon renderer with ~30 inline SVG paths, `Loader`, `CourseLoader`, `Btn`, `Field`, `Badge`, `Modal`/`FormModal`, `ToastProvider`/`useToast`, `Empty`, `Avatar`, `Reveal`, etc.
-- **Layout** — `src/layout/DashboardLayout.jsx` renders the shared sidebar/topbar, `NavLink` menu (student/professor/admin NAV configs), a `RoleGate` that redirects on mismatched role, and a language toggle in the topbar. Admin NAV items carry a `scope` (and a `super: true` flag for the Admins page) so unauthorized modules are hidden.
-- **Pages** — large per-role page modules:
-  - `src/pages/Login.jsx` — public/gate page (338 lines).
-  - `src/pages/student.jsx` — 610 lines across 7 exported pages.
-  - `src/pages/professor.jsx` — 580 lines across 7 exported pages.
-  - `src/pages/admin.jsx` — 1203 lines across 11 exported pages + shared `DataTable`, `FormModal`, `useList`, `useOptions`, `Insight`, `SemesterCardExplorer`.
-- **Styling** — one global stylesheet `src/styles/main.css` (~736 lines) with a dark "super-hero" theme, plus appended **RTL rules** (`html[dir='rtl'] …`) and an Arabic font block.
+- **API layer** — `src/lib/api.js` exposes `request(path, {method, data|formData})`, plus `downloadFile()`, `normalizePage()`, `buildQuery()`, and `ApiError`. It attaches the bearer token, sends JSON or multipart, and on a 401 fires `ut:unauthorized` so the app bounces to login.
+- **Auth** — `src/lib/auth.jsx` stores the session in `localStorage` (`ut:session`) and provides `login/logout/role/user/isAuthed`.
+- **Async hook** — `src/lib/hooks.js` `useAsync(fn, deps)` manages loading/data/error.
+- **i18n** — `src/lib/i18n.jsx` `useI18n()` → `{ lang, setLang, t, isRTL, dir }`; dictionaries in `src/lib/lang/{en,ar}.js`. `t()` supports `{token}` interpolation but cannot inject JSX.
+- **UI kit** — `src/lib/ui.jsx`: `I` (≈30 inline SVG icons), `Btn`, `Field`, `Badge`, `Modal`/`FormModal`, `ToastProvider`/`useToast`, `Empty`, `Avatar`, `Reveal`, etc.
+- **Layout** — `src/layout/DashboardLayout.jsx`: shared sidebar/topbar, `NavLink` menus per role, `RoleGate`, and a language toggle. Admin NAV items carry a `scope` (and `super: true`) so unauthorized modules are hidden.
+- **Pages** — split by role into `src/pages/{student,professor,admin}/` (plus `Login.jsx`, `ResetPassword.jsx`), each with a small `_shared.jsx` (`DataTable`, `Head`, `useList`, `useOptions`, …) and an `index.jsx` barrel.
+- **Styling** — `src/styles/main.css`: dark "super-hero" theme plus RTL rules (`html[dir='rtl'] …`) and an Arabic font block.
 
 ### Backend
 
-Standard Laravel structure with lots of domain logic in `app/`:
+Standard Laravel structure with domain logic under `app/`:
 
-- **Controllers** (namespace groups):
-  - `Admin\` → `AdminAuthController`, `EventAdminController`, `AccountAdminController`, `DepartmentAdminController`, `CourseAdminController`, `SemesterAdminController`, `ScheduleAdminController`, `GradeAdminController`, `AccessRequestAdminController`, `AdminManagementController`.
-  - `API\` → `AuthController` (student login), `PublicController` (events + meta), `AccessRequestController`, `FactsController`.
-  - `API\Student\` → `UserController`, `CoursesController`, `NotificationsController`, `PaymentController`, `LogoutController`.
-  - `Professor\` → `AuthController`, `CourseProfessorController`, `AttendaceProfessorController` (sic), `LectureProfessorController`, `QuizProfessorController`, `GradeProfessorController`, `EventProfessorController`, `ProfessorNotificationsController`.
-- **Requests** — dedicated `FormRequest` classes per mutation (`AdminAddEvent`, `AdminUpdateEventRequest`, `AdminAddCourseRequest`, `ProfessorAddLectureRequest`, etc.). Rejected requests go through the `FetchRequestError` trait, which returns **HTTP 420** with message `"error in body request"` plus `data` holding the Laravel validator errors.
-- **Middleware** aliases registered in `bootstrap/app.php`:
-  - `role` → `CheckUserRole` (`admin` | `professor` | `student`).
-  - `admin-scope` → `CheckAdminScope` (`accounts`, `access_requests`, `departments`, `courses`, `semesters`, `schedules`, `events`, `grades`).
-  - `paid-courses` → `PaidCourses` (protects student course content until paid).
-- **Traits**: `SendResponse` helper in `app/Helpers.php`; file traits `UploadFile`/`UpdateFile`/`DeleteFile`/`UploadManyFile`; `Notifiable` (fan-out notifications to admins/students/professors/all students); `FetchRequestError`.
-- **Models** (18): `Admin`, `User`, `Department`, `Level`, `Course`, `StudentCourse`, `Lecture`, `StudentLecture`, `Quiz`, `Grade`, `Schedule`, `Semester`, `Event`, `Attendance`, `Notification`, `Payment`, `AccessRequest` (+ personal access tokens from Sanctum).
-- **Resources**: `UserResource`, `CourseCatalogResource`, `CourseDetailResource`, `StudentCourseResource`, `LecturesResource`, `QuizResource`, `NotificationsResource`, `Professor\ProfessorStudentResource`.
-- **Console** — `NotifyLectureReminders` (`notify:lecture-reminders`) pushes daily lecture reminders from the active semester's schedule. Scheduled in `bootstrap/app.php` to run daily at **08:00** and **16:00**.
+- **Controllers** (46 files): `API\` (auth, public, access requests, facts), `API\Student\`, `Admin\` (per-module + `AdminManagementController`), `Professor\`.
+- **Requests** — dedicated `FormRequest` classes per mutation.
+- **Middleware** — `CheckUserRole` (`role:…`), `CheckAdminScope` (`admin-scope:…`), `EnsureAccountActive` (`active`), `PaidCourses`. All return **403** on denial.
+- **Traits** — `LogsActivity`, `AuthorizesCourseOwnership`, `Notifiable`, `FetchRequestError`, and file helpers under `Traits\File\`.
+- **Models** — 29 Eloquent models (see [Data model](#data-model)).
+- **Support** — `App\Support\Settings` (policy values), `PasswordRealm` (reset realms), `ScheduleOverlap` (conflict detection), `ActivityLogger`.
+- **Services** — `ImportService` (CSV parsing/validation), `AttendanceService`.
+- **Jobs** — `FanOutNotification` (`ShouldQueue`).
+- **Console** — `notify:lecture-reminders`, `activity:prune` (audit-log retention, disabled by default).
 
 ### Authentication & authorization
 
-Three separate auth realms, each with its own login/logout flow and Sanctum tokens:
+Three auth realms, each with its own login/logout flow and Sanctum tokens:
 
-| Role | Login route | Logout route | Guard rows |
-| --- | --- | --- | --- |
-| Student | `POST /api/auth/login` | `GET /api/user/logout` | `users` table |
-| Professor | `POST /api/prof/auth/login` | `POST /api/professor/auth/logout` | `users` table (`type = 1`) |
-| Admin | `POST /api/admin/auth/login` | `POST /api/admin/auth/logout` | `admins` table |
+| Role | Login route | Rows |
+| --- | --- | --- |
+| Student | `POST /api/auth/login` | `users` (`type = 0`) |
+| Professor | `POST /api/prof/auth/login` | `users` (`type = 1`) |
+| Admin | `POST /api/admin/auth/login` | `admins` |
 
-Admins support **fine-grained roles** (feature added 2026-09-18 migration `add_admin_roles`):
-
-- `admins.is_super_admin` (boolean) + `admins.roles` (JSON array of scopes).
-- `Admin::isSuperAdmin()` bypasses all scope checks; `Admin::hasRole($scope)` checks the JSON roles.
-- `CheckAdminScope` middleware gates each admin resource group. `AdminManagementController` is **super-admin only** and protects the current admin from self-modification and super admins from modification/deletion.
-- The Nginx/REST layer on the frontend mirrors this: admin nav is filtered by `user.is_super_admin`/`user.roles`, and a `can(scope)` helper gates admin home tiles.
+- **Account status** (`users.status`): active / suspended / graduated / inactive. `EnsureAccountActive` blocks non-active users with 403.
+- **Admin scopes** — `admins.is_super_admin` (bool) + `admins.roles` (JSON array of scopes). `Admin::isSuperAdmin()` bypasses scope checks; `Admin::hasRole($scope)` checks the array; `CheckAdminScope` gates each resource group. `AdminManagementController` is **super-admin only** and guards self/super-admin modification.
+- **Professor ownership** — `AuthorizesCourseOwnership` returns 403 when a professor touches a course they do not own (lectures, quizzes, grades, announcements, appeals).
+- **Paid-course gating** — `PaidCourses` (403) blocks access to course content until a `paid`/`waived` `courses`-type payment exists for the current year.
 
 ### API conventions
 
-- All responses follow the shape `{ status: <int>, message: <string>, data: <mixed> }` via the `SendResponse()` helper. The frontend unwraps `data` and throws `ApiError(message, status, payload)` on non-2xx.
-- List endpoints are **paginated** Laravel paginators/`Resource::collection` with the standard `{ data, links, meta }` shape; the client normalizes them with `normalizePage()`.
-- Validation failures return **HTTP 420** with a `data` map of field → messages. The frontend's `request()` surfaces the first field error as the toasts message (so you see `"The image field is required."` rather than `"error in body request"`).
-- File uploads send `multipart/form-data` (`formData` option in the request wrapper) — the wrapper deliberately does **not** set `Content-Type` so the browser adds the boundary.
+- Responses use `{ status, message, data }` via the `SendResponse()` helper (`app/Helpers.php`). The client unwraps `data` and throws `ApiError(message, status, payload)` on non-2xx.
+- List endpoints are paginated Laravel paginators / `Resource::collection` (`{ data, links, meta }`), normalized by `normalizePage()`.
+- Validation failures return **422** with a `data` map of field → messages (the frontend surfaces the first field error).
+- File uploads use `multipart/form-data`; the wrapper deliberately does not set `Content-Type` so the browser adds the boundary.
 
 ### File uploads
 
-- Stored via the **`files`** disk (`config/filesystems.php`): root `base_path('public_html/uploads')`, public URL `/uploads`.
-- Filenames are UUIDs; folders per entity: `events/`, `images/events/`, `images/courses/covers/`, `images/schedules/`, `lectures/`.
-- Image URLs are generated as `url('uploads/' . $storedPath)`.
-- **Important quirk**: the `files` disk root is `public_html/uploads` while the local dev server (`php -S 127.0.0.1:8000 -t public`) has docroot `public`. The `/uploads/*` URLs therefore map to `public/uploads`, which does **not** exist by default. It was fixed locally with a **directory junction**: `public/uploads` → `public_html/uploads` (run `mklink /J public\uploads public_html\uploads` if it is missing). On a host whose web root is `public`, you must keep that junction/link; on a host whose web root is the project `public_html` folder, you don't.
-- Validation for event images: `image|mimes:jpeg,png,jpg,gif,svg,webp|max:5120` (5 MB, and note **webp is allowed**); for lecture/quiz uploads files are stored under `lectures/` (PDFs observed in DB).
+- Stored via the **`files`** disk: root `base_path('public_html/uploads')`, public URL `/uploads`.
+- UUID filenames; folders per entity (`events/`, `images/…`, `lectures/`, ...).
+- **Quirk**: the disk root is `public_html/uploads` while the dev server docroot is `public`. Fix locally with a directory junction: `mklink /J public\uploads public_html\uploads`.
 
 ### Internationalization (i18n)
 
-- `I18nProvider` + `useI18n` (`src/lib/i18n.jsx`); default `en`, switchable to `ar`.
-- Persists the choice in `localStorage` (`ut:lang`); sets `<html lang>` and `dir` (`rtl` for Arabic).
-- Language toggle buttons: topbar `.lang-toggle` in the app, floating `.lang-toggle-float` on the login screen. Toggling shows the **target** language label (`switchToAr`/`switchToEn`).
-- Translation keys live in `src/lib/lang/{en,ar}.js`; pages are fully translated including admin/role labels and login flows.
+- `I18nProvider` + `useI18n` (`src/lib/i18n.jsx`); default `en`, switchable to `ar` (persisted in `ut:lang`, sets `<html lang/dir>`).
+- Every user-facing string is translated; `en.js` and `ar.js` are kept to **identical key sets** (verified by script during QA).
 
 ---
 
 ## Data model
 
-Key tables (see `database/migrations/`, note the custom `2026_*` migrations extend/modernize the older 2013–2024 schema):
+Key tables (migrations under `database/migrations/`; the custom `2026_*` migrations modernize the older 2013–2024 schema):
 
-- `admins` — admin accounts (+ `is_super_admin`, `roles`).
-- `users` — students **and** professors (`type`: 0 student, 1 professor; gender, national id, phone, credit points, semester, department, level, job title).
-- `departments` — (`name`, `abbreviation`) and `levels` (year levels).
-- `courses` — (`course_name`, `course_code`, `credits`, cover `image`, professor, department, level, `semester_id`).
-- `student_course` — enrollments (`last_lecture`), `student_lectures` — per-student lecture progress.
-- `lectures`, `quizzes` — content per course.
-- `schedules` — weekly rows (`day_of_week`, `start_time`, `end_time`, `section_type`, semester, level, department, course, image) in `2026_01_01_000004_rework_schedules_table`.
-- `semesters` — (+ `grading_system`), `is_active` flag drives schedule/reports.
-- `grades` — student scores per course (per `2026_09_17_000005`).
-- `attendances` — per lecture/course.
-- `events` — campus events (+ `image`, `admin_id`).
-- `notifications` — bell feed with `type` (notification/event/announcement) targeted at student/professor/admin.
-- `payments` — paid course/year tuition (Stripe or demo mode).
-- `access_requests` — pending registration approvals (created `2026_09_18`).
-- `personal_access_tokens` — Sanctum tokens.
+- **`admins`** — admin accounts + `is_super_admin`, `roles`.
+- **`users`** — students and professors (`type` 0/1) with department/level, credit points, semester, and `status`.
+- **`departments`**, **`levels`** (with `position`).
+- **`courses`** — code/title/hours/cover, department (nullable), professor, semester, `capacity`; **`course_prerequisites`** links courses.
+- **`semesters`** — academic year, `is_active`, registration window (`registration_opens_at/closes_at`), `closed_at`.
+- **`schedules`** — weekly timetable with `room_id`, day, times, section type, level/department/course, semester.
+- **`rooms`** — name/building/capacity (unique name+building).
+- **`student_courses`** (enrollments) — `status` (registered / dropped / completed / failed), `status_changed_at`, `semester_id`.
+- **`student_lectures`** — per-student lecture progress (unique student+lecture).
+- **`lectures`**, **`quizzes`** (+ `max_score`, `published_at`), **`quiz_submissions`** (unique quiz+student; file/answer/score/feedback/graded_by).
+- **`grades`** — lifecycle `status` (draft / published / locked), publish/lock morphs, `edit_reason`; **`grade_components`** (course, name, weight, position) and **`grade_component_scores`**; **`grade_appeals`** (reason, status, response).
+- **`attendances`** — per lecture/course with `recorded_by` morph + soft deletes; **`attendance_threshold_alerts`** (unique student+course+threshold).
+- **`events`** — campus events with `audience` (all / targeted) and pivots `event_departments`, `event_levels`.
+- **`announcements`** — course announcements (course + professor/admin authors).
+- **`notifications`** — bell feed with `type`, `category`, optional `course_id` / `announcement_id`.
+- **`payments`** — courses/year tuition with `status` (pending / paid / waived / refunded / failed), `receipt_number`, timestamps.
+- **`access_requests`** — pending registrations (status + `rejection_reason`).
+- **`student_promotions`** — rollover history (from/to semester + level, action).
+- **`settings`** — runtime policy key/value.
+- **`activity_logs`** — audit log (`action`, actor morph, `properties`, indexed by action/created_at/actor).
+- **`personal_access_tokens`** — Sanctum tokens.
 
-Relationships are defined in the models (e.g. `User` → department, level, grades, attendances, payments, notifications; `Admin` → users, events, departments, notifications, payments).
+Relationships are defined on the models (`User`, `Admin`, `Course`, `Grade`, `Payment`, `Schedule`, `Event`, …).
+
+---
+
+## Admin scopes
+
+`VALID_SCOPES` (in `AdminManagementController`) — assign any subset to a non-super admin:
+
+`accounts` · `access_requests` · `departments` · `courses` · `semesters` · `schedules` · `events` · `grades` · `attendances` · `payments` · `reports` · `activity` · `settings`
+
+---
+
+## Configurable settings
+
+Runtime policy values live in the `settings` table and fall back to `config/enrollment.php` defaults. `App\Support\Settings` reads them with typed accessors. Change them in the admin **Settings** page (`admin-scope:settings`).
+
+| Key | Default | Meaning |
+| --- | --- | --- |
+| `credit_limit` | `18` | Max credit hours a student may register per semester. |
+| `passing_score` | `50` | Min % for a prerequisite to count as passed (out of 100). |
+| `drop_window_days` | `14` | Days after the registration window within which a student may drop. |
+| `grade_edit_window_hours` | `48` | Hours after publish a professor may still edit a grade (with reason). |
+| `attendance_edit_window_hours` | `48` | Hours after recording a professor may still correct attendance. |
+| `attendance_warn_threshold` | `15` | Absence % per course that triggers a warning notification. |
+| `attendance_bar_threshold` | `25` | Absence % per course flagged as "exam barred" (informational). |
+| `appeal_window_days` | `14` | Days after publication a student may appeal a grade. |
+| `quiz_allow_resubmit` | `false` | Whether a student may resubmit a quiz. |
+| `quiz_allow_late` | `false` | Whether late quiz submissions are accepted. |
+| `quiz_submission_max_kb` | `10240` | Max quiz submission file size (KB). |
+| `flag_refund_on_drop` | `true` | Flag a refund for admin review when a paid course is dropped. |
+
+**New environment variables** (see `.env.example`):
+
+| Var | Purpose |
+| --- | --- |
+| `FRONTEND_URL` | Frontend origin used to build links in emails (password reset, access-request decisions). |
+| `MAIL_MAILER` / `MAIL_*` | Mail transport. Local/dev uses `log`; production sets `smtp` (+ credentials). |
+| `PAYMENT_DEMO_MODE` | When `true`, payments succeed without a real charge (no Stripe call). |
+| `PAYMENT_CURRENCY` | Currency code for payments. |
+| `DB_CONNECTION` / `DATABASE_URL` | MySQL locally; Postgres on Render. |
 
 ---
 
@@ -224,7 +267,8 @@ Relationships are defined in the models (e.g. `User` → department, level, grad
 
 `php artisan schedule:work` (or OS cron hitting the scheduler) runs:
 
-- `notify:lecture-reminders` — **08:00** and **16:00** daily. Finds the active semester, builds today's lecture schedule, and notifies each enrolled student about upcoming lectures.
+- `notify:lecture-reminders` — daily at **08:00** and **16:00**: notifies enrolled students about upcoming lectures from the active semester's schedule.
+- `activity:prune` — audit-log retention (default retention 24 months); **disabled by default** (see `bootstrap/app.php`).
 
 ---
 
@@ -232,56 +276,59 @@ Relationships are defined in the models (e.g. `User` → department, level, grad
 
 ### Prerequisites
 
-- **PHP ≥ 8.3** with the usual Laravel extensions (observed: `C:\Program Files\php-8.4.6-...`).
-- **Composer**.
-- **Node.js** (npm).
-- **MySQL** (local server on `127.0.0.1:3306`, DB `univars_tech`).
+- **PHP ≥ 8.4** with the usual Laravel extensions.
+- **Composer**, **Node.js (npm)**.
+- **MySQL 8** (local dev); Postgres for the Render target.
 
 ### Backend setup
 
 ```bash
 cd D:\UniversTech\univers-tech.pro\univers-tech.pro
 composer install
-copy .env.example .env          # or reuse the existing .env
-php artisan key:generate        # if replacing .env
-# configure .env: set APP_URL, DB_DATABASE=univars_tech, and file disk values
-php artisan migrate             # run all migrations
-php artisan db:seed             # optional demo data (DatabaseSeeder)
-php artisan serve               # → http://127.0.0.1:8000
+copy .env.example .env
+php artisan key:generate
+# configure .env: APP_URL, FRONTEND_URL, DB_* , MAIL_* , PAYMENT_*
+php artisan migrate
+php artisan db:seed          # optional: coherent demo dataset
+php artisan serve            # → http://127.0.0.1:8000
 ```
 
-> The dev backend is commonly launched as `php -S 127.0.0.1:8000 -t public` inside the project so `/uploads/*` works through the `public/uploads` junction.
+> The dev backend is commonly launched as `php -S 127.0.0.1:8000 -t public` inside the project so `/uploads/*` resolves through the `public/uploads` junction.
 
 ### Frontend setup
 
 ```bash
 cd D:\UniversTech\front-end
 npm install
-npm run dev                     # → http://localhost:5173 (proxies /api → 127.0.0.1:8000)
+npm run dev                  # → http://localhost:5173 (proxies /api → 127.0.0.1:8000)
 ```
 
 ### Required services
 
-1. MySQL running with DB `univars_tech` (root / no password in default `.env`).
+1. MySQL running (default DB `univars_tech`).
 2. Backend API on `127.0.0.1:8000`.
-3. Vite dev server on `localhost:5173` and open `http://localhost:5173/login`.
+3. Vite dev server on `localhost:5173`; open `http://localhost:5173/login`.
 
 ---
 
-## Default accounts
+## Demo accounts
 
-These were set up during development and are actively used for testing:
+`php artisan migrate:fresh --seed` runs `DatabaseSeeder`, which creates a **deterministic, idempotent** demo dataset. All accounts share the password:
 
-| Role | Email | Password | Notes |
-| --- | --- | --- | --- |
-| **Super admin** (manager) | `ashraf@gmail.com` | `password` | Full access incl. Admins & Roles |
-| **Super admin** (manager) | `3mo@gmail.com` | `password` | Full access incl. Admins & Roles |
-| Scoped admin (accounts+departments) | `acctadmin@test.com` | `password` | Sees only Control Center, Accounts, Departments |
-| Scoped admin (events only) | `eventsadmin@test.com` | `password` | Sees only Control Center, Events |
-| Student | `student@test.com` | `password` | Also `m@gmail.com` (student) |
-| Professor | `prof@test.com` | `password` | |
+```
+Demo@12345
+```
 
-Seeders also create a batch of factory users (`Admin::factory(10)`, `Department::factory(10)`, `User::factory(20)`, `Course::factory(10)`, `StudentCourse`, `Lecture::factory(30)`, `Notification::factory(200)`).
+| Role | Email | Scope / notes |
+| --- | --- | --- |
+| Super admin | `superadmin@universtech.demo` | Full access incl. Admins & Roles. |
+| Scoped admin | `registrar@universtech.demo` | accounts, courses, schedules, semesters, grades, attendances, departments, reports, settings |
+| Scoped admin | `finance@universtech.demo` | payments, reports |
+| Scoped admin | `events@universtech.demo` | events, access_requests, activity |
+| Professor | `professor@universtech.demo` | Owns seeded courses. |
+| Student | `student@universtech.demo` | Enrolled with mixed statuses. |
+
+The seed covers every new feature: courses with prerequisites and capacity, a room-backed schedule, enrollments in every status, grade components and scores, a grade appeal, quizzes with submissions, announcements (incl. Arabic for RTL checks), attendance rows plus a threshold alert, payments in every status, targeted events, access requests, a promotion record, and activity-log entries.
 
 ---
 
@@ -289,49 +336,35 @@ Seeders also create a batch of factory users (`Admin::factory(10)`, `Department:
 
 ```
 D:\UniversTech
-├── front-end                         # React SPA
-│   ├── index.html
-│   ├── vite.config.js                # dev proxy /api → 127.0.0.1:8000
-│   ├── package.json
+├── front-end                          # React SPA
+│   ├── vite.config.js                 # dev proxy /api → 127.0.0.1:8000
 │   └── src
-│       ├── main.jsx                  # entry (StrictMode)
-│       ├── App.jsx                   # routes + providers + unauthorized listener
-│       ├── layout/DashboardLayout.jsx# role-scoped shell + NAV + RoleGate + lang toggle
+│       ├── main.jsx / App.jsx         # entry + routes/providers
+│       ├── layout/DashboardLayout.jsx # role-scoped shell + NAV + RoleGate
 │       ├── lib/
-│       │   ├── api.js                # request/normalizePage/buildQuery/ApiError/constants
-│       │   ├── auth.jsx              # AuthProvider/useAuth + session store
-│       │   ├── hooks.js              # useAsync
-│       │   ├── i18n.jsx              # I18nProvider/useI18n
-│       │   ├── ui.jsx                # hand-rolled UI kit (icons, Modal, toast, loader…)
-│       │   └── lang/{en,ar}.js       # dictionaries
+│       │   ├── api.js  auth.jsx  hooks.js  i18n.jsx  ui.jsx
+│       │   └── lang/{en,ar}.js         # dictionaries (identical key sets)
 │       ├── pages/
-│       │   ├── Login.jsx             # role tabs + registration request + event carousel
-│       │   ├── student.jsx           # home, courses, catalog, course detail, schedule, reports, notifications
-│       │   ├── professor.jsx         # home, courses, students/attendance, lectures, quizzes, grades, notifications
-│       │   └── admin.jsx             # accounts, access requests, departments, courses, semesters, schedules, events, grades, admins, home
-│       └── styles/main.css           # global stylesheet + RTL rules + Arabic font block
+│       │   ├── Login.jsx  ResetPassword.jsx
+│       │   ├── student/   professor/   admin/   # per-role pages + _shared + index
+│       └── styles/main.css             # theme + RTL rules + Arabic font block
 │
-└── univers-tech.pro/univers-tech.pro # Laravel API
+└── univers-tech.pro/univers-tech.pro   # Laravel API
     ├── app
-    │   ├── Http/Controllers/
-    │   │   ├── API/                  # auth, public, access requests, facts, student APIs
-    │   │   ├── Admin/                # per-module admin controllers + admin management
-    │   │   └── Professor/            # professor controllers
-    │   ├── Http/Middleware/          # Authenticate, CheckUserRole, CheckAdminScope, PaidCourses, …
-    │   ├── Http/Requests/            # FormRequests (Admin, Professor, public)
-    │   ├── Http/Resources/           # API resources
-    │   ├── Models/                   # 18 Eloquent models
-    │   ├── Traits/                   # SendResponse (Helpers.php), files, Notifiable, FetchRequestError
-    │   └── Console/Commands/         # NotifyLectureReminders
-    ├── bootstrap/app.php             # middleware aliases + scheduling + api/user route group
-    ├── config/filesystems.php        # files disk → public_html/uploads
-    ├── database/migrations/          # 37 migrations (2013 → 2026-09-18)
-    ├── database/seeders/             # DatabaseSeeder (factory data)
-    ├── public/                       # web root (uploads junction lives here)
-    ├── public_html/                  # cPanel-style dir; uploads actually stored here
-    └── routes/
-        ├── api.php                   # main API (admin/professor/public/auth)
-        └── user-api.php              # /api/user/* group (student, paid-courses)
+    │   ├── Http/Controllers/{API,API\Student,Admin,Professor}
+    │   ├── Http/Middleware/            # CheckUserRole, CheckAdminScope, EnsureAccountActive, PaidCourses
+    │   ├── Http/Requests/  Http/Resources/
+    │   ├── Models/                     # 29 Eloquent models
+    │   ├── Services/                   # ImportService, AttendanceService
+    │   ├── Support/                    # Settings, PasswordRealm, ScheduleOverlap, ActivityLogger
+    │   ├── Traits/  Jobs/  Console/Commands/
+    │   └── Helpers.php                 # SendResponse()
+    ├── bootstrap/app.php               # middleware aliases + scheduling + user route group
+    ├── config/{filesystems,enrollment,mail}.php
+    ├── database/{migrations,factories,seeders}
+    ├── public/ + public_html/          # web root + uploads dir (junction)
+    ├── routes/{api.php,user-api.php}
+    └── tests/                          # PHPUnit feature tests
 ```
 
 ---
@@ -342,33 +375,45 @@ D:\UniversTech
 | --- | --- |
 | Install backend deps | `composer install` |
 | Install frontend deps | `npm install` |
-| Run backend (public docroot) | `php -S 127.0.0.1:8000 -t public` |
+| Run backend | `php artisan serve` (or `php -S 127.0.0.1:8000 -t public`) |
 | Run Vite dev server | `npm run dev` |
 | Production frontend build | `npm run build` (outputs to `front-end/dist`) |
 | Migrate DB | `php artisan migrate` |
 | Seed demo data | `php artisan db:seed` |
-| Run tests | `./vendor/bin/phpunit` (bare Laravel defaults present) |
-| Lecture reminders | `php artisan notify:lecture-reminders` (or `schedule:work` for 08:00/16:00) |
+| Full reset + seed | `php artisan migrate:fresh --seed` |
+| Run tests | `php vendor/phpunit/phpunit/phpunit` |
+| Lecture reminders | `php artisan notify:lecture-reminders` |
+| Prune audit log | `php artisan activity:prune` |
 | Fix missing image serving | `cmd /c mklink /J "…\public\uploads" "…\public_html\uploads"` |
+
+---
+
+## Testing
+
+- PHPUnit feature tests live under `backend/tests/Feature`. The suite runs against **MySQL** in CI and can run against SQLite locally by overriding `DB_CONNECTION=sqlite` / `DB_DATABASE=…`.
+- Coverage includes security (roles/scopes/status/ownership), enrollment rules, grade lifecycle/appeals, rollover, attendance, quizzes, payments, schedules/conflicts, announcements/event targeting, bulk import, and reports.
 
 ---
 
 ## Known caveats & gotchas
 
-1. **Image URLs 404 after upload (fixed finding):** files land in `public_html/uploads` but `-t public` serves from `public/uploads`. Kept working via a junction — if images 404 again, recreate it.
-2. **`error in body request` toasts:** this is the Surface a Laravel 420 validation failure. Current frontend unwraps and shows the real field message.
-3. **i18n interpolation:** `t(key, vars)` only substitutes `{word}` placeholders; it cannot embed React/JSX nodes. Keep slots inside a sentence.
-4. **Windows PowerShell + curl JSON:** use `[IO.File]::WriteAllText` — `Set-Content -Encoding UTF8` adds a BOM that breaks Laravel JSON parsing (HTTP 420).
-5. **CP1252 consoles:** printing Arabic from PowerShell/Python needs `encode('unicode_escape')`.
-6. **Vite is IPv6-bound in this workspace:** always use `http://localhost:5173` (not `127.0.0.1:5173`).
-7. **Route blank-import quirk in `routes/api.php`:** the admin management routes live outside the scope groups but still require `role:admin`; super-admin enforcement is inside the controller (`AdminManagementController::authorizeSuper`).
-8. The seeded event id `1` (مصلحة عامة) still references `uploads/img.png`, a file that does not exist anywhere — its image will 404 until the record is fixed or the file provided.
-9. `AttendaceProfessorController` retains its original (misspelled) class name for backward compatibility with routes.
+1. **Image URLs 404 after upload** — files land in `public_html/uploads` but `-t public` serves from `public/uploads`; keep the `public/uploads` junction.
+2. **Vite is IPv6-bound in this workspace** — always use `http://localhost:5173`, not `127.0.0.1:5173`.
+3. **i18n interpolation** — `t(key, vars)` only substitutes `{word}` placeholders; it cannot embed JSX.
+4. **Windows PowerShell + JSON payloads** — use `[IO.File]::WriteAllText`; `Set-Content -Encoding UTF8` adds a BOM that breaks Laravel JSON parsing.
+4. **CP1252 consoles** — printing Arabic from PowerShell/Python needs `encode('unicode_escape')`.
+6. **`AttendaceProfessorController`** keeps its original (misspelled) class name for route backward-compatibility.
+6. **Validation status code** — the codebase uses **422** (the older docs mentioned 420).
 
 ---
 
-## Roadmap notes (recently added)
+## Follow-ups
 
-- **2026-09-18** — Multi-admin role management: `is_super_admin` + `roles` on `admins`, `CheckAdminScope` middleware, `AdminManagementController`, filtered admin nav + `can(scope)` gating, `event/upcoming` etc.
-- **2026-09-17/18** — `semesters` rework + grading system, nullable course department, unique constraints, `student_lectures` progress tracking, `quizzes`, `grades`, and `access_requests`.
-- **2026-09** — Full Arabic (RTL) support, animated `CourseLoader`, desktop-parity admin modules, upload-limit/mime relaxation for event photos (5 MB, `webp`).
+Deferred / noticed, deliberately **not** part of the completed roadmap:
+
+- Change requests to alter the validation status code (422 vs 420) — kept 422.
+- Split the remaining larger page modules; further extract shared admin components.
+- Token storage / cookie-auth migration, containerization, CI pipeline definition.
+- Real Stripe integration (demo mode is the default).
+- Backend hosting/deployment (Render/other) — separate decision.
+- Progressive table alignment in dense tables uses physical `text-align: right` for action columns (consistent across the app); revisit if stricter logical-property RTL alignment is desired.
