@@ -12,7 +12,9 @@ use App\Http\Controllers\Admin\DepartmentAdminController;
 use App\Http\Controllers\Admin\EnrollmentAdminController;
 use App\Http\Controllers\Admin\EventAdminController;
 use App\Http\Controllers\Admin\GradeAdminController;
+use App\Http\Controllers\Admin\ImportAdminController;
 use App\Http\Controllers\Admin\PaymentAdminController;
+use App\Http\Controllers\Admin\ReportAdminController;
 use App\Http\Controllers\Admin\RoomAdminController;
 use App\Http\Controllers\Admin\ScheduleAdminController;
 use App\Http\Controllers\Admin\RolloverAdminController;
@@ -108,6 +110,11 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
         Route::delete('user/delete/{id}', [AccountAdminController::class, 'delete']);
         Route::post('user/restore/{id}', [AccountAdminController::class, 'restore']);
         Route::delete('user/purge/{id}', [AccountAdminController::class, 'purge']);
+
+        // Bulk import — students (A2)
+        Route::get('import/students/template', [ImportAdminController::class, 'studentsTemplate']);
+        Route::post('import/students/preview', [ImportAdminController::class, 'studentsPreview']);
+        Route::post('import/students/apply', [ImportAdminController::class, 'studentsApply']);
     });
 
     // Departments
@@ -139,6 +146,11 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
         // Course announcements moderation (P3)
         Route::get('announcement/get/all', [AnnouncementAdminController::class, 'index']);
         Route::delete('announcement/delete/{id}', [AnnouncementAdminController::class, 'delete']);
+
+        // Bulk import — courses (A2)
+        Route::get('import/courses/template', [ImportAdminController::class, 'coursesTemplate']);
+        Route::post('import/courses/preview', [ImportAdminController::class, 'coursesPreview']);
+        Route::post('import/courses/apply', [ImportAdminController::class, 'coursesApply']);
     });
 
     // Enrollment settings (§0.7)
@@ -220,6 +232,13 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
         Route::post('attendance/update', [AttendanceAdminController::class, 'update']);
         Route::delete('attendance/delete/{id}', [AttendanceAdminController::class, 'delete']);
         Route::post('attendance/restore/{id}', [AttendanceAdminController::class, 'restore']);
+    });
+
+    // Reports (A8)
+    Route::middleware('admin-scope:reports')->group(function () {
+        Route::get('report/enrollment', [ReportAdminController::class, 'enrollment']);
+        Route::get('report/payments', [ReportAdminController::class, 'payments']);
+        Route::get('report/attendance', [ReportAdminController::class, 'attendance']);
     });
 });
 

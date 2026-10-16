@@ -44,8 +44,10 @@ export const NAV = {
     { to: '/app/admin/grades', icon: 'award', key: 'gradesCards', scope: 'grades' },
     { to: '/app/admin/payments', icon: 'wallet', key: 'rolePayments', scope: 'payments' },
     { to: '/app/admin/appeals', icon: 'mail', key: 'gradeAppeals', scope: 'grades' },
-    { to: '/app/admin/activity', icon: 'file', key: 'activityLog', scope: 'activity' },
-    { to: '/app/admin/settings', icon: 'lock', key: 'settings', scope: 'settings' },
+  { to: '/app/admin/activity', icon: 'file', key: 'activityLog', scope: 'activity' },
+  { to: '/app/admin/import', icon: 'upload', key: 'bulkImport', scope: ['accounts', 'courses'] },
+  { to: '/app/admin/reports', icon: 'chart', key: 'reports', scope: 'reports' },
+  { to: '/app/admin/settings', icon: 'lock', key: 'settings', scope: 'settings' },
     { to: '/app/admin/admins', icon: 'shield', key: 'adminsRoles', super: true },
   ],
 }
@@ -177,7 +179,9 @@ export default function DashboardLayout({ role }) {
     return all.filter(
       (n) =>
         (n.super ? Boolean(isSuper) : true) &&
-        (!n.scope || isSuper || roles.includes(n.scope)),
+        (!n.scope ||
+          isSuper ||
+          (Array.isArray(n.scope) ? n.scope.some((s) => roles.includes(s)) : roles.includes(n.scope))),
     )
   }, [role, user?.is_super_admin, user?.roles])
   const current = useMemo(() => {

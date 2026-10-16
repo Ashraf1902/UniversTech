@@ -120,6 +120,48 @@ export async function request(path, { method = 'GET', data, formData, headers: e
   return (json && json.data !== undefined ? json.data : json) ?? null
 }
 
+export async function downloadFile(path, filename) {
+  const opts = { method: 'GET', headers: { Accept: 'text/csv, application/octet-stream' }, credentials: 'include' }
+  const token = getToken()
+  if (token) opts.headers.Authorization = `Bearer ${token}`
+
+  let res
+  try {
+    res = await fetch(API_BASE + path, opts)
+  } catch {
+    throw new ApiError('Cannot reach the server. Is the backend running?', 0)
+  }
+
+  if (res.status === 401) {
+    handleUnauthorized()
+  }
+
+  if (!res.ok) {
+    let msg = 'Download failed.'
+    try {
+      const json = await res.json()
+      if (typeof json?.message === 'string') msg = json.message
+    } catch {
+      /* non-JSON body */
+    }
+    throw new ApiError(msg, res.status)
+  }
+
+  const blob = await res.blob()
+  const disposition = res.headers.get('Content-Disposition') || ''
+  const match = disposition.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i)
+  const name = filename || (match ? decodeURIComponent(match[1]) : 'download.csv')
+
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = name
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
 export function getFieldErrors(err) {
   const data = err?.payload?.data
   if (data && typeof data === 'object' && !Array.isArray(data)) return data

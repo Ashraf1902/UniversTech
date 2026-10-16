@@ -67,6 +67,12 @@ class ActivityLogger
     // Configuration
     public const SETTINGS_UPDATED = 'settings_updated';
 
+    // Bulk import (A2)
+    public const DATA_IMPORTED = 'data_imported';
+
+    // Reports (A8)
+    public const REPORT_EXPORTED = 'report_exported';
+
     // Administration
     public const ADMIN_CREATED = 'admin_created';
     public const ADMIN_UPDATED = 'admin_updated';

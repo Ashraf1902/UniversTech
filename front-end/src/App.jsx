@@ -13,7 +13,7 @@ import {
   ProfessorAnnouncements, ProfessorAppeals, ProfessorCourses, ProfessorGrades, ProfessorHome, ProfessorLectures, ProfessorNotifications, ProfessorQuizzes, ProfessorSchedule, ProfessorStudents,
 } from './pages/professor'
 import {
-  AdminAccounts, AdminAccessRequests, AdminActivity, AdminAdmins, AdminAnnouncements, AdminAppeals, AdminAttendance, AdminCourses, AdminDepartments, AdminEvents, AdminGrades, AdminHome, AdminPayments, AdminSchedules, AdminSemesters, AdminRollover, AdminSettings,
+  AdminAccounts, AdminAccessRequests, AdminActivity, AdminAdmins, AdminAnnouncements, AdminAppeals, AdminAttendance, AdminCourses, AdminDepartments, AdminEvents, AdminGrades, AdminHome, AdminImport, AdminPayments, AdminReports, AdminSchedules, AdminSemesters, AdminRollover, AdminSettings,
 } from './pages/admin'
 
 function UnauthorizedListener() {
@@ -111,6 +111,8 @@ export default function App() {
                   <Route path="grades" element={<AdminGrades />} />
                   <Route path="payments" element={<AdminPayments />} />
                   <Route path="attendance" element={<AdminAttendance />} />
+          <Route path="import" element={<AdminImport />} />
+          <Route path="reports" element={<AdminReports />} />
                   <Route path="appeals" element={<AdminAppeals />} />
                   <Route path="activity" element={<AdminActivity />} />
                   <Route path="settings" element={<AdminSettings />} />
