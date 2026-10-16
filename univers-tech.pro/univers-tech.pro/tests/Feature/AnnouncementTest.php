@@ -220,13 +220,18 @@ class AnnouncementTest extends TestCase
             ->assertJsonPath('data.announcements.0.title', 'Room change')
             ->assertJsonPath('data.announcements.0.body', 'Today we meet in B204.');
 
+        $this->assertDatabaseHas('notifications', [
+            'announcement_id' => $announcementId,
+            'student_id' => $this->registeredStudent->id,
+        ]);
+
         $this->getJson('/api/user/notifications/announcments')
             ->assertStatus(200)
-            ->assertJsonFragment(['id' => $announcementId]);
+            ->assertJsonFragment(['title' => 'Room change', 'course_id' => $this->courseA->id]);
 
         $this->getJson('/api/user/notifications')
             ->assertStatus(200)
-            ->assertJsonFragment(['id' => $announcementId]);
+            ->assertJsonFragment(['title' => 'Room change', 'course_id' => $this->courseA->id]);
     }
 
     public function test_professor_can_update_and_delete_only_their_own_announcements(): void

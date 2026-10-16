@@ -330,7 +330,7 @@ class EnrollmentRulesTest extends TestCase
             'course_id' => $course->id,
             'student_id' => $this->student->id,
             'override' => true,
-        ])->assertStatus(422)->assertJsonValidationErrors('note');
+        ])->assertStatus(422)->assertJsonValidationErrors('note', 'data');
     }
 
     public function test_admin_can_unenroll_a_student(): void

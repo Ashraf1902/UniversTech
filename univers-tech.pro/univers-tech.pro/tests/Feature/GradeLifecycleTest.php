@@ -249,7 +249,7 @@ class GradeLifecycleTest extends TestCase
             'grade_id' => $grade->id,
             'marks' => 65,
             'max_marks' => 100,
-        ])->assertStatus(422)->assertJsonValidationErrors('reason');
+        ])->assertStatus(422)->assertJsonValidationErrors('reason', 'data');
 
         $this->postJson('/api/grade/override', [
             'grade_id' => $grade->id,

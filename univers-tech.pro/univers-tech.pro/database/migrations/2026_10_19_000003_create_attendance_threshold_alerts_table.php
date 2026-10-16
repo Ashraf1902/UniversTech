@@ -16,8 +16,10 @@ return new class extends Migration
             $table->timestamp('notified_at');
             $table->timestamps();
 
-            $table->unique(['student_id', 'course_id', 'threshold']);
-            $table->index(['course_id', 'student_id']);
+            // Explicit short index names: MySQL caps identifiers at 64 chars and
+            // the auto-generated name for these columns would exceed it.
+            $table->unique(['student_id', 'course_id', 'threshold'], 'attendance_alerts_unique');
+            $table->index(['course_id', 'student_id'], 'attendance_alerts_course_student_index');
         });
     }
 

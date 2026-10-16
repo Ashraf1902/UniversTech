@@ -33,10 +33,22 @@ use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class DatabaseSeeder extends Seeder
 {
+    /**
+     * Password for the NON-ADMIN demo accounts only (professors, students,
+     * access-request applicants). It is never used for administrator accounts.
+     */
     public const DEMO_PASSWORD = 'Demo@12345';
+
+    /**
+     * Environment variable that supplies the demo administrator password.
+     * When it is empty the seeder generates a random one and prints it, so no
+     * administrator password is ever hard-coded in the repository.
+     */
+    public const ADMIN_PASSWORD_ENV = 'DEMO_SUPER_ADMIN_PASSWORD';
 
     public const DEMO_ACCOUNTS = [
         ['Super Admin', 'superadmin@universtech.demo', 'super admin (all scopes)'],
@@ -75,8 +87,14 @@ class DatabaseSeeder extends Seeder
 
     private int $userCounter = 0;
 
+    private string $adminPassword = '';
+
+    private bool $adminPasswordFromEnv = true;
+
     public function run(): void
     {
+        $this->resolveAdminPassword();
+
         $this->super = $this->seedAdmins();
         $this->seedLevels();
         $this->departments = $this->seedDepartments();
@@ -102,11 +120,26 @@ class DatabaseSeeder extends Seeder
         $this->listDemoAccounts();
     }
 
+    private function resolveAdminPassword(): void
+    {
+        $fromEnv = env(self::ADMIN_PASSWORD_ENV);
+
+        if (is_string($fromEnv) && $fromEnv !== '') {
+            $this->adminPassword = $fromEnv;
+            $this->adminPasswordFromEnv = true;
+
+            return;
+        }
+
+        $this->adminPassword = Str::password(16);
+        $this->adminPasswordFromEnv = false;
+    }
+
     private function seedAdmins(): Admin
     {
         $super = Admin::updateOrCreate(['email' => 'superadmin@universtech.demo'], [
             'name' => 'Super Admin',
-            'password' => Hash::make(self::DEMO_PASSWORD),
+            'password' => Hash::make($this->adminPassword),
             'is_super_admin' => true,
             'roles' => null,
         ]);
@@ -120,7 +153,7 @@ class DatabaseSeeder extends Seeder
         foreach ($admins as [$email, $name, $roles]) {
             Admin::updateOrCreate(['email' => $email], [
                 'name' => $name,
-                'password' => Hash::make(self::DEMO_PASSWORD),
+                'password' => Hash::make($this->adminPassword),
                 'is_super_admin' => false,
                 'roles' => $roles,
             ]);
@@ -764,10 +797,28 @@ class DatabaseSeeder extends Seeder
             return;
         }
 
-        $this->command->info('Demo accounts (password: ' . self::DEMO_PASSWORD . '):');
+        $this->command->info('Administrator accounts (none of the old "password" default accounts are created):');
+
+        if ($this->adminPasswordFromEnv) {
+            $this->command->line('  password: value of the ' . self::ADMIN_PASSWORD_ENV . ' env variable');
+        } else {
+            $this->command->line('  generated password (no ' . self::ADMIN_PASSWORD_ENV . ' set): ' . $this->adminPassword);
+        }
 
         foreach (self::DEMO_ACCOUNTS as [$name, $email, $role]) {
+            if ($role === 'professor' || $role === 'student') {
+                continue;
+            }
             $this->command->line(sprintf('  - %-30s %-26s %s', $email, $name, $role));
+        }
+
+        $this->command->line('');
+        $this->command->info('Non-admin demo accounts (password: ' . self::DEMO_PASSWORD . '):');
+
+        foreach (self::DEMO_ACCOUNTS as [$name, $email, $role]) {
+            if ($role === 'professor' || $role === 'student') {
+                $this->command->line(sprintf('  - %-30s %-26s %s', $email, $name, $role));
+            }
         }
     }
 }

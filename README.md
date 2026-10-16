@@ -222,6 +222,8 @@ Key tables (migrations under `database/migrations/`; the custom `2026_*` migrati
 
 Relationships are defined on the models (`User`, `Admin`, `Course`, `Grade`, `Payment`, `Schedule`, `Event`, …).
 
+> **Migration timestamps:** the newest shipped migration is `2026_10_25_000001`. Any **new** migration must be timestamped **after** that (e.g. `2026_10_26_000001_...`) so it applies last on existing databases; keep it additive with a working `down()`.
+
 ---
 
 ## Admin scopes

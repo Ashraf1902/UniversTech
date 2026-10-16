@@ -38,10 +38,24 @@ trait Notifiable
      */
     protected function notifyAdmin(string $title, string $content, ?int $adminId = null): void
     {
+        $actor = request()->user();
+
+        // notifications.admin_id references the admins table, so only an actual
+        // administrator id may be written there. Professors, students and public
+        // applicants are User models, so fall back to notifying every admin
+        // instead of violating the foreign key.
+        $adminId = $adminId ?? ($actor instanceof Admin ? $actor->id : null);
+
+        if ($adminId === null) {
+            $this->notifyAllAdmins($title, $content);
+
+            return;
+        }
+
         Notification::create([
             'title' => $title,
             'content' => $content,
-            'admin_id' => $adminId ?? request()->user()?->id,
+            'admin_id' => $adminId,
             'type' => Notification::TYPE_NOTIFICATION,
         ]);
     }

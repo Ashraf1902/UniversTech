@@ -32,5 +32,17 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('notify:lecture-reminders')->dailyAt('16:00');
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // Render every API validation failure with the same envelope the
+        // FormRequest `FetchRequestError` trait uses, so inline $request->validate()
+        // calls and FormRequest errors return an identical body shape:
+        // { status: 422, message: "error in body request", data: { field: [...] } }
+        $exceptions->render(function (\Illuminate\Validation\ValidationException $e, \Illuminate\Http\Request $request) {
+            if ($request->is('api/*')) {
+                return SendResponse(
+                    status: 422,
+                    message: 'error in body request',
+                    data: $e->errors()
+                );
+            }
+        });
     })->create();
