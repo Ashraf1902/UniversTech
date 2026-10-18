@@ -13,13 +13,21 @@ env:
   APP_ENV: production
   APP_DEBUG: "false"
   APP_URL: https://universtech-api.wasmer.app     # confirmed real URL from first deploy
+  FRONTEND_URL: https://universtech.vercel.app    # Vercel SPA origin (email/link URLs + CORS allowed origin)
   LOG_CHANNEL: stderr
+  MAIL_MAILER: log                                # demo mailer; switch to smtp + MAIL_* secrets when SMTP exists
+  MAIL_FROM_ADDRESS: hello@univers-tech.test
+  MAIL_FROM_NAME: UniversTech
   CACHE_STORE: database
   SESSION_DRIVER: array
   QUEUE_CONNECTION: sync
   DB_CONNECTION: mysql
   FILES_DISK_ROOT: /app/public/uploads
+  TRUSTED_PROXIES: "*"                            # trust edge X-Forwarded-For/-Proto (see bootstrap/app.php)
   PAYMENT_DEMO_MODE: "true"     # the app's real flag name in config/services.php
+# Secrets are NOT listed here. Set them in the Wasmer dashboard / `wasmer app secrets`:
+#   APP_KEY, DEMO_SUPER_ADMIN_PASSWORD, DB_PASSWORD (and MAIL_* if using SMTP).
+# Wasmer injects DB_HOST/DB_PORT/DB_NAME/DB_USERNAME/DB_PASSWORD automatically.
 volumes:
   - name: uploads
     mount: /app/public/uploads

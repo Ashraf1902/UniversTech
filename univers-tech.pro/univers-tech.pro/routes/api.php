@@ -47,7 +47,7 @@ Route::get('/health', fn () => response()->json(['status' => 'ok']));
 
 // Authentication
 Route::prefix('auth')->group(function () {
-    Route::post('login', [UserAuthController::class, 'login'])->middleware('throttle:5,1');
+    Route::post('login', [UserAuthController::class, 'login'])->middleware('throttle:login');
     Route::post('forgot-password', [PasswordController::class, 'forgot'])
         ->defaults('realm', 'student')->middleware('throttle:5,1');
     Route::post('reset-password', [PasswordController::class, 'reset'])
@@ -55,7 +55,7 @@ Route::prefix('auth')->group(function () {
 });
 
 Route::prefix('prof/auth')->group(function () {
-    Route::post('login', [ProfessorAuthController::class, 'login'])->middleware('throttle:5,1');
+    Route::post('login', [ProfessorAuthController::class, 'login'])->middleware('throttle:login');
     Route::post('forgot-password', [PasswordController::class, 'forgot'])
         ->defaults('realm', 'professor')->middleware('throttle:5,1');
     Route::post('reset-password', [PasswordController::class, 'reset'])
@@ -63,7 +63,7 @@ Route::prefix('prof/auth')->group(function () {
 });
 
 Route::prefix('admin/auth')->group(function () {
-    Route::post('login', [AdminAuthController::class, 'login'])->middleware('throttle:5,1');
+    Route::post('login', [AdminAuthController::class, 'login'])->middleware('throttle:login');
     Route::post('forgot-password', [PasswordController::class, 'forgot'])
         ->defaults('realm', 'admin')->middleware('throttle:5,1');
     Route::post('reset-password', [PasswordController::class, 'reset'])
