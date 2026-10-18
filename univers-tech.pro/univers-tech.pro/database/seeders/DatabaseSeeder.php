@@ -33,6 +33,7 @@ use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class DatabaseSeeder extends Seeder
@@ -49,6 +50,20 @@ class DatabaseSeeder extends Seeder
      * administrator password is ever hard-coded in the repository.
      */
     public const ADMIN_PASSWORD_ENV = 'DEMO_SUPER_ADMIN_PASSWORD';
+
+    /**
+     * Relative path (on the public "files" disk, i.e. the Wasmer uploads
+     * volume in production) of the placeholder image the seeded events and
+     * notifications point at. It is written at seed time when missing, so a
+     * fresh deploy never ships a broken /uploads link.
+     */
+    private const PLACEHOLDER_IMAGE = 'events/demo-placeholder.png';
+
+    /**
+     * 240x120 PNG (blue background, "UniversTech" label) used as the seeded
+     * placeholder. Embedded as base64 so seeding does not depend on GD.
+     */
+    private const PLACEHOLDER_IMAGE_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAPAAAAB4CAYAAADMtn8nAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAUWSURBVHhe7dq9cdw8FIVhN+KWnKgTxe7CFagD16BYBTjzjGasSJEzRfSstWsCF/eCl8SK0qFfzDzBZwIg/s6Su/o+ff7yYwKg6ZP9BwA6CDAgjAADwggwIIwAA8IIMCCMAAPCCDAgjAADwggwIIwAA8IIMCCMAAPCCDAgjAADwggwIIwAA8IIMCCMAAPCCDAgjAADwggwIIwAA8IIMCCMAAPCCDAgjAADwggwIIwAA8IIMCCMAAPCCDAgjAADwggwIIwAA8IIMCCMAAPCCDAgjAADwggwIIwAA8IIMCCMAAPCCDAgjAADwggwIIwAA8IIMCCMAAPCdgnw14fpXH5PX53rvl/T/bnV4/efzvURb9n3B/Xt92UTNpY1e/eW/sO96yDAV+/7gyLAh0SAr973B0WAD+k/DTBKN99fNuzPe+FclAgwCLAwAgwCLEw0wO21+RAW5eGX0+9S+5fp7tbWr2XmM9cpS1x/HtP5/s13Vtt2nkNdbL1lowFeP9fSz+nuybadpunpebpp6p709m4u7Zk5pgME+Dk4yJfi3dPruwhEGPzlet5haorTrgzw/YPTR9Emc492zWJbA5wZhz/XfPv7b7bd6N4fi3yAL8XWqZ4KzSHy+06N89+TsX1SVwfSeYJkx/RaijHcPk93l4N8+zw9hn2UT7N2fJEtAR6bqw2vvW+5FnYedp3W7v2xHCLA7af0SXmY7X2DvovXVr/PYi720HaDVQjv0Tu0s+Ww9d8QPMt9Gtecq11Hr051j9G9Pxb9AIcHoPe9Nuq72HjvYBYH144pH4LoHrk5zWtp57Rdfuxr6/tzjfel5p+b3Drlx6hNP8Be0M7igxL33dv4uD//oEb8e+Tm1Py41aub5I8nMj7XbefhIrdO8V4di3yA22uzeBM77YunbP161ju49WtdvpTj6ozJ8H/1PRU7zxwvZLHRuRbr2HmCxnLrFO/9sewS4HUH5Kzzujq+ib32QVDDYNf9rSvbAmzH45YV4Vi3P6NzJcDXtHOAVyxm+APIyegmLrR3fmnuH/Lca13fwpi6olB5Y23152aNzpUAX9MuAS7D2Fv00rwB7xDg5rr9b1t/9FCeLN0jq/4fI9q1a60L8Phc01+pnA/S7DrFe38s+wS4ekIkFrR6PfQ2eXQTl9tXfy5yD1JQv1OnqVsFYHlM4et9I9PXbF2Ax+ca70vQNvixrze37D3U7RTg9oeXaPFz9UY3MdH+34fIy/SYeeKUHzq9euHbSGJM2fB0v6+31gZ4eK6Z9uHfmnPrFO/9sewW4PopnCzR5g5vYqZ9/Srar2vvdyr2nuZ6M7fMmOzbSXuP5beX1uoA27k44+jPdeF6dw65dYr3/lh2DPDJihDbTQ362baJa9ufij1IvrpNVLy+cmP6y/4t2C12zrEtAa7b9Urc53J7bw65dYr3/lh2DvBFL8jxhnvtt21irn38GrekfXq/FjuOUnJMBft141Iyr82lrQF+tWWuy+3jNcitU7z3x/JOAQZwDQQYEEaAAWEEGBBGgAFhBBgQRoABYQQYEEaAAWEEGBBGgAFhBBgQRoABYQQYEEaAAWEEGBBGgAFhBBgQRoABYQQYEEaAAWEEGBBGgAFhBBgQRoABYQQYEEaAAWEEGBBGgAFhBBgQRoABYQQYEEaAAWEEGBBGgAFhBBgQRoABYQQYEEaAAWEEGBBGgAFhBBgQRoABYQQYEEaAAWEEGBBGgAFhBBgQRoABYX8AEhi0BZwlUUQAAAAASUVORK5CYII=';
 
     public const DEMO_ACCOUNTS = [
         ['Super Admin', 'superadmin@universtech.demo', 'super admin (all scopes)'],
@@ -706,6 +721,8 @@ class DatabaseSeeder extends Seeder
 
     private function seedEventsAndNotifications(): void
     {
+        $image = $this->placeholderImage();
+
         $events = [
             ['Opening Ceremony 2026', 'Welcome all students and faculty to the new academic year.', Event::AUDIENCE_ALL],
             ['IT Career Day', 'A full day of talks and networking with leading technology companies.', Event::AUDIENCE_ALL],
@@ -717,7 +734,7 @@ class DatabaseSeeder extends Seeder
             $event = Event::updateOrCreate(['title' => $title], [
                 'content' => $content,
                 'admin_id' => $this->super->id,
-                'image' => 'img.png',
+                'image' => $image,
                 'audience' => $audience,
             ]);
 
@@ -732,7 +749,7 @@ class DatabaseSeeder extends Seeder
             Notification::updateOrCreate(['title' => $title, 'type' => Notification::TYPE_EVENT], [
                 'content' => $content,
                 'admin_id' => $this->super->id,
-                'image_path' => 'img.png',
+                'image_path' => $image,
             ]);
         }
 
@@ -747,6 +764,28 @@ class DatabaseSeeder extends Seeder
                 ['content' => 'You have been enrolled in your courses for the first semester.', 'admin_id' => $this->super->id]
             );
         }
+    }
+
+    /**
+     * Writes the demo placeholder image to the public "files" disk (the Wasmer
+     * uploads volume in production) when it is missing, and returns its
+     * relative path so the seeded events/notifications always resolve.
+     */
+    private function placeholderImage(): string
+    {
+        $disk = Storage::disk('files');
+
+        if (! $disk->exists(self::PLACEHOLDER_IMAGE)) {
+            $binary = base64_decode(self::PLACEHOLDER_IMAGE_PNG, true);
+
+            if ($binary === false) {
+                throw new \RuntimeException('Invalid base64 placeholder image.');
+            }
+
+            $disk->put(self::PLACEHOLDER_IMAGE, $binary);
+        }
+
+        return self::PLACEHOLDER_IMAGE;
     }
 
     private function seedAccessRequests(): void

@@ -14,7 +14,7 @@ env:
   APP_DEBUG: "false"
   APP_URL: https://universtech-api.wasmer.app     # confirmed real URL from first deploy
   LOG_CHANNEL: stderr
-  CACHE_STORE: array
+  CACHE_STORE: database
   SESSION_DRIVER: array
   QUEUE_CONNECTION: sync
   DB_CONNECTION: mysql

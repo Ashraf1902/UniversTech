@@ -188,3 +188,11 @@ Locked grades are frozen against professor edits (rollover locks the whole semes
 ## 4a. Attendance corrections (related)
 
 **Scope needed:** `attendances`. Professors may correct their own records within `attendance_edit_window_hours` (default 48); afterwards only an admin may change them (**Attendance** page / `POST /api/admin/attendance/update`). Soft-deleted records can be restored via `POST /api/admin/attendance/restore/{id}`.
+
+---
+
+## 5. Files and uploads
+
+Files uploaded through the app — event/notification images and **quiz submissions** — are stored on the public `files` disk and served directly under `/uploads/<path>`. Filenames are random UUIDs (plus the original extension), so they are not guessable, but they are **not access-controlled**: anyone who knows the URL can download the file.
+
+> **Before any real student data is used:** quiz submissions must move off the public disk. Serve them from a private, non-web-served disk through an authorized download route that enforces the same ownership/scope checks as the rest of the API (a student only their own submission; the owning professor and admins the rest). Serving them publicly under `/uploads` is acceptable only while the deployment carries demo data.
