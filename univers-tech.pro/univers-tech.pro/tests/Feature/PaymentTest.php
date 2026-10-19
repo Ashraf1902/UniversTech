@@ -97,6 +97,8 @@ class PaymentTest extends TestCase
 
     public function test_make_payment_records_receipt_and_paid_timestamp(): void
     {
+        config(['services.stripe.demo_mode' => true, 'services.stripe.secret' => null]);
+
         Sanctum::actingAs($this->student);
 
         $this->postJson('/api/user/make-payment', ['type' => Payment::TYPE_COURSES])
@@ -113,6 +115,8 @@ class PaymentTest extends TestCase
 
     public function test_client_supplied_amount_is_ignored_and_price_comes_from_the_server(): void
     {
+        config(['services.stripe.demo_mode' => true, 'services.stripe.secret' => null]);
+
         Sanctum::actingAs($this->student);
 
         $this->postJson('/api/user/make-payment', [
@@ -365,6 +369,19 @@ class PaymentTest extends TestCase
     public function test_neither_demo_nor_configured_returns_the_clear_message_and_writes_nothing(): void
     {
         config(['services.stripe.demo_mode' => false, 'services.stripe.secret' => null]);
+
+        Sanctum::actingAs($this->student);
+
+        $this->postJson('/api/user/make-payment', ['type' => Payment::TYPE_COURSES])
+            ->assertStatus(503)
+            ->assertJsonPath('message', 'Payments are not configured in this environment.');
+
+        $this->assertDatabaseMissing('payments', ['user_id' => $this->student->id]);
+    }
+
+    public function test_an_unset_demo_flag_without_a_secret_returns_the_clear_message_and_writes_nothing(): void
+    {
+        config(['services.stripe.demo_mode' => null, 'services.stripe.secret' => null]);
 
         Sanctum::actingAs($this->student);
 

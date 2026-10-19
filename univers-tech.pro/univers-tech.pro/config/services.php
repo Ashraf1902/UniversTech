@@ -27,8 +27,10 @@ return [
     'stripe' => [
         'key' => env('STRIPE_KEY'),
         'secret' => env('STRIPE_SECRET'),
-        // When true the API marks payments as paid without contacting Stripe.
-        'demo_mode' => env('PAYMENT_DEMO_MODE', true),
+        // Demo mode is OFF unless explicitly enabled. When true (and no Stripe
+        // secret is set) the API records payments as paid without contacting a
+        // gateway. See App\Support\Payments.
+        'demo_mode' => env('PAYMENT_DEMO_MODE', false),
         'currency' => env('PAYMENT_CURRENCY', 'usd'),
     ],
 

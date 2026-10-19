@@ -143,6 +143,8 @@ Notes:
 - Receipts are numbered with `Payment::receiptNumber()`; overridden paid/waived payments remain downloadable by the student.
 - Dropping a paid course can **flag a refund for review** (setting `flag_refund_on_drop`); it never auto-refunds — you decide here.
 
+> **Demo mode is off by default.** It activates only when `PAYMENT_DEMO_MODE` is explicitly set to `true` **and** no `STRIPE_SECRET` is configured; in that state payments are recorded as `paid` without contacting a gateway. For real students, set a `STRIPE_SECRET` (which also disables demo mode). The student-facing demo banner and the payment endpoint read the same flag, so they never disagree.
+
 ---
 
 ## 4. Grade override
