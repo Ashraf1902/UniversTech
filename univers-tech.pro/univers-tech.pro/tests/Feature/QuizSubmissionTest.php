@@ -94,7 +94,7 @@ class QuizSubmissionTest extends TestCase
             'course_id' => $this->courseA->id,
         ]);
 
-        Payment::create([
+        Payment::forceCreate([
             'user_id' => $this->student->id,
             'amount' => Payment::PRICE_COURSES,
             'type' => Payment::TYPE_COURSES,

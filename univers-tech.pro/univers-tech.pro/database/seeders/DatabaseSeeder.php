@@ -701,21 +701,26 @@ class DatabaseSeeder extends Seeder
                 default => Payment::STATUS_PAID,
             };
 
-            Payment::updateOrCreate(
-                ['user_id' => $student->id, 'semester_id' => $this->semester->id, 'type' => $type],
-                [
-                    'amount' => Payment::priceFor($type),
-                    'status' => $status,
-                    'admin_id' => $status === Payment::STATUS_PENDING ? null : $this->super->id,
-                    'note' => in_array($status, [Payment::STATUS_WAIVED, Payment::STATUS_REFUNDED], true) ? 'Set by finance (demo).' : null,
-                    'paid_at' => $status === Payment::STATUS_PAID ? now()->subDays(rand(1, 20)) : null,
-                    'waived_at' => $status === Payment::STATUS_WAIVED ? now()->subDays(3) : null,
-                    'refunded_at' => $status === Payment::STATUS_REFUNDED ? now()->subDays(2) : null,
-                    'receipt_number' => in_array($status, [Payment::STATUS_PAID, Payment::STATUS_WAIVED], true)
-                        ? 'RCPT-2026-' . str_pad((string) ($index + 1), 6, '0', STR_PAD_LEFT)
-                        : null,
-                ]
-            );
+            $payment = Payment::firstOrNew([
+                'user_id' => $student->id,
+                'semester_id' => $this->semester->id,
+                'type' => $type,
+            ]);
+
+            $payment->fill([
+                'status' => $status,
+                'admin_id' => $status === Payment::STATUS_PENDING ? null : $this->super->id,
+                'note' => in_array($status, [Payment::STATUS_WAIVED, Payment::STATUS_REFUNDED], true) ? 'Set by finance (demo).' : null,
+                'paid_at' => $status === Payment::STATUS_PAID ? now()->subDays(rand(1, 20)) : null,
+                'waived_at' => $status === Payment::STATUS_WAIVED ? now()->subDays(3) : null,
+                'refunded_at' => $status === Payment::STATUS_REFUNDED ? now()->subDays(2) : null,
+                'receipt_number' => in_array($status, [Payment::STATUS_PAID, Payment::STATUS_WAIVED], true)
+                    ? 'RCPT-2026-' . str_pad((string) ($index + 1), 6, '0', STR_PAD_LEFT)
+                    : null,
+            ]);
+
+            $payment->amount = Payment::priceFor($type);
+            $payment->save();
         }
     }
 

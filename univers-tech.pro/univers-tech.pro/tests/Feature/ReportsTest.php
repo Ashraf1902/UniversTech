@@ -422,7 +422,7 @@ class ReportsTest extends TestCase
 
     private function makePayment(User $student, float $amount, string $status, string $createdAt, ?string $paidAt = null): Payment
     {
-        return Payment::create([
+        return Payment::forceCreate([
             'user_id' => $student->id,
             'amount' => $amount,
             'type' => Payment::TYPE_COURSES,

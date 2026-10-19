@@ -363,7 +363,7 @@ class EnrollmentRulesTest extends TestCase
 
     public function test_dropped_courses_are_hidden_from_my_courses(): void
     {
-        Payment::create([
+        Payment::forceCreate([
             'user_id' => $this->student->id,
             'amount' => Payment::PRICE_COURSES,
             'type' => Payment::TYPE_COURSES,

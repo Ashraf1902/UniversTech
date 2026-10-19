@@ -203,7 +203,7 @@ class ProfessorCourseOwnershipTest extends TestCase
             'admin_id' => 1,
         ]);
 
-        Payment::create([
+        Payment::forceCreate([
             'user_id' => $this->student->id,
             'amount' => Payment::PRICE_COURSES,
             'type' => Payment::TYPE_COURSES,

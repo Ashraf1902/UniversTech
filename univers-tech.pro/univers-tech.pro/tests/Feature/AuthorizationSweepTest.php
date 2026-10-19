@@ -253,7 +253,7 @@ class AuthorizationSweepTest extends TestCase
 
     public function test_student_cannot_read_another_students_receipt(): void
     {
-        $payment = Payment::create([
+        $payment = Payment::forceCreate([
             'user_id' => $this->otherStudent->id,
             'semester_id' => $this->semester->id,
             'amount' => 700,
@@ -274,7 +274,7 @@ class AuthorizationSweepTest extends TestCase
 
         $this->getJson('/api/user/courses')->assertStatus(403);
 
-        Payment::create([
+        Payment::forceCreate([
             'user_id' => $this->student->id,
             'semester_id' => $this->semester->id,
             'amount' => 700,

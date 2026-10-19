@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Http\Controllers\API\Student\PaymentController;
 use App\Models\Admin;
 use App\Models\Course;
 use App\Models\Department;
@@ -11,7 +12,10 @@ use App\Models\StudentCourse;
 use App\Models\User;
 use App\Support\Settings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Log;
 use Laravel\Sanctum\Sanctum;
+use Mockery;
+use Stripe\Exception\InvalidRequestException;
 use Tests\TestCase;
 
 class PaymentTest extends TestCase
@@ -81,7 +85,7 @@ class PaymentTest extends TestCase
 
     private function paidPayment(User $student, string $status = Payment::STATUS_PAID): Payment
     {
-        return Payment::create([
+        return Payment::forceCreate([
             'user_id' => $student->id,
             'amount' => Payment::PRICE_COURSES,
             'type' => Payment::TYPE_COURSES,
@@ -146,7 +150,7 @@ class PaymentTest extends TestCase
 
     public function test_receipt_requires_a_paid_payment_and_ownership(): void
     {
-        $pending = Payment::create([
+        $pending = Payment::forceCreate([
             'user_id' => $this->student->id,
             'amount' => Payment::PRICE_COURSES,
             'type' => Payment::TYPE_COURSES,
@@ -241,5 +245,57 @@ class PaymentTest extends TestCase
 
         Settings::set('flag_refund_on_drop', 0);
         $this->assertFalse(Settings::flagRefundOnDrop());
+    }
+
+    public function test_amount_is_not_mass_assignable(): void
+    {
+        $payment = new Payment();
+
+        $payment->fill([
+            'user_id' => $this->student->id,
+            'type' => Payment::TYPE_COURSES,
+            'amount' => 9999,
+        ]);
+
+        $this->assertArrayNotHasKey('amount', $payment->getAttributes());
+        $this->assertSame(Payment::TYPE_COURSES, $payment->type);
+    }
+
+    public function test_provider_errors_are_logged_server_side_and_not_leaked_to_the_client(): void
+    {
+        config([
+            'services.stripe.demo_mode' => true,
+            'services.stripe.secret' => 'sk_test_placeholder',
+        ]);
+
+        $controller = Mockery::mock(PaymentController::class)->makePartial();
+        $controller->shouldAllowMockingProtectedMethods();
+        $controller->shouldReceive('createPaymentIntent')
+            ->andThrow(new InvalidRequestException('secret provider detail'));
+        $this->app->instance(PaymentController::class, $controller);
+
+        Log::spy();
+
+        Sanctum::actingAs($this->student);
+
+        $response = $this->postJson('/api/user/make-payment', ['type' => Payment::TYPE_COURSES]);
+
+        $response->assertStatus(400)
+            ->assertJsonPath('message', 'We could not process your payment. Please try again.');
+
+        $this->assertStringNotContainsString('secret provider detail', $response->getContent());
+
+        $this->assertSame(
+            Payment::STATUS_FAILED,
+            Payment::where('user_id', $this->student->id)->firstOrFail()->status
+        );
+
+        Log::shouldHaveReceived('error')
+            ->once()
+            ->withArgs(function ($message, $context = []) {
+                return $message === 'Payment provider error'
+                    && ($context['exception'] ?? null) === InvalidRequestException::class
+                    && ($context['message'] ?? null) === 'secret provider detail';
+            });
     }
 }

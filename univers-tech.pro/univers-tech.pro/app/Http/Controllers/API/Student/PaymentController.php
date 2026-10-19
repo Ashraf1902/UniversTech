@@ -8,6 +8,7 @@ use App\Models\Semester;
 use App\Traits\Notifiable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Stripe\Exception\ApiErrorException;
 use Stripe\Exception\StripeException;
@@ -32,14 +33,17 @@ class PaymentController extends Controller
         }
 
         $payment = DB::transaction(function () use ($type) {
-            $created = Payment::create([
+            // The amount is derived server-side and assigned directly (never via
+            // mass assignment) so a client can never influence what is charged.
+            $created = new Payment([
                 'user_id' => auth()->id(),
-                'amount' => Payment::priceFor($type),
                 'type' => $type,
                 'status' => Payment::STATUS_PAID,
                 'semester_id' => Semester::where('is_active', true)->value('id'),
                 'paid_at' => now(),
             ]);
+            $created->amount = Payment::priceFor($type);
+            $created->save();
 
             $created->update([
                 'receipt_number' => Payment::receiptNumber($created->id, $created->paid_at),
@@ -60,16 +64,7 @@ class PaymentController extends Controller
         }
 
         try {
-            $stripe = new StripeClient(config('services.stripe.secret'));
-
-            $intent = $stripe->paymentIntents->create([
-                'amount' => (int) round($payment->amount * 100),
-                'currency' => config('services.stripe.currency', 'usd'),
-                'metadata' => [
-                    'user_id' => $payment->user_id,
-                    'payment_id' => $payment->id,
-                ],
-            ]);
+            $intent = $this->createPaymentIntent($payment);
 
             $payment->update([
                 'payment_intent_id' => $intent->id,
@@ -83,12 +78,36 @@ class PaymentController extends Controller
         } catch (ApiErrorException $e) {
             $payment->update(['status' => Payment::STATUS_FAILED]);
 
-            return SendResponse(400, 'Payment failed: ' . $e->getMessage());
+            Log::error('Payment provider error', [
+                'exception' => $e::class,
+                'message' => $e->getMessage(),
+            ]);
+
+            return SendResponse(400, 'We could not process your payment. Please try again.');
         } catch (\Exception $e) {
             $payment->update(['status' => Payment::STATUS_FAILED]);
 
+            Log::error('Payment processing error', [
+                'exception' => $e::class,
+                'message' => $e->getMessage(),
+            ]);
+
             return SendResponse(500, 'An unexpected error occurred while processing your payment.');
         }
+    }
+
+    protected function createPaymentIntent(Payment $payment)
+    {
+        $stripe = new StripeClient(config('services.stripe.secret'));
+
+        return $stripe->paymentIntents->create([
+            'amount' => (int) round($payment->amount * 100),
+            'currency' => config('services.stripe.currency', 'usd'),
+            'metadata' => [
+                'user_id' => $payment->user_id,
+                'payment_id' => $payment->id,
+            ],
+        ]);
     }
 
     private function formatPayment(Payment $payment): array

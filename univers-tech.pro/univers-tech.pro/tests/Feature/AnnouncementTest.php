@@ -205,7 +205,7 @@ class AnnouncementTest extends TestCase
             'body' => 'Today we meet in B204.',
         ])->assertStatus(201)->json('data.id');
 
-        Payment::create([
+        Payment::forceCreate([
             'user_id' => $this->registeredStudent->id,
             'amount' => Payment::PRICE_COURSES,
             'type' => Payment::TYPE_COURSES,

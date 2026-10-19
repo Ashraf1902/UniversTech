@@ -34,7 +34,26 @@ class Payment extends Model
     public const PRICE_COURSES = 700;
     public const PRICE_YEAR = 575;
 
-    protected $guarded = [];
+    /**
+     * Mass-assignable fields. `amount` is deliberately excluded so it can only
+     * ever be set explicitly server-side (via Payment::priceFor), never from
+     * request input.
+     *
+     * @var array<int, string>
+     */
+    protected $fillable = [
+        'user_id',
+        'type',
+        'status',
+        'semester_id',
+        'paid_at',
+        'receipt_number',
+        'payment_intent_id',
+        'admin_id',
+        'note',
+        'waived_at',
+        'refunded_at',
+    ];
 
     protected $casts = [
         'amount' => 'decimal:2',
