@@ -706,6 +706,7 @@
   type_lecture: 'محاضرة',
   type_seminar: 'سمينار',
   type_lab: 'معمل',
+  type_section: 'سكشن',
   status_pending: 'قيد المراجعة',
   status_accepted: 'مقبول',
   status_refused: 'مرفوض',

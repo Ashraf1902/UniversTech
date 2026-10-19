@@ -63,4 +63,17 @@ class PublicMetaTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.payment_demo_mode', true);
     }
+
+    public function test_meta_exposes_the_university_timezone(): void
+    {
+        $this->getJson('/api/public/meta')
+            ->assertOk()
+            ->assertJsonPath('data.university_timezone', 'Africa/Cairo');
+
+        config(['university.timezone' => 'Europe/London']);
+
+        $this->getJson('/api/public/meta')
+            ->assertOk()
+            ->assertJsonPath('data.university_timezone', 'Europe/London');
+    }
 }

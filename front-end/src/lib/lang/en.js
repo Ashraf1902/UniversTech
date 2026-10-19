@@ -706,6 +706,7 @@ export default {
   type_lecture: 'Lecture',
   type_seminar: 'Seminar',
   type_lab: 'Lab',
+  type_section: 'Section',
   status_pending: 'Pending',
   status_accepted: 'Accepted',
   status_refused: 'Refused',

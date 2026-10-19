@@ -19,6 +19,7 @@ use App\Models\StudentLecture;
 use App\Services\EnrollmentService;
 use App\Support\ActivityLogger;
 use App\Support\Settings;
+use App\Support\UniversityTime;
 use App\Traits\Notifiable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -34,7 +35,7 @@ class CoursesController extends Controller
     public function myCourses()
     {
         $enrollments = auth()->user()->studentCourses()
-            ->registered()
+            ->current()
             ->with(['course.professor', 'course.department', 'course.lectures'])
             ->latest()
             ->paginate(15);
@@ -263,29 +264,33 @@ class CoursesController extends Controller
 
         $activeSemester = Semester::where('is_active', true)->first();
 
-        $query = Schedule::where('level_id', $user->student?->level_id)
-            ->with('course');
-
-        if ($activeSemester) {
-            $query->where('semester_id', $activeSemester->id);
+        // The timetable must match My Courses exactly: only the courses the
+        // student is enrolled in for the active semester. This stops lectures
+        // for courses the student is not registered in from leaking in just
+        // because they share the student's level/department.
+        if (! $activeSemester) {
+            return SendResponse(200, 'Schedule fetched successfully.', ['schedule' => []]);
         }
 
-        if ($user->student?->department_id) {
-            $query->where(function ($q) use ($user) {
-                $q->whereNull('department_id')
-                    ->orWhere('department_id', $user->student?->department_id);
-            });
-        }
+        $courseIds = $user->studentCourses()
+            ->current()
+            ->pluck('course_id');
 
-        $schedules = $query
-            ->orderBy('day_of_week')
-            ->orderBy('start_time')
+        $schedules = Schedule::where('semester_id', $activeSemester->id)
+            ->whereIn('course_id', $courseIds)
+            ->with('course')
             ->get()
+            ->sortBy(fn (Schedule $schedule) => sprintf(
+                '%02d|%s',
+                Schedule::dayIndex($schedule->day_of_week),
+                (string) $schedule->getRawOriginal('start_time')
+            ))
+            ->values()
             ->map(fn (Schedule $schedule) => [
                 'id' => $schedule->id,
                 'day_of_week' => $schedule->day_of_week,
-                'start_time' => $schedule->start_time,
-                'end_time' => $schedule->end_time,
+                'start_time' => UniversityTime::time($schedule->getRawOriginal('start_time')),
+                'end_time' => UniversityTime::time($schedule->getRawOriginal('end_time')),
                 'section_type' => $schedule->section_type,
                 'course_name' => $schedule->course?->course_name,
                 'course_code' => $schedule->course?->course_code,

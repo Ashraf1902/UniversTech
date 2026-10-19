@@ -2,11 +2,13 @@ import { Link } from 'react-router-dom'
 import { request } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 import { useI18n } from '../../lib/i18n'
-import { useAsync } from '../../lib/hooks'
+import { useAsync, useUniversityTimezone } from '../../lib/hooks'
+import { formatTime, shortWeekdayLabel } from '../../lib/timetable'
 import { Btn, Counter, Empty, I, Prog, Reveal, Spinner, StatCard } from '../../lib/ui'
 export function StudentHome() {
   const { user } = useAuth()
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
+  const timezone = useUniversityTimezone()
   const profile = useAsync(() => request('/api/user'))
   const reports = useAsync(() => request('/api/user/reports'))
   const notifs = useAsync(() => request('/api/user/notifications'))
@@ -80,11 +82,11 @@ export function StudentHome() {
             {sched.slice(0, 4).map((s, i) => (
               <div className="list-row" key={i}>
                 <span className="av" style={{ background: 'var(--grad)', width: 40, height: 40, fontSize: '0.7rem' }}>
-                  {t('dayShort_' + String(s.day_of_week || '').toLowerCase())}
+                  {shortWeekdayLabel(s.day_of_week, lang, timezone) || t('dayShort_' + String(s.day_of_week || '').toLowerCase())}
                 </span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.course_name}</div>
-                  <div style={{ fontSize: '0.78rem', color: 'var(--faint)' }}>{s.start_time} – {s.end_time} · {t('type_' + String(s.section_type || '').toLowerCase())}</div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--faint)' }}>{formatTime(s.start_time, timezone)} – {formatTime(s.end_time, timezone)} · {t('type_' + String(s.section_type || '').toLowerCase())}</div>
                 </div>
               </div>
             ))}

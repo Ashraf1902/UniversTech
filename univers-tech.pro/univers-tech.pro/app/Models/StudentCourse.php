@@ -79,6 +79,31 @@ class StudentCourse extends Model
         return $query->where('status', self::STATUS_REGISTERED);
     }
 
+    /**
+     * The student's enrollments that belong to the currently-active semester.
+     *
+     * This is the single "current courses" rule shared by My Courses and the
+     * student timetable so the two never disagree. Legacy enrollments with no
+     * semester (NULL) are treated as belonging to the current term, which keeps
+     * migrated data working until `data:backfill-semesters` assigns a semester.
+     * When no semester is active the semester constraint is dropped so the
+     * existing rows are still listed.
+     */
+    public function scopeCurrent($query)
+    {
+        $activeSemesterId = Semester::query()->where('is_active', true)->value('id');
+
+        $query->where('status', self::STATUS_REGISTERED);
+
+        if ($activeSemesterId) {
+            $query->where(function ($q) use ($activeSemesterId) {
+                $q->whereNull('semester_id')->orWhere('semester_id', $activeSemesterId);
+            });
+        }
+
+        return $query;
+    }
+
     public function isRegistered(): bool
     {
         return $this->status === self::STATUS_REGISTERED;

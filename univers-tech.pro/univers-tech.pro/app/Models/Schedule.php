@@ -29,6 +29,19 @@ class Schedule extends Model
         'end_time' => 'datetime:H:i',
     ];
 
+    /**
+     * Chronological order of the teaching week (the campus week starts on
+     * Saturday). Used to sort timetables by day instead of alphabetically.
+     */
+    public const WEEK_ORDER = ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+
+    public static function dayIndex(?string $day): int
+    {
+        $index = array_search(strtolower((string) $day), array_map('strtolower', self::WEEK_ORDER), true);
+
+        return $index === false ? count(self::WEEK_ORDER) : $index;
+    }
+
     public function admin()
     {
         return $this->belongsTo(Admin::class, 'admin_id');

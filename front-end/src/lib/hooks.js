@@ -26,6 +26,22 @@ export function useDemoMode() {
   return demo
 }
 
+export function useUniversityTimezone() {
+  const [timezone, setTimezone] = useState(null)
+
+  useEffect(() => {
+    let alive = true
+    loadAppMeta().then((meta) => {
+      if (alive) setTimezone(meta && meta.university_timezone ? meta.university_timezone : null)
+    })
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  return timezone
+}
+
 export function useAsync(fn, deps = [], { immediate = true } = {}) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(immediate)

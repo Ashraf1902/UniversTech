@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\Schedule;
 use App\Models\Semester;
+use App\Support\UniversityTime;
 use Illuminate\Http\Request;
 
 class ScheduleProfessorController extends Controller
@@ -32,14 +33,18 @@ class ScheduleProfessorController extends Controller
         }
 
         $schedules = $query
-            ->orderBy('day_of_week')
-            ->orderBy('start_time')
             ->get()
+            ->sortBy(fn (Schedule $schedule) => sprintf(
+                '%02d|%s',
+                Schedule::dayIndex($schedule->day_of_week),
+                (string) $schedule->getRawOriginal('start_time')
+            ))
+            ->values()
             ->map(fn (Schedule $schedule) => [
                 'id' => $schedule->id,
                 'day_of_week' => $schedule->day_of_week,
-                'start_time' => $schedule->start_time,
-                'end_time' => $schedule->end_time,
+                'start_time' => UniversityTime::time($schedule->getRawOriginal('start_time')),
+                'end_time' => UniversityTime::time($schedule->getRawOriginal('end_time')),
                 'section_type' => $schedule->section_type,
                 'course_id' => $schedule->course_id,
                 'course_name' => $schedule->course?->course_name,

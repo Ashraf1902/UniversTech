@@ -35,6 +35,7 @@ class PublicController extends Controller
             'levels' => Level::orderBy('id')->get(['id', 'name']),
             'departments' => Department::orderBy('name')->get(['id', 'name']),
             'payment_demo_mode' => Payments::demoMode(),
+            'university_timezone' => config('university.timezone'),
         ]);
     }
 }
