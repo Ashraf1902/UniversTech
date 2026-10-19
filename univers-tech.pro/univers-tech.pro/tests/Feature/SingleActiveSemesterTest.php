@@ -71,6 +71,41 @@ class SingleActiveSemesterTest extends TestCase
         $this->assertSame(1, Semester::activeCount());
     }
 
+    public function test_creating_an_active_semester_via_admin_endpoint_deactivates_others(): void
+    {
+        $current = Semester::create(['name' => 'Current', 'academic_year' => '2026-2027', 'is_active' => true]);
+
+        $response = $this->postJson('/api/semester/store', [
+            'name' => 'Brand New',
+            'academic_year' => '2027-2028',
+            'is_active' => true,
+        ]);
+
+        $response->assertCreated();
+
+        $created = Semester::where('name', 'Brand New')->firstOrFail();
+        $this->assertTrue($created->is_active);
+        $this->assertFalse($current->fresh()->is_active);
+        $this->assertSame(1, Semester::activeCount());
+    }
+
+    public function test_creating_a_semester_without_is_active_leaves_it_inactive(): void
+    {
+        $current = Semester::create(['name' => 'Current', 'academic_year' => '2026-2027', 'is_active' => true]);
+
+        $response = $this->postJson('/api/semester/store', [
+            'name' => 'Draft',
+            'academic_year' => '2027-2028',
+        ]);
+
+        $response->assertCreated();
+
+        $created = Semester::where('name', 'Draft')->firstOrFail();
+        $this->assertFalse($created->is_active);
+        $this->assertTrue($current->fresh()->is_active);
+        $this->assertSame(1, Semester::activeCount());
+    }
+
     public function test_activation_is_atomic_other_updates_roll_back_on_failure(): void
     {
         $current = Semester::create(['name' => 'Current', 'academic_year' => '2026-2027', 'is_active' => true]);

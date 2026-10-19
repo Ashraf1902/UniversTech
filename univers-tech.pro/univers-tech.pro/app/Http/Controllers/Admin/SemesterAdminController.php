@@ -30,18 +30,28 @@ class SemesterAdminController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100'],
             'academic_year' => ['required', 'string', 'max:20'],
+            'is_active' => ['sometimes', 'boolean'],
             'registration_opens_at' => ['nullable', 'date'],
             'registration_closes_at' => ['nullable', 'date', 'after_or_equal:registration_opens_at'],
         ]);
 
-        $semester = Semester::create($data);
+        // A new semester is created inactive unless explicitly activated, in
+        // which case it goes through the same single-active invariant as
+        // updates so it can never coexist with another active semester.
+        $activate = (bool) ($data['is_active'] ?? false);
+
+        $semester = Semester::create(collect($data)->except(['is_active'])->all());
+
+        if ($activate) {
+            $semester->activate();
+        }
 
         $this->notifyAdmin(
             'Semester created',
             'Semester "' . $semester->name . ' (' . $semester->academic_year . ')" has been created.'
         );
 
-        return SendResponse(201, 'Semester created successfully.', $semester);
+        return SendResponse(201, 'Semester created successfully.', $semester->refresh());
     }
 
     public function update(Request $request)
