@@ -33,6 +33,7 @@ class PublicController extends Controller
         return SendResponse(200, 'Meta fetched successfully.', [
             'levels' => Level::orderBy('id')->get(['id', 'name']),
             'departments' => Department::orderBy('name')->get(['id', 'name']),
+            'payment_demo_mode' => (bool) config('services.stripe.demo_mode'),
         ]);
     }
 }

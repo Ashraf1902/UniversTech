@@ -887,6 +887,7 @@
   overrideStatus: 'الحالة الجديدة',
   applyOverride: 'تطبيق',
   paymentOverridden: 'تم تحديث حالة الدفع.',
+  paymentDemoBanner: 'وضع تجريبي: لا يتم تحصيل أي مبالغ حقيقية.',
 
   myTimetable: 'جدولي',
   myTimetableSub: 'حصصك في الفصل الحالي، مع القاعات والمواعيد.',

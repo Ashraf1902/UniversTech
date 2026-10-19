@@ -1,4 +1,30 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { request } from './api'
+
+let appMetaPromise = null
+
+export function loadAppMeta() {
+  if (!appMetaPromise) {
+    appMetaPromise = request('/api/public/meta').catch(() => null)
+  }
+  return appMetaPromise
+}
+
+export function useDemoMode() {
+  const [demo, setDemo] = useState(false)
+
+  useEffect(() => {
+    let alive = true
+    loadAppMeta().then((meta) => {
+      if (alive) setDemo(Boolean(meta && meta.payment_demo_mode))
+    })
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  return demo
+}
 
 export function useAsync(fn, deps = [], { immediate = true } = {}) {
   const [data, setData] = useState(null)

@@ -106,6 +106,20 @@ class PaymentTest extends TestCase
         $this->assertStringStartsWith('RCPT-', $payment->receipt_number);
     }
 
+    public function test_client_supplied_amount_is_ignored_and_price_comes_from_the_server(): void
+    {
+        Sanctum::actingAs($this->student);
+
+        $this->postJson('/api/user/make-payment', [
+            'type' => Payment::TYPE_COURSES,
+            'amount' => 1,
+        ])->assertOk();
+
+        $payment = Payment::where('user_id', $this->student->id)->firstOrFail();
+
+        $this->assertSame('700.00', (string) $payment->amount);
+    }
+
     public function test_history_only_lists_the_students_own_payments(): void
     {
         $this->paidPayment($this->student);

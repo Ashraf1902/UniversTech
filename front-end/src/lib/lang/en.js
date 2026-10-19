@@ -887,6 +887,7 @@ export default {
   overrideStatus: 'New status',
   applyOverride: 'Apply',
   paymentOverridden: 'Payment status updated.',
+  paymentDemoBanner: 'Demo mode: no real money is charged.',
 
   myTimetable: 'My timetable',
   myTimetableSub: 'Your classes for the active semester, with rooms and times.',

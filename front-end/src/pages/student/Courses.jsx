@@ -4,7 +4,7 @@ import { normalizePage, request } from '../../lib/api'
 import { useI18n } from '../../lib/i18n'
 import { useAsync } from '../../lib/hooks'
 import { Btn, CourseLoader, Empty, I, Pager, Prog, Reveal, useToast } from '../../lib/ui'
-import { Head, money } from './_shared'
+import { DemoBanner, Head, money } from './_shared'
 function CourseCard({ course, footer, delay = 0, t }) {
   const cover = course.cover_image && !course.cover_image.endsWith('default.jpg') ? course.cover_image : null
   return (
@@ -76,19 +76,22 @@ export function StudentCourses() {
       />
 
       {paywall ? (
-        <Reveal className="card" style={{ textAlign: 'center', padding: 48 }}>
-          <div className="eic" style={{ margin: '0 auto 16px' }}>
-            <I name="wallet" size={26} />
-          </div>
-          <h3>{t('unlockCourses')}</h3>
-          <p style={{ color: 'var(--muted)', maxWidth: 460, margin: '10px auto 24px' }}>
-            {t('unlockCoursesSub')}
-          </p>
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Btn icon="wallet" onClick={() => pay('courses')}>{t('payCourses', { amount: money(700) })}</Btn>
-            <Btn variant="ghost" icon="wallet" onClick={() => pay('year')}>{t('payYear', { amount: money(575) })}</Btn>
-          </div>
-        </Reveal>
+        <>
+          <DemoBanner />
+          <Reveal className="card" style={{ textAlign: 'center', padding: 48 }}>
+            <div className="eic" style={{ margin: '0 auto 16px' }}>
+              <I name="wallet" size={26} />
+            </div>
+            <h3>{t('unlockCourses')}</h3>
+            <p style={{ color: 'var(--muted)', maxWidth: 460, margin: '10px auto 24px' }}>
+              {t('unlockCoursesSub')}
+            </p>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <Btn icon="wallet" onClick={() => pay('courses')}>{t('payCourses', { amount: money(700) })}</Btn>
+              <Btn variant="ghost" icon="wallet" onClick={() => pay('year')}>{t('payYear', { amount: money(575) })}</Btn>
+            </div>
+          </Reveal>
+        </>
       ) : loading ? (
         <CourseLoader label={t('loadingYourCourses')} />
       ) : paged.items.length ? (

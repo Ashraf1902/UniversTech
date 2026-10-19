@@ -4,7 +4,7 @@ import { normalizePage, request } from '../../lib/api'
 import { useI18n } from '../../lib/i18n'
 import { useAsync } from '../../lib/hooks'
 import { Badge, Btn, Empty, Modal, Pager, Reveal, Spinner, useToast } from '../../lib/ui'
-import { Head, money } from './_shared'
+import { DemoBanner, Head, money } from './_shared'
 
 const STATUS_META = {
   paid: { tone: 'grn', key: 'status_paid' },
@@ -76,6 +76,8 @@ td,th{border-bottom:1px solid #ddd;padding:8px 4px;font-size:.9rem}
   return (
     <>
       <Head kicker={t('billing')} title={t('myPayments')} sub={t('paymentsSub')} />
+
+      <DemoBanner />
 
       {loading ? (
         <Spinner size={24} />
