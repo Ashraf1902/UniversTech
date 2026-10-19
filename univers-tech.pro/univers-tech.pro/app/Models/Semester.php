@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use App\Traits\LogsActivity;
 
 class Semester extends Model
@@ -27,6 +28,37 @@ class Semester extends Model
     public function isClosed(): bool
     {
         return $this->closed_at !== null;
+    }
+
+    /**
+     * How many semesters are currently flagged active.
+     *
+     * The schema cannot enforce "at most one active semester" with a plain
+     * unique index because every inactive row would collide on the same
+     * value, so this invariant is maintained in application code and
+     * guarded by tests.
+     */
+    public static function activeCount(): int
+    {
+        return static::query()->where('is_active', true)->count();
+    }
+
+    /**
+     * Activate this semester as the single active one.
+     *
+     * Deactivating every other semester and activating this one happen in a
+     * single transaction so two active semesters can never be observed, even
+     * for a moment or under concurrent admin requests.
+     */
+    public function activate(): void
+    {
+        DB::transaction(function () {
+            static::query()
+                ->where('id', '!=', $this->getKey())
+                ->update(['is_active' => false]);
+
+            $this->forceFill(['is_active' => true])->save();
+        });
     }
 
     public function courses()

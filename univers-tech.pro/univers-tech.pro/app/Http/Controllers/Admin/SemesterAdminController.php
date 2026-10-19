@@ -58,14 +58,17 @@ class SemesterAdminController extends Controller
 
         $semester = Semester::find($request->semester_id);
 
-        // Enforce single active semester: when activating, deactivate others.
+        // Never allow two active semesters at once: activation deactivates
+        // every other semester inside a single transaction (see
+        // Semester::activate()). We activate first, then apply the remaining
+        // fields, so a concurrent request cannot slip a second active row in.
         if (array_key_exists('is_active', $data) && $data['is_active']) {
-            Semester::where('id', '!=', $semester->id)->update(['is_active' => false]);
+            $semester->activate();
         }
 
-        $semester->update($data);
+        $semester->update(collect($data)->except(['is_active', 'semester_id'])->all());
 
-        return SendResponse(200, 'Semester updated successfully.', $semester);
+        return SendResponse(200, 'Semester updated successfully.', $semester->refresh());
     }
 
     public function delete(Request $request, $id)
