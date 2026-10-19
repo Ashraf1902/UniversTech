@@ -25,6 +25,7 @@ env:
   FILES_DISK_ROOT: /app/public/uploads
   TRUSTED_PROXIES: "*"                            # trust edge X-Forwarded-For/-Proto (see bootstrap/app.php)
   PAYMENT_DEMO_MODE: "true"     # the app's real flag name in config/services.php
+  UNIVERSITY_TIMEZONE: "Africa/Cairo"   # campus wall-clock tz for timetable times (config/university.php)
 # Secrets are NOT listed here. Set them in the Wasmer dashboard / `wasmer app secrets`:
 #   APP_KEY, DEMO_SUPER_ADMIN_PASSWORD, DB_PASSWORD (and MAIL_* if using SMTP).
 # Wasmer injects DB_HOST/DB_PORT/DB_NAME/DB_USERNAME/DB_PASSWORD automatically.
