@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Department;
 use App\Models\Event;
 use App\Models\Level;
+use App\Support\Payments;
 use Illuminate\Http\Request;
 
 class PublicController extends Controller
@@ -33,7 +34,7 @@ class PublicController extends Controller
         return SendResponse(200, 'Meta fetched successfully.', [
             'levels' => Level::orderBy('id')->get(['id', 'name']),
             'departments' => Department::orderBy('name')->get(['id', 'name']),
-            'payment_demo_mode' => (bool) config('services.stripe.demo_mode') && ! config('services.stripe.secret'),
+            'payment_demo_mode' => Payments::demoMode(),
         ]);
     }
 }

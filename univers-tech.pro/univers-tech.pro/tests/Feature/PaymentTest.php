@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Log;
 use Laravel\Sanctum\Sanctum;
 use Mockery;
 use Stripe\Exception\InvalidRequestException;
+use Stripe\PaymentIntent;
 use Tests\TestCase;
 
 class PaymentTest extends TestCase
@@ -297,5 +298,80 @@ class PaymentTest extends TestCase
                     && ($context['exception'] ?? null) === InvalidRequestException::class
                     && ($context['message'] ?? null) === 'secret provider detail';
             });
+    }
+
+    public function test_demo_mode_pays_without_a_gateway_call_even_in_production(): void
+    {
+        $this->app['env'] = 'production';
+
+        config(['services.stripe.demo_mode' => true, 'services.stripe.secret' => null]);
+
+        $controller = Mockery::mock(PaymentController::class)->makePartial();
+        $controller->shouldAllowMockingProtectedMethods();
+        $controller->shouldReceive('createPaymentIntent')->never();
+        $this->app->instance(PaymentController::class, $controller);
+
+        Sanctum::actingAs($this->student);
+
+        $this->postJson('/api/user/make-payment', ['type' => Payment::TYPE_COURSES])
+            ->assertOk()
+            ->assertJsonPath('data.payment.status', Payment::STATUS_PAID);
+
+        $payment = Payment::where('user_id', $this->student->id)->firstOrFail();
+
+        $this->assertSame(Payment::STATUS_PAID, $payment->status);
+        $this->assertSame('700.00', (string) $payment->amount);
+        $this->assertNotNull($payment->receipt_number);
+    }
+
+    public function test_an_existing_secret_overrides_the_demo_flag_and_uses_the_gateway(): void
+    {
+        config(['services.stripe.demo_mode' => true, 'services.stripe.secret' => 'sk_test_dummy']);
+
+        $controller = Mockery::mock(PaymentController::class)->makePartial();
+        $controller->shouldAllowMockingProtectedMethods();
+        $controller->shouldReceive('createPaymentIntent')
+            ->once()
+            ->andReturn(PaymentIntent::constructFrom(['id' => 'pi_demo_off', 'client_secret' => 'cs_demo_off']));
+        $this->app->instance(PaymentController::class, $controller);
+
+        Sanctum::actingAs($this->student);
+
+        $this->postJson('/api/user/make-payment', ['type' => Payment::TYPE_COURSES])
+            ->assertOk()
+            ->assertJsonPath('data.payment.status', Payment::STATUS_PENDING)
+            ->assertJsonPath('data.client_secret', 'cs_demo_off');
+    }
+
+    public function test_configured_gateway_without_the_demo_flag_uses_the_gateway(): void
+    {
+        config(['services.stripe.demo_mode' => false, 'services.stripe.secret' => 'sk_test_dummy']);
+
+        $controller = Mockery::mock(PaymentController::class)->makePartial();
+        $controller->shouldAllowMockingProtectedMethods();
+        $controller->shouldReceive('createPaymentIntent')
+            ->once()
+            ->andReturn(PaymentIntent::constructFrom(['id' => 'pi_live', 'client_secret' => 'cs_live']));
+        $this->app->instance(PaymentController::class, $controller);
+
+        Sanctum::actingAs($this->student);
+
+        $this->postJson('/api/user/make-payment', ['type' => Payment::TYPE_COURSES])
+            ->assertOk()
+            ->assertJsonPath('data.payment.status', Payment::STATUS_PENDING)
+            ->assertJsonPath('data.client_secret', 'cs_live');
+    }
+
+    public function test_neither_demo_nor_configured_returns_the_clear_message_and_writes_nothing(): void
+    {
+        config(['services.stripe.demo_mode' => false, 'services.stripe.secret' => null]);
+
+        Sanctum::actingAs($this->student);
+
+        $this->postJson('/api/user/make-payment', ['type' => Payment::TYPE_COURSES])
+            ->assertStatus(503)
+            ->assertJsonPath('message', 'Payments are not configured in this environment.');
+
+        $this->assertDatabaseMissing('payments', ['user_id' => $this->student->id]);
     }
 }

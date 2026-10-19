@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API\Student;
 use App\Http\Controllers\Controller;
 use App\Models\Payment;
 use App\Models\Semester;
+use App\Support\Payments;
 use App\Traits\Notifiable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -26,9 +27,11 @@ class PaymentController extends Controller
 
         $type = $request->input('type');
 
-        $demoMode = config('services.stripe.demo_mode') && ! config('services.stripe.secret');
-
-        if (app()->isProduction() && $demoMode) {
+        // Refuse only when there is neither demo mode nor a real gateway
+        // secret. Demo mode is honoured in every environment (production
+        // included) so the /api/public/meta banner and this endpoint always
+        // agree (see App\Support\Payments).
+        if (! Payments::demoMode() && ! Payments::isConfigured()) {
             return SendResponse(503, 'Payments are not configured in this environment.');
         }
 
@@ -57,7 +60,7 @@ class PaymentController extends Controller
             return $created;
         });
 
-        if ($demoMode) {
+        if (Payments::demoMode()) {
             return SendResponse(200, 'Payment successful (demo mode).', [
                 'payment' => $this->formatPayment($payment),
             ]);
