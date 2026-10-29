@@ -94,7 +94,6 @@ kbd,
 }
 ::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); background-clip: padding-box; }
 
-.container { width: min(var(--content-max), 100%); margin-inline: auto; }
 .grow { flex: 1; }
 .subt { color: var(--color-text-muted); font-size: var(--text-md); line-height: 1.6; }
 .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
@@ -167,12 +166,6 @@ kbd,
   -webkit-background-clip: text;
   background-clip: text;
 }
-.grad-text-static {
-  background: var(--grad);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
 
 /* ======================= BRAND ======================= */
 .brand-logo {
@@ -197,16 +190,6 @@ kbd,
   font-weight: 700;
   font-size: var(--text-lg);
   letter-spacing: -0.02em;
-}
-.logo-mark {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  display: grid;
-  place-items: center;
-  background: var(--ut-indigo-700);
-  color: var(--ut-gold-300);
-  box-shadow: var(--shadow-xs);
 }
 
 /* ======================= BUTTONS ======================= */
@@ -479,16 +462,6 @@ html[dir='rtl'] .switch.on::after { transform: translateX(-20px); }
 }
 .topnav::-webkit-scrollbar { display: none; }
 
-.nav-grp-lbl {
-  font-size: var(--text-2xs);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-text-faint);
-  padding: 0 8px;
-  margin-bottom: 6px;
-  font-weight: 700;
-}
-
 .nav-item {
   position: relative;
   display: flex;
@@ -647,8 +620,6 @@ html[dir='rtl'] .switch.on::after { transform: translateX(-20px); }
   animation: fadeUp var(--dur-slow) var(--ease);
 }
 
-.topbar-burger { display: none; }
-
 /* page title fallback for small screens */
 .page-now {
   display: none;
@@ -787,8 +758,6 @@ html[dir='rtl'] .switch.on::after { transform: translateX(-20px); }
 .page-head .kicker { margin-bottom: 6px; }
 .page-head h1 { font-size: clamp(1.5rem, 2.6vw, 2rem); }
 .page-head p { color: var(--color-text-muted); font-size: var(--text-md); margin-top: 6px; max-width: 720px; }
-.page-title { font-size: var(--text-xl); font-weight: 700; }
-.page-sub { font-size: var(--text-sm); color: var(--color-text-faint); }
 
 .kicker {
   display: inline-flex;
@@ -1155,7 +1124,6 @@ html[dir='rtl'] .switch.on::after { transform: translateX(-20px); }
 .toast.success .tic { color: var(--color-success); background: var(--color-success-soft); }
 .toast.error .tic { color: var(--color-danger); background: var(--color-danger-soft); }
 .toast.info .tic { color: var(--color-info); background: var(--color-info-soft); }
-.toast.leaving { animation: toastIn 0.25s var(--ease) reverse forwards; }
 
 /* ======================= MODAL ======================= */
 .modal-back {
@@ -1521,7 +1489,6 @@ html[dir='rtl'] .switch.on::after { transform: translateX(-20px); }
   z-index: 1;
   width: min(444px, 100%);
 }
-.auth-mobile-head { display: none; }
 .auth-card { width: 100%; }
 .auth-panel { animation: panelIn var(--dur-slow) var(--ease); }
 
@@ -1734,23 +1701,6 @@ html[dir='rtl'] .switch.on::after { transform: translateX(-20px); }
 }
 .sent-icon.is-warn { background: var(--color-warning-soft); color: var(--color-warning); }
 
-.fcard {
-  position: relative;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: 22px;
-}
-.fcard .fic {
-  width: 46px;
-  height: 46px;
-  border-radius: var(--radius-sm);
-  display: grid;
-  place-items: center;
-  background: var(--color-primary-soft);
-  color: var(--color-info);
-  margin-bottom: 14px;
-}
 .cta-band {
   border-radius: var(--radius-xl);
   padding: 40px 28px;
@@ -2558,9 +2508,6 @@ html[dir='rtl'] .switch.on::after { transform: translateX(-20px); }
 .cat-failures h3 { font-size: var(--text-base); margin-bottom: 7px; }
 .cat-failures ul { margin: 0; padding-inline-start: 18px; color: var(--color-text-muted); font-size: var(--text-sm); }
 
-/* ======================= MISC ======================= */
-.center-page { min-height: 70vh; display: grid; place-items: center; text-align: center; padding: 40px; }
-
 /* ======================= RESPONSIVE ======================= */
 @media (max-width: 1180px) {
   .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -2660,8 +2607,6 @@ html[dir='rtl'] .auth { direction: rtl; }
 /* ======================= BRAND LOCKUP ======================= */
 .brand-narrow { display: none; }
 .brand-mark img { height: 100%; width: auto; }
-.auth-lockup { margin-bottom: 4px; }
-.auth-brand { display: none; }
 
 /* the auth visual panel is always the deep-indigo surface, so it always
    takes the on-dark artwork regardless of the app theme */
@@ -2707,7 +2652,6 @@ html[dir='rtl'] .auth { direction: rtl; }
 @media (max-width: 1024px) {
   .brand-wide { display: none; }
   .brand-narrow { display: inline-flex; }
-  .auth-brand { display: inline-flex; margin-bottom: 22px; }
   .page-now { flex: 1; min-width: 0; }
 }
 
@@ -2745,8 +2689,6 @@ html[dir='rtl'] .auth { direction: rtl; }
 @media (max-width: 1024px) {
   .nav-more-wrap { display: none; }
 }
-
-.auth-lockup-top { margin-bottom: 26px; }
 
 /* ======================= STAGE 16C RESPONSIVE ======================= */
 @media (max-width: 1100px) {
