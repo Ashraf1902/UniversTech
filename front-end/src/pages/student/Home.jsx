@@ -7,7 +7,9 @@ import {
   currentWeek,
   formatDate,
   formatTime,
+  lectureState,
   nextLecture,
+  nextLectureIndex,
   nowInTimezone,
   timeToMinutes,
 } from '../../lib/timetable'
@@ -59,15 +61,7 @@ export function StudentHome() {
     .sort((a, b) => (timeToMinutes(a.start_time) ?? 0) - (timeToMinutes(b.start_time) ?? 0))
   const next = nextLecture(rows, timezone)
 
-  const nextUpIndex = todayRows.findIndex((row) => (timeToMinutes(row.start_time) ?? 0) > now.minutes)
-  const lectureState = (row, index) => {
-    const start = timeToMinutes(row.start_time)
-    const end = timeToMinutes(row.end_time)
-    if (start == null || end == null) return ''
-    if (start <= now.minutes && end > now.minutes) return 'now'
-    if (end <= now.minutes) return 'done'
-    return index === nextUpIndex ? 'next' : 'later'
-  }
+  const nextUpIndex = nextLectureIndex(todayRows, now.minutes)
 
   const attendanceData = attendance.data || {}
   const attendanceCourses = attendanceData.courses || []
@@ -183,7 +177,7 @@ export function StudentHome() {
             ) : todayRows.length ? (
               <div className="home-lectures">
                 {todayRows.map((row, index) => {
-                  const state = lectureState(row, index)
+                  const state = lectureState(row, now.minutes, index, nextUpIndex)
                   return (
                     <div key={row.id ?? index} className={`lecture-row is-${state || 'later'}`}>
                       <div className="lecture-time">

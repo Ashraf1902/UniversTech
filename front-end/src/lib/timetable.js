@@ -63,8 +63,8 @@ export function timeToMinutes(value) {
   return Number(match[1]) * 60 + Number(match[2])
 }
 
-function zoneParts(tz) {
-  const now = new Date()
+function zoneParts(tz, at) {
+  const now = at ? new Date(at) : new Date()
   try {
     const parts = new Intl.DateTimeFormat('en-CA', {
       timeZone: tz || undefined,
@@ -97,9 +97,10 @@ function zoneParts(tz) {
   }
 }
 
-// Current date, weekday and minute-of-day in the university timezone.
-export function nowInTimezone(tz) {
-  const parts = zoneParts(tz)
+// Current date, weekday and minute-of-day in the university timezone. Pass an
+// explicit `at` Date to freeze the clock in tests.
+export function nowInTimezone(tz, at) {
+  const parts = zoneParts(tz, at)
   return {
     date: new Date(parts.year, parts.month - 1, parts.day),
     weekday: parts.weekday,
@@ -108,8 +109,8 @@ export function nowInTimezone(tz) {
 }
 
 // The Saturday-to-Friday teaching week that contains today, with real dates.
-export function currentWeek(tz) {
-  const now = nowInTimezone(tz)
+export function currentWeek(tz, at) {
+  const now = nowInTimezone(tz, at)
   const offset = WEEK_INDEX[now.weekday] ?? 0
   const start = new Date(now.date)
   start.setDate(start.getDate() - offset)
@@ -121,14 +122,32 @@ export function currentWeek(tz) {
   })
 }
 
+// Index of the first lecture today that has not started yet (-1 when the day
+// is over). Kept separate from the component so the badge rules are testable.
+export function nextLectureIndex(rows, nowMinutes) {
+  return (rows || []).findIndex((row) => (timeToMinutes(row.start_time) ?? 0) > nowMinutes)
+}
+
+// State of one lecture at the injected minute-of-day clock: 'now' while it is
+// running, 'done' once it ended, 'next' for the next one up, otherwise 'later'.
+// An empty string means the row has no usable times.
+export function lectureState(row, nowMinutes, index = -1, nextUp = -1) {
+  const start = timeToMinutes(row?.start_time)
+  const end = timeToMinutes(row?.end_time)
+  if (start == null || end == null) return ''
+  if (start <= nowMinutes && end > nowMinutes) return 'now'
+  if (end <= nowMinutes) return 'done'
+  return index === nextUp ? 'next' : 'later'
+}
+
 export function formatDate(date, lang, tz, options) {
   return format(date, lang, tz, options)
 }
 
 // The next lecture in the week. Already-finished lectures today roll over to
 // next week; a lecture in progress counts as the next one.
-export function nextLecture(rows, tz) {
-  const now = nowInTimezone(tz)
+export function nextLecture(rows, tz, at) {
+  const now = nowInTimezone(tz, at)
   const todayIndex = WEEK_INDEX[now.weekday] ?? 0
   let best = null
 
