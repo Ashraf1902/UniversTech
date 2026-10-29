@@ -3,8 +3,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { APP_ROOTS, FORGOT_PASSWORD_PATHS, request } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { useI18n } from '../lib/i18n'
-import { Brand } from '../lib/Brand'
 import { Btn, Field, I, Reveal, useToast } from '../lib/ui'
+import { AuthAlert, AuthInput, AuthShell, errorFields } from './_auth'
 
 const ROLES = [
   { key: 'student', labelKey: 'student', icon: 'cap' },
@@ -21,6 +21,8 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [show, setShow] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [errors, setErrors] = useState({})
+  const [formError, setFormError] = useState('')
 
   const [events, setEvents] = useState([])
   const [slide, setSlide] = useState(0)
@@ -47,20 +49,20 @@ export default function Login() {
 
   useEffect(() => {
     let alive = true
+    let timer
     request('/api/public/events')
       .then((data) => {
-        if (alive) {
-          const items = Array.isArray(data) ? data : []
-          setEvents(items)
-          if (items.length > 1) {
-            const t = setInterval(() => setSlide((s) => (s + 1) % items.length), 4500)
-            return () => clearInterval(t)
-          }
+        if (!alive) return
+        const items = Array.isArray(data) ? data : []
+        setEvents(items)
+        if (items.length > 1) {
+          timer = setInterval(() => setSlide((s) => (s + 1) % items.length), 5000)
         }
       })
       .catch(() => {})
     return () => {
       alive = false
+      if (timer) clearInterval(timer)
     }
   }, [])
 
@@ -73,14 +75,33 @@ export default function Login() {
       .catch(() => {})
   }, [])
 
+  const resetFeedback = () => {
+    setErrors({})
+    setFormError('')
+  }
+
+  const changeTab = (next) => {
+    setTab(next)
+    resetFeedback()
+  }
+
+  const changeRole = (next) => {
+    setRole(next)
+    resetFeedback()
+  }
+
   const submit = async (e) => {
     e.preventDefault()
+    resetFeedback()
     setLoading(true)
     try {
       const next = await login(role, email.trim(), password)
       toast.success(t('welcomeBackToast', { name: next.user?.name || t('there') }))
       navigate(APP_ROOTS[next.role] || '/', { replace: true })
     } catch (err) {
+      const fields = errorFields(err)
+      if (fields && Object.keys(fields).length) setErrors(fields)
+      setFormError(err.message || t('loginFailed'))
       toast.error(err.message || t('loginFailed'))
     } finally {
       setLoading(false)
@@ -89,6 +110,7 @@ export default function Login() {
 
   const register = async (e) => {
     e.preventDefault()
+    resetFeedback()
     setRegistering(true)
     try {
       const payload = {
@@ -105,26 +127,37 @@ export default function Login() {
       setSent(true)
       toast.success(t('requestSubmitted'))
     } catch (err) {
+      const fields = errorFields(err)
+      if (fields && Object.keys(fields).length) setErrors(fields)
+      setFormError(err.message || t('somethingWrong'))
       toast.error(err.message || t('somethingWrong'))
     } finally {
       setRegistering(false)
     }
   }
 
-  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value })
+  const set = (k) => (e) => {
+    setForm({ ...form, [k]: e.target.value })
+    const errorKey = k === 'regEmail' ? 'email' : k === 'regPassword' ? 'password' : k
+    if (errors[errorKey]) setErrors((prev) => ({ ...prev, [errorKey]: undefined }))
+  }
 
   const openForgot = () => {
     setResetSent(false)
-    setTab('forgot')
+    changeTab('forgot')
   }
 
   const sendReset = async (e) => {
     e.preventDefault()
+    resetFeedback()
     setSendingReset(true)
     try {
       await request(FORGOT_PASSWORD_PATHS[role], { method: 'POST', data: { email: email.trim() } })
       setResetSent(true)
     } catch (err) {
+      const fields = errorFields(err)
+      if (fields && Object.keys(fields).length) setErrors(fields)
+      setFormError(err.message || t('somethingWrong'))
       toast.error(err.message || t('somethingWrong'))
     } finally {
       setSendingReset(false)
@@ -132,9 +165,46 @@ export default function Login() {
   }
 
   const current = slide % Math.max(events.length, 1)
+  const currentEvent = events[current]
+  const roleLabel = t(ROLES.find((r) => r.key === role)?.labelKey)
+
+  const roleTabs = (
+    <div className="role-tabs" role="tablist" aria-label={t('chooseRole')}>
+      {ROLES.map((r) => (
+        <button
+          key={r.key}
+          type="button"
+          role="tab"
+          aria-selected={role === r.key}
+          className={`role-tab ${role === r.key ? 'on' : ''}`}
+          onClick={() => changeRole(r.key)}
+        >
+          <I name={r.icon} size={17} />
+          {t(r.labelKey)}
+        </button>
+      ))}
+    </div>
+  )
 
   return (
-    <div className={`auth login-flip ${sent ? 'has-sent' : ''}`}>
+    <AuthShell
+      asideExtra={
+        currentEvent ? (
+          <div className="auth-event" key={currentEvent.id}>
+            <span className="auth-event-icon">
+              <I name="spark" size={15} />
+            </span>
+            <span className="auth-event-text">
+              <small>{t('campusToday')}</small>
+              <strong>{currentEvent.title}</strong>
+            </span>
+            <span className="auth-event-count">
+              {current + 1}/{events.length}
+            </span>
+          </div>
+        ) : null
+      }
+    >
       <button
         type="button"
         className="lang-toggle lang-toggle-float"
@@ -145,304 +215,286 @@ export default function Login() {
         <span>{lang === 'ar' ? t('switchToEn') : t('switchToAr')}</span>
       </button>
 
-      <aside className="auth-visual">
-        <span className="orb orb-v" style={{ position: 'absolute', width: 380, height: 380, top: '-80px', left: '-60px', opacity: 0.4 }} />
-        <span className="orb orb-c" style={{ position: 'absolute', width: 340, height: 340, bottom: '-90px', right: '-50px', opacity: 0.3 }} />
-        <div className="hero-grid" style={{ position: 'absolute', inset: 0 }} />
-
-        <Reveal className="plank">
-          <Brand size="lg" className="auth-lockup" />
-
-          {events.length ? (
-            <div className="events-rail">
-              <div className="events-head">
-                <span className="kicker">{t('campusToday')}</span>
-              </div>
-              {events.map((ev, i) => (
-                <div key={ev.id} className={`event-slide ${i === current ? 'in' : ''}`}>
-                  {ev.image ? <img className="event-img" src={ev.image} alt="" /> : <div className="event-img event-img-fallback" />}
-                  <h1>{ev.title}</h1>
-                  <p>{ev.content}</p>
-                  <div className="event-date">
-                    <I name="calendar" size={14} />
-                    {ev.created_at ? new Date(ev.created_at).toLocaleDateString() : ''}
-                  </div>
-                </div>
-              ))}
-              <div className="event-dots">
-                {events.map((_, i) => (
-                  <button
-                    key={i}
-                    className={`dot ${i === current ? 'on' : ''}`}
-                    onClick={() => setSlide(i)}
-                    aria-label={t('eventDotLabel', { n: i + 1 })}
-                  />
-                ))}
-              </div>
+      <Reveal className="auth-card">
+        {sent ? (
+          <div className="auth-panel">
+            <div className="sent-icon">
+              <I name="check" size={28} />
             </div>
-          ) : (
-            <>
-              <h1>
-                {t('heroTitle')} <span className="grad-text">{t('heroSpot')}</span>
-              </h1>
-              <p>{t('heroLead')}</p>
-            </>
-          )}
-        </Reveal>
-      </aside>
+            <h2 className="auth-title">{t('requestSent')}</h2>
+            <p className="auth-sub">{t('requestSentSub')}</p>
+            <Btn
+              className="btn-block"
+              size="lg"
+              iconRight="arrow"
+              onClick={() => {
+                setSent(false)
+                setForm({ ...form, regEmail: form.regEmail, regPassword: '' })
+                changeTab('login')
+              }}
+            >
+              {t('backToSignIn')}
+            </Btn>
+          </div>
+        ) : tab === 'forgot' ? (
+          <div className="auth-panel">
+            <button type="button" className="auth-back" onClick={() => changeTab('login')}>
+              <I name="arrow" size={16} style={{ transform: 'rotate(180deg)' }} /> {t('backToSignIn')}
+            </button>
+            {resetSent ? (
+              <>
+                <div className="sent-icon">
+                  <I name="mail" size={28} />
+                </div>
+                <h2 className="auth-title">{t('resetLinkSentTitle')}</h2>
+                <p className="auth-sub">{t('resetLinkSentSub')}</p>
+                <Btn
+                  className="btn-block"
+                  size="lg"
+                  iconRight="arrow"
+                  onClick={() => {
+                    setResetSent(false)
+                    changeTab('login')
+                  }}
+                >
+                  {t('backToSignIn')}
+                </Btn>
+              </>
+            ) : (
+              <>
+                <h2 className="auth-title">{t('forgotPasswordTitle')}</h2>
+                <p className="auth-sub">{t('forgotPasswordSub')}</p>
 
-      <main className="auth-form">
-        <Reveal className="auth-card">
-          <Brand size="md" className="auth-brand" />
-          {tab !== 'forgot' ? (
+                {roleTabs}
+
+                {formError ? <AuthAlert>{formError}</AuthAlert> : null}
+
+                <form onSubmit={sendReset} noValidate>
+                  <Field label={t('email')} error={errors.email}>
+                    <AuthInput
+                      icon="mail"
+                      type="email"
+                      placeholder={t('emailPh')}
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value)
+                        if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }))
+                      }}
+                      autoComplete="email"
+                      required
+                    />
+                  </Field>
+
+                  <Btn type="submit" className="btn-block" size="lg" loading={sendingReset} iconRight={sendingReset ? undefined : 'arrow'}>
+                    {sendingReset ? t('sendingResetLink') : t('sendResetLink')}
+                  </Btn>
+                </form>
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="auth-panel">
+            <div className="auth-head">
+              <span className="auth-kicker">{t('appTag')}</span>
+              <h2 className="auth-title">{tab === 'login' ? t('welcomeBackTitle') : t('requestAccessTitle')}</h2>
+              <p className="auth-sub">{tab === 'login' ? t('chooseRole') : t('studentRegisterSub')}</p>
+            </div>
+
             <div className="auth-tabs" role="tablist">
               <button
                 type="button"
                 role="tab"
                 aria-selected={tab === 'login'}
                 className={`atab ${tab === 'login' ? 'on' : ''}`}
-                onClick={() => setTab('login')}
+                onClick={() => changeTab('login')}
               >
-                <I name="shield" size={16} /> {t('tabSignIn')}
+                <I name="login" size={16} /> {t('tabSignIn')}
               </button>
               <button
                 type="button"
                 role="tab"
                 aria-selected={tab === 'register'}
                 className={`atab ${tab === 'register' ? 'on' : ''}`}
-                onClick={() => setTab('register')}
+                onClick={() => changeTab('register')}
               >
                 <I name="plus" size={16} /> {t('tabCreateAccount')}
               </button>
             </div>
-          ) : null}
 
-          {sent ? (
-            <div className="auth-panel">
-              <div className="sent-icon">
-                <I name="check" size={28} />
-              </div>
-              <h2 className="title">{t('requestSent')}</h2>
-              <p className="subt">{t('requestSentSub')}</p>
-              <Btn className="btn-block" size="lg" icon="arrow" onClick={() => { setSent(false); setTab('login'); setForm({ ...form, regEmail: form.regEmail, regPassword: '' }) }}>
-                {t('backToSignIn')}
-              </Btn>
-            </div>
-          ) : tab === 'forgot' ? (
-            <div className="auth-panel">
-              {resetSent ? (
-                <>
-                  <div className="sent-icon">
-                    <I name="mail" size={28} />
-                  </div>
-                  <h2 className="title">{t('resetLinkSentTitle')}</h2>
-                  <p className="subt">{t('resetLinkSentSub')}</p>
-                  <Btn className="btn-block" size="lg" icon="arrow" onClick={() => { setResetSent(false); setTab('login') }}>
-                    {t('backToSignIn')}
-                  </Btn>
-                </>
-              ) : (
-                <>
-                  <button type="button" className="auth-back" onClick={() => setTab('login')}>
-                    <I name="arrow" size={16} style={{ transform: 'rotate(180deg)' }} /> {t('backToSignIn')}
-                  </button>
-                  <h2 className="title">{t('forgotPasswordTitle')}</h2>
-                  <p className="subt">{t('forgotPasswordSub')}</p>
+            {roleTabs}
 
-                  <div className="role-tabs">
-                    {ROLES.map((r) => (
-                      <button
-                        key={r.key}
-                        type="button"
-                        className={`role-tab ${role === r.key ? 'on' : ''}`}
-                        onClick={() => setRole(r.key)}
-                      >
-                        <I name={r.icon} size={18} />
-                        {t(r.labelKey)}
-                      </button>
-                    ))}
-                  </div>
+            {formError ? <AuthAlert>{formError}</AuthAlert> : null}
 
-                  <form onSubmit={sendReset}>
-                    <Field label={t('email')}>
-                      <div style={{ position: 'relative' }}>
-                        <I name="mail" size={17} style={{ position: 'absolute', insetInlineStart: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--faint)' }} />
-                        <input
-                          className="input"
-                          type="email"
-                          required
-                          placeholder={t('emailPh')}
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          style={{ paddingInlineStart: 42 }}
-                          autoComplete="email"
-                        />
-                      </div>
-                    </Field>
-
-                    <Btn type="submit" className="btn-block" size="lg" loading={sendingReset} iconRight={sendingReset ? undefined : 'arrow'}>
-                      {sendingReset ? t('sendingResetLink') : t('sendResetLink')}
-                    </Btn>
-                  </form>
-                </>
-              )}
-            </div>
-          ) : tab === 'login' ? (
-            <div className="auth-panel">
-              <h2 className="title">{t('welcomeBackTitle')}</h2>
-              <p className="subt">{t('chooseRole')}</p>
-
-              <div className="role-tabs">
-                {ROLES.map((r) => (
-                  <button
-                    key={r.key}
-                    type="button"
-                    className={`role-tab ${role === r.key ? 'on' : ''}`}
-                    onClick={() => setRole(r.key)}
-                  >
-                    <I name={r.icon} size={18} />
-                    {t(r.labelKey)}
-                  </button>
-                ))}
-              </div>
-
-              <form onSubmit={submit}>
-                <Field label={t('email')}>
-                  <div style={{ position: 'relative' }}>
-                    <I name="mail" size={17} style={{ position: 'absolute', insetInlineStart: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--faint)' }} />
-                    <input
-                      className="input"
+            {tab === 'login' ? (
+              <>
+                <form onSubmit={submit} noValidate>
+                  <Field label={t('email')} error={errors.email}>
+                    <AuthInput
+                      icon="mail"
                       type="email"
-                      required
                       placeholder={t('emailPh')}
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      style={{ paddingInlineStart: 42 }}
+                      onChange={(e) => {
+                        setEmail(e.target.value)
+                        if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }))
+                      }}
                       autoComplete="email"
-                    />
-                  </div>
-                </Field>
-
-                <Field label={t('password')}>
-                  <div style={{ position: 'relative' }}>
-                    <I name="lock" size={17} style={{ position: 'absolute', insetInlineStart: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--faint)' }} />
-                    <input
-                      className="input"
-                      type={show ? 'text' : 'password'}
                       required
+                    />
+                  </Field>
+
+                  <Field label={t('password')} error={errors.password}>
+                    <AuthInput
+                      icon="lock"
+                      type={show ? 'text' : 'password'}
                       placeholder="••••••••"
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      style={{ paddingInlineStart: 42, paddingInlineEnd: 44 }}
+                      onChange={(e) => {
+                        setPassword(e.target.value)
+                        if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }))
+                      }}
                       autoComplete="current-password"
+                      required
+                      trailing={
+                        <button
+                          type="button"
+                          className="input-action"
+                          onClick={() => setShow((s) => !s)}
+                          aria-label={t('togglePassword')}
+                        >
+                          <I name={show ? 'eyeOff' : 'eye'} size={17} />
+                        </button>
+                      }
                     />
-                    <button
-                      type="button"
-                      onClick={() => setShow((s) => !s)}
-                      style={{ position: 'absolute', insetInlineEnd: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--faint)' }}
-                      aria-label={t('togglePassword')}
-                    >
-                      <I name={show ? 'eyeOff' : 'eye'} size={17} />
+                  </Field>
+
+                  <div className="auth-row">
+                    <button type="button" className="linkish" onClick={openForgot}>
+                      {t('forgotPassword')}
                     </button>
                   </div>
-                </Field>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-                  <button type="button" className="linkish" onClick={openForgot}>
-                    {t('forgotPassword')}
+                  <Btn type="submit" className="btn-block" size="lg" loading={loading} iconRight={loading ? undefined : 'arrow'}>
+                    {loading ? t('signingIn') : t('signInAs', { role: roleLabel })}
+                  </Btn>
+                </form>
+
+                <p className="auth-foot">
+                  {t('firstTime')}{' '}
+                  <button type="button" className="linkish" onClick={() => changeTab('register')}>
+                    {t('requestAccess')}
                   </button>
-                </div>
-
-                <Btn type="submit" className="btn-block" size="lg" loading={loading} iconRight={loading ? undefined : 'arrow'}>
-                  {loading ? t('signingIn') : t('signInAs', { role: t(ROLES.find((r) => r.key === role)?.labelKey) })}
+                  <br />
+                  {t('accessProvisioned')}
+                </p>
+              </>
+            ) : role !== 'student' ? (
+              <div className="auth-staff">
+                <span className="auth-staff-icon">
+                  <I name="shield" size={22} />
+                </span>
+                <h3>{t('authStaffTitle')}</h3>
+                <p>{t('authStaffBody')}</p>
+                <Btn className="btn-block" variant="soft" icon="cap" onClick={() => changeRole('student')}>
+                  {t('authRequestStudentAccess')}
                 </Btn>
-              </form>
-
-              <p className="auth-foot">
-                {t('firstTime')} <button type="button" className="linkish" onClick={() => setTab('register')}>{t('requestAccess')}</button>
-                <br />
-                {t('accessProvisioned')}
-              </p>
-            </div>
-          ) : (
-            <div className="auth-panel">
-              <h2 className="title">{t('requestAccessTitle')}</h2>
-              <p className="subt">{t('requestAccessSub')}</p>
-
-              <form onSubmit={register}>
-                <div className="grid grid-2" style={{ gap: 12 }}>
-                  <Field label={t('fullName')}>
-                    <input className="input" value={form.name} onChange={set('name')} placeholder={t('fullNamePh')} required />
-                  </Field>
-                  <Field label={t('email')}>
-                    <input className="input" type="email" value={form.regEmail} onChange={set('regEmail')} placeholder="you@mail.com" required />
-                  </Field>
-                </div>
-                <div className="grid grid-2" style={{ gap: 12 }}>
-                  <Field label={t('password')}>
-                    <div style={{ position: 'relative' }}>
-                      <input
-                        className="input"
+                <p className="auth-foot">
+                  {t('alreadyHaveAccount')}{' '}
+                  <button type="button" className="linkish" onClick={() => changeTab('login')}>
+                    {t('signIn')}
+                  </button>
+                </p>
+              </div>
+            ) : (
+              <>
+                <form onSubmit={register} noValidate>
+                  <div className="grid grid-2" style={{ gap: 12 }}>
+                    <Field label={t('fullName')} error={errors.name}>
+                      <AuthInput icon="user" value={form.name} onChange={set('name')} placeholder={t('fullNamePh')} required />
+                    </Field>
+                    <Field label={t('email')} error={errors.email}>
+                      <AuthInput icon="mail" type="email" value={form.regEmail} onChange={set('regEmail')} placeholder="you@mail.com" autoComplete="email" required />
+                    </Field>
+                  </div>
+                  <div className="grid grid-2" style={{ gap: 12 }}>
+                    <Field label={t('password')} error={errors.password}>
+                      <AuthInput
+                        icon="lock"
                         type={regShow ? 'text' : 'password'}
                         value={form.regPassword}
                         onChange={set('regPassword')}
                         placeholder={t('passwordPh')}
                         minLength={6}
-                        style={{ paddingRight: 44 }}
+                        autoComplete="new-password"
                         required
+                        trailing={
+                          <button
+                            type="button"
+                            className="input-action"
+                            onClick={() => setRegShow((s) => !s)}
+                            aria-label={t('togglePassword')}
+                          >
+                            <I name={regShow ? 'eyeOff' : 'eye'} size={17} />
+                          </button>
+                        }
                       />
-                      <button
-                        type="button"
-                        onClick={() => setRegShow((s) => !s)}
-                        style={{ position: 'absolute', insetInlineEnd: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--faint)' }}
-                        aria-label={t('togglePassword')}
-                      >
-                        <I name={regShow ? 'eyeOff' : 'eye'} size={17} />
-                      </button>
-                    </div>
-                  </Field>
-                  <Field label={t('gender')}>
-                    <div className="radio-row">
-                      <button type="button" className={`chip ${form.gender === 1 ? 'on' : ''}`} onClick={() => setForm({ ...form, gender: 1 })}>{t('female')}</button>
-                      <button type="button" className={`chip ${form.gender === 0 ? 'on' : ''}`} onClick={() => setForm({ ...form, gender: 0 })}>{t('male')}</button>
-                    </div>
-                  </Field>
-                </div>
-                <div className="grid grid-2" style={{ gap: 12 }}>
-                  <Field label={t('level')}>
-                    <select className="select" value={form.level_id} onChange={set('level_id')}>
-                      <option value="">{t('select')}</option>
-                      {levels.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-                    </select>
-                  </Field>
-                  <Field label={t('department')}>
-                    <select className="select" value={form.department_id} onChange={set('department_id')}>
-                      <option value="">{t('select')}</option>
-                      {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-                    </select>
-                  </Field>
-                </div>
-                <div className="grid grid-2" style={{ gap: 12 }}>
-                  <Field label={t('phoneOptional')}>
-                    <input className="input" value={form.phone} onChange={set('phone')} maxLength={11} placeholder={t('phonePh')} />
-                  </Field>
-                  <Field label={t('nationalIdOptional')}>
-                    <input className="input" value={form.national_id} onChange={set('national_id')} maxLength={14} placeholder={t('nationalIdPh')} />
-                  </Field>
-                </div>
+                    </Field>
+                    <Field label={t('gender')} error={errors.gender}>
+                      <div className="radio-row">
+                        <button type="button" className={`chip ${form.gender === 1 ? 'on' : ''}`} onClick={() => setForm({ ...form, gender: 1 })}>
+                          {t('female')}
+                        </button>
+                        <button type="button" className={`chip ${form.gender === 0 ? 'on' : ''}`} onClick={() => setForm({ ...form, gender: 0 })}>
+                          {t('male')}
+                        </button>
+                      </div>
+                    </Field>
+                  </div>
+                  <div className="grid grid-2" style={{ gap: 12 }}>
+                    <Field label={t('level')} error={errors.level_id}>
+                      <select className="select" value={form.level_id} onChange={set('level_id')}>
+                        <option value="">{t('select')}</option>
+                        {levels.map((l) => (
+                          <option key={l.id} value={l.id}>{l.name}</option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label={t('department')} error={errors.department_id}>
+                      <select className="select" value={form.department_id} onChange={set('department_id')}>
+                        <option value="">{t('select')}</option>
+                        {departments.map((d) => (
+                          <option key={d.id} value={d.id}>{d.name}</option>
+                        ))}
+                      </select>
+                    </Field>
+                  </div>
+                  <div className="grid grid-2" style={{ gap: 12 }}>
+                    <Field label={t('phoneOptional')} error={errors.phone}>
+                      <AuthInput icon="user" value={form.phone} onChange={set('phone')} maxLength={11} placeholder={t('phonePh')} />
+                    </Field>
+                    <Field label={t('nationalIdOptional')} error={errors.national_id}>
+                      <AuthInput icon="file" value={form.national_id} onChange={set('national_id')} maxLength={14} placeholder={t('nationalIdPh')} />
+                    </Field>
+                  </div>
 
-                <Btn type="submit" className="btn-block" size="lg" loading={registering} iconRight={registering ? undefined : 'arrow'}>
-                  {registering ? t('submitting') : t('submitRequest')}
-                </Btn>
-              </form>
+                  <AuthAlert tone="info">{t('authStudentRegisterNote')}</AuthAlert>
 
-              <p className="auth-foot">
-                {t('alreadyHaveAccount')} <button type="button" className="linkish" onClick={() => setTab('login')}>{t('signIn')}</button>
-              </p>
-            </div>
-          )}
-        </Reveal>
-      </main>
-    </div>
+                  <Btn type="submit" className="btn-block" size="lg" loading={registering} iconRight={registering ? undefined : 'arrow'}>
+                    {registering ? t('submitting') : t('submitRequest')}
+                  </Btn>
+                </form>
+
+                <p className="auth-foot">
+                  {t('alreadyHaveAccount')}{' '}
+                  <button type="button" className="linkish" onClick={() => changeTab('login')}>
+                    {t('signIn')}
+                  </button>
+                </p>
+              </>
+            )}
+          </div>
+        )}
+      </Reveal>
+    </AuthShell>
   )
 }

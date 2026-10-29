@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { RESET_PASSWORD_PATHS, request } from '../lib/api'
 import { useI18n } from '../lib/i18n'
-import { Brand } from '../lib/Brand'
 import { Btn, Field, I, Reveal, useToast } from '../lib/ui'
+import { AuthAlert, AuthInput, AuthShell, errorFields } from './_auth'
 
 const ROLES = ['student', 'professor', 'admin']
 
@@ -21,13 +21,18 @@ export default function ResetPassword() {
   const [confirm, setConfirm] = useState('')
   const [show, setShow] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [errors, setErrors] = useState({})
+  const [formError, setFormError] = useState('')
 
   const validLink = Boolean(token && email)
 
   const submit = async (e) => {
     e.preventDefault()
+    setErrors({})
+    setFormError('')
     if (password !== confirm) {
       toast.error(t('passwordsDoNotMatch'))
+      setErrors({ password_confirmation: t('passwordsDoNotMatch') })
       return
     }
     setLoading(true)
@@ -39,6 +44,9 @@ export default function ResetPassword() {
       toast.success(t('passwordResetSuccess'))
       navigate(`/login?role=${role}`, { replace: true })
     } catch (err) {
+      const fields = errorFields(err)
+      if (fields && Object.keys(fields).length) setErrors(fields)
+      setFormError(err.message || t('somethingWrong'))
       toast.error(err.message || t('somethingWrong'))
     } finally {
       setLoading(false)
@@ -46,7 +54,7 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="auth login-flip" style={{ gridTemplateColumns: '1fr' }}>
+    <AuthShell>
       <button
         type="button"
         className="lang-toggle lang-toggle-float"
@@ -57,81 +65,79 @@ export default function ResetPassword() {
         <span>{lang === 'ar' ? t('switchToEn') : t('switchToAr')}</span>
       </button>
 
-      <main className="auth-form">
-        <Reveal className="auth-card">
-          <Brand size="md" className="auth-lockup auth-lockup-top" />
-
-          {!validLink ? (
-            <div className="auth-panel">
-              <div className="sent-icon">
-                <I name="x" size={28} />
-              </div>
-              <h2 className="title">{t('invalidResetLink')}</h2>
-              <p className="subt">{t('invalidResetLinkSub')}</p>
-              <Link className="btn btn-primary btn-block btn-lg" to="/login">
-                {t('backToSignIn')}
-              </Link>
+      <Reveal className="auth-card">
+        {!validLink ? (
+          <div className="auth-panel">
+            <div className="sent-icon is-warn">
+              <I name="x" size={28} />
             </div>
-          ) : (
-            <div className="auth-panel">
-              <h2 className="title">{t('resetPasswordTitle')}</h2>
-              <p className="subt">{t('resetPasswordSub')}</p>
+            <h2 className="auth-title">{t('invalidResetLink')}</h2>
+            <p className="auth-sub">{t('invalidResetLinkSub')}</p>
+            <Link className="btn btn-primary btn-block btn-lg" to="/login">
+              {t('backToSignIn')}
+            </Link>
+          </div>
+        ) : (
+          <div className="auth-panel">
+            <div className="auth-head">
+              <span className="auth-kicker">{t('appTag')}</span>
+              <h2 className="auth-title">{t('resetPasswordTitle')}</h2>
+              <p className="auth-sub">{t('resetPasswordSub')}</p>
+            </div>
 
-              <form onSubmit={submit}>
-                <Field label={t('newPassword')}>
-                  <div style={{ position: 'relative' }}>
-                    <I name="lock" size={17} style={{ position: 'absolute', insetInlineStart: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--faint)' }} />
-                    <input
-                      className="input"
-                      type={show ? 'text' : 'password'}
-                      required
-                      minLength={6}
-                      placeholder={t('passwordPh')}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      style={{ paddingInlineStart: 42, paddingInlineEnd: 44 }}
-                      autoComplete="new-password"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShow((s) => !s)}
-                      style={{ position: 'absolute', insetInlineEnd: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--faint)' }}
-                      aria-label={t('togglePassword')}
-                    >
+            {formError ? <AuthAlert>{formError}</AuthAlert> : null}
+
+            <form onSubmit={submit} noValidate>
+              <Field label={t('newPassword')} error={errors.password}>
+                <AuthInput
+                  icon="lock"
+                  type={show ? 'text' : 'password'}
+                  required
+                  minLength={6}
+                  placeholder={t('passwordPh')}
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value)
+                    if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }))
+                  }}
+                  autoComplete="new-password"
+                  trailing={
+                    <button type="button" className="input-action" onClick={() => setShow((s) => !s)} aria-label={t('togglePassword')}>
                       <I name={show ? 'eyeOff' : 'eye'} size={17} />
                     </button>
-                  </div>
-                </Field>
+                  }
+                />
+              </Field>
 
-                <Field label={t('confirmPassword')}>
-                  <div style={{ position: 'relative' }}>
-                    <I name="lock" size={17} style={{ position: 'absolute', insetInlineStart: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--faint)' }} />
-                    <input
-                      className="input"
-                      type={show ? 'text' : 'password'}
-                      required
-                      minLength={6}
-                      placeholder={t('passwordPh')}
-                      value={confirm}
-                      onChange={(e) => setConfirm(e.target.value)}
-                      style={{ paddingInlineStart: 42 }}
-                      autoComplete="new-password"
-                    />
-                  </div>
-                </Field>
+              <Field label={t('confirmPassword')} error={errors.password_confirmation}>
+                <AuthInput
+                  icon="lock"
+                  type={show ? 'text' : 'password'}
+                  required
+                  minLength={6}
+                  placeholder={t('passwordPh')}
+                  value={confirm}
+                  onChange={(e) => {
+                    setConfirm(e.target.value)
+                    if (errors.password_confirmation) setErrors((prev) => ({ ...prev, password_confirmation: undefined }))
+                  }}
+                  autoComplete="new-password"
+                />
+              </Field>
 
-                <Btn type="submit" className="btn-block" size="lg" loading={loading} iconRight={loading ? undefined : 'check'}>
-                  {loading ? t('resetting') : t('resetPassword')}
-                </Btn>
-              </form>
+              <Btn type="submit" className="btn-block" size="lg" loading={loading} iconRight={loading ? undefined : 'check'}>
+                {loading ? t('resetting') : t('resetPassword')}
+              </Btn>
+            </form>
 
-              <p className="auth-foot">
-                <Link className="linkish" to="/login">{t('backToSignIn')}</Link>
-              </p>
-            </div>
-          )}
-        </Reveal>
-      </main>
-    </div>
+            <p className="auth-foot">
+              <Link className="linkish" to="/login">
+                {t('backToSignIn')}
+              </Link>
+            </p>
+          </div>
+        )}
+      </Reveal>
+    </AuthShell>
   )
 }

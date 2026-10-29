@@ -55,3 +55,101 @@ export function formatTime(value, tz) {
   if (Number.isNaN(date.getTime())) return text
   return format(date, 'en-GB', tz, { hour: '2-digit', minute: '2-digit', hour12: false })
 }
+
+// Minutes since midnight for an HH:mm value.
+export function timeToMinutes(value) {
+  const match = String(value || '').match(/^(\d{1,2}):(\d{2})/)
+  if (!match) return null
+  return Number(match[1]) * 60 + Number(match[2])
+}
+
+function zoneParts(tz) {
+  const now = new Date()
+  try {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: tz || undefined,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      weekday: 'long',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).formatToParts(now)
+    const get = (type) => parts.find((p) => p.type === type)?.value
+    return {
+      year: Number(get('year')),
+      month: Number(get('month')),
+      day: Number(get('day')),
+      weekday: String(get('weekday') || '').toLowerCase(),
+      hour: Number(get('hour')) % 24,
+      minute: Number(get('minute')),
+    }
+  } catch {
+    return {
+      year: now.getFullYear(),
+      month: now.getMonth() + 1,
+      day: now.getDate(),
+      weekday: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][now.getDay()],
+      hour: now.getHours(),
+      minute: now.getMinutes(),
+    }
+  }
+}
+
+// Current date, weekday and minute-of-day in the university timezone.
+export function nowInTimezone(tz) {
+  const parts = zoneParts(tz)
+  return {
+    date: new Date(parts.year, parts.month - 1, parts.day),
+    weekday: parts.weekday,
+    minutes: parts.hour * 60 + parts.minute,
+  }
+}
+
+// The Saturday-to-Friday teaching week that contains today, with real dates.
+export function currentWeek(tz) {
+  const now = nowInTimezone(tz)
+  const offset = WEEK_INDEX[now.weekday] ?? 0
+  const start = new Date(now.date)
+  start.setDate(start.getDate() - offset)
+  return Array.from({ length: 7 }, (_, i) => {
+    const date = new Date(start)
+    date.setDate(start.getDate() + i)
+    const day = Object.keys(WEEK_INDEX)[i]
+    return { day, date, isToday: i === offset }
+  })
+}
+
+export function formatDate(date, lang, tz, options) {
+  return format(date, lang, tz, options)
+}
+
+// The next lecture in the week. Already-finished lectures today roll over to
+// next week; a lecture in progress counts as the next one.
+export function nextLecture(rows, tz) {
+  const now = nowInTimezone(tz)
+  const todayIndex = WEEK_INDEX[now.weekday] ?? 0
+  let best = null
+
+  ;(rows || []).forEach((row) => {
+    const index = dayIndex(row.day_of_week)
+    const start = timeToMinutes(row.start_time)
+    const end = timeToMinutes(row.end_time)
+    if (index > 6 || start == null || end == null) return
+    let delta = (index - todayIndex + 7) % 7
+    if (delta === 0 && end <= now.minutes) delta = 7
+    const score = delta * 24 * 60 + start
+    if (best && score >= best.score) return
+    const date = new Date(now.date)
+    date.setDate(date.getDate() + delta)
+    best = {
+      row,
+      date,
+      score,
+      live: delta === 0 && start <= now.minutes && end > now.minutes,
+    }
+  })
+
+  return best
+}

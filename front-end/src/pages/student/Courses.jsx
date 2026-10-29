@@ -5,22 +5,31 @@ import { useI18n } from '../../lib/i18n'
 import { useAsync } from '../../lib/hooks'
 import { Btn, CourseLoader, Empty, I, Pager, Prog, Reveal, useToast } from '../../lib/ui'
 import { DemoBanner, Head, money } from './_shared'
+
+function coursePct(course) {
+  const raw = course.progress_percent ?? (course.total_lectures ? (course.progress / course.total_lectures) * 100 : 0)
+  return Math.max(0, Math.min(100, Math.round(Number(raw) || 0)))
+}
+
 function CourseCard({ course, footer, delay = 0, t }) {
   const cover = course.cover_image && !course.cover_image.endsWith('default.jpg') ? course.cover_image : null
+  const progress = coursePct(course)
+
   return (
-    <Reveal className="card" delay={delay} style={{ padding: 0, overflow: 'hidden' }}>
-      <div style={{ height: 128, position: 'relative', background: cover ? `center/cover url(${cover})` : 'var(--grad)' }}>
-        <span style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent, rgba(4,5,14,.85))' }} />
-        {course.course_code ? (
-          <span className="badge vio" style={{ position: 'absolute', top: 12, left: 12 }}>{course.course_code}</span>
-        ) : null}
-        {course.no_of_hours ? (
-          <span className="badge" style={{ position: 'absolute', top: 12, right: 12 }}>{t('crHours', { n: course.no_of_hours })}</span>
-        ) : null}
+    <Reveal className="card course-card" delay={delay}>
+      <div className={`course-cover ${cover ? 'has-image' : ''}`} style={cover ? { backgroundImage: `url(${cover})` } : undefined}>
+        <span className="course-cover-veil" />
+        {course.course_code ? <span className="course-code">{course.course_code}</span> : null}
+        {course.no_of_hours ? <span className="course-hours">{t('crHours', { n: course.no_of_hours })}</span> : null}
+        <span className="course-progress-badge">
+          <Prog value={progress} sm />
+          <b>{progress}%</b>
+        </span>
       </div>
-      <div style={{ padding: 20 }}>
-        <h3 style={{ fontSize: '1.05rem', marginBottom: 6 }}>{course.course_name}</h3>
-        <p style={{ color: 'var(--muted)', fontSize: '0.86rem', marginBottom: 16 }}>
+      <div className="course-body">
+        <h3>{course.course_name}</h3>
+        <p className="course-prof">
+          <I name="user" size={14} />
           {course.professor || course.course_professor || t('noProfessorAssigned')}
         </p>
         {footer}
@@ -37,6 +46,17 @@ export function StudentCourses() {
   const { data, loading, error, run } = useAsync(() => request(`/api/user/courses?page=${page}`), [page])
   const paged = normalizePage(data)
   const paywall = error && (error.status === 403 || /pay/i.test(error.message))
+
+  const items = paged.items
+  const credits = items.reduce((sum, c) => sum + (Number(c.no_of_hours) || 0), 0)
+  const avgProgress = items.length
+    ? Math.round(
+        items.reduce((sum, c) => {
+          const pct = coursePct(c)
+          return sum + pct
+        }, 0) / items.length,
+      )
+    : 0
 
   const drop = async (c) => {
     if (!window.confirm(t('confirmDropCourse', { name: c.course_name }))) return
@@ -94,10 +114,28 @@ export function StudentCourses() {
         </>
       ) : loading ? (
         <CourseLoader label={t('loadingYourCourses')} />
-      ) : paged.items.length ? (
+      ) : items.length ? (
         <>
+          <Reveal className="course-stats">
+            <div>
+              <span>{t('registeredCourses')}</span>
+              <strong>{paged.total}</strong>
+            </div>
+            <div>
+              <span>{t('creditsEnrolled', { n: credits })}</span>
+              <strong>{credits}</strong>
+            </div>
+            <div>
+              <span>{t('averageProgress')}</span>
+              <strong>{avgProgress}%</strong>
+            </div>
+            <Link to="/app/student/catalog" className="course-stats-action">
+              <I name="plus" size={16} /> {t('registerCourses')}
+            </Link>
+          </Reveal>
+
           <div className="grid grid-3">
-            {paged.items.map((c, i) => (
+            {items.map((c, i) => (
               <CourseCard
                 key={c.id}
                 course={c}
@@ -105,16 +143,25 @@ export function StudentCourses() {
                 delay={i * 0.05}
                 footer={
                   <>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: 'var(--muted)', marginBottom: 8 }}>
+                    <div className="course-progress-row">
                       <span>{t('progress')}</span>
                       <span>{t('progressLectures', { done: c.progress, total: c.total_lectures })}</span>
                     </div>
-                    <Prog value={c.progress_percent} tone="cy" />
-                    <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>
-                      <Link to={`/app/student/course/${c.course_id}`} style={{ flex: 1 }}>
+                    <Prog
+                      value={coursePct(c)}
+                      tone="cy"
+                    />
+                    <div className="course-actions">
+                      <Link to={`/app/student/course/${c.course_id}`} className="course-continue">
                         <Btn variant="soft" className="btn-block" iconRight="arrow">{t('continueLearning')}</Btn>
                       </Link>
-                      <Btn variant="ghost" icon="trash" loading={dropping === c.id} onClick={() => drop(c)}>{t('dropCourse')}</Btn>
+                      <Btn
+                        variant="ghost"
+                        icon="trash"
+                        loading={dropping === c.id}
+                        onClick={() => drop(c)}
+                        aria-label={t('dropCourse')}
+                      />
                     </div>
                   </>
                 }
