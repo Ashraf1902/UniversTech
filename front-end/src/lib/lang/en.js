@@ -11,6 +11,7 @@ export default {
   langLabel: 'Language',
 
   menu: 'Menu',
+  more: 'More',
   signOut: 'Sign out',
   dashboard: 'Dashboard',
   welcomeBack: 'Welcome back, {name}',

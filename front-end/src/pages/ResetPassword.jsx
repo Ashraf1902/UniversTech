@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { RESET_PASSWORD_PATHS, request } from '../lib/api'
 import { useI18n } from '../lib/i18n'
+import { Brand } from '../lib/Brand'
 import { Btn, Field, I, Reveal, useToast } from '../lib/ui'
 
 const ROLES = ['student', 'professor', 'admin']
@@ -58,12 +59,7 @@ export default function ResetPassword() {
 
       <main className="auth-form">
         <Reveal className="auth-card">
-          <span className="logo" style={{ justifyContent: 'center', marginBottom: 28 }}>
-            <span className="logo-mark">
-              <I name="cap" size={20} />
-            </span>
-            Univers<span className="grad-text">Tech</span>
-          </span>
+          <Brand size="md" className="auth-lockup auth-lockup-top" />
 
           {!validLink ? (
             <div className="auth-panel">
@@ -84,7 +80,7 @@ export default function ResetPassword() {
               <form onSubmit={submit}>
                 <Field label={t('newPassword')}>
                   <div style={{ position: 'relative' }}>
-                    <I name="lock" size={17} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--faint)' }} />
+                    <I name="lock" size={17} style={{ position: 'absolute', insetInlineStart: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--faint)' }} />
                     <input
                       className="input"
                       type={show ? 'text' : 'password'}
@@ -93,13 +89,13 @@ export default function ResetPassword() {
                       placeholder={t('passwordPh')}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      style={{ paddingLeft: 42, paddingRight: 44 }}
+                      style={{ paddingInlineStart: 42, paddingInlineEnd: 44 }}
                       autoComplete="new-password"
                     />
                     <button
                       type="button"
                       onClick={() => setShow((s) => !s)}
-                      style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--faint)' }}
+                      style={{ position: 'absolute', insetInlineEnd: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--faint)' }}
                       aria-label={t('togglePassword')}
                     >
                       <I name={show ? 'eyeOff' : 'eye'} size={17} />
@@ -109,7 +105,7 @@ export default function ResetPassword() {
 
                 <Field label={t('confirmPassword')}>
                   <div style={{ position: 'relative' }}>
-                    <I name="lock" size={17} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--faint)' }} />
+                    <I name="lock" size={17} style={{ position: 'absolute', insetInlineStart: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--faint)' }} />
                     <input
                       className="input"
                       type={show ? 'text' : 'password'}
@@ -118,7 +114,7 @@ export default function ResetPassword() {
                       placeholder={t('passwordPh')}
                       value={confirm}
                       onChange={(e) => setConfirm(e.target.value)}
-                      style={{ paddingLeft: 42 }}
+                      style={{ paddingInlineStart: 42 }}
                       autoComplete="new-password"
                     />
                   </div>

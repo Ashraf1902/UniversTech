@@ -11,6 +11,7 @@
   langLabel: 'اللغة',
 
   menu: 'القائمة',
+  more: 'المزيد',
   signOut: 'تسجيل الخروج',
   dashboard: 'لوحة التحكم',
   welcomeBack: 'أهلاً بعودتك، {name}',

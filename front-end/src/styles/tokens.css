@@ -1,0 +1,274 @@
+/* ==========================================================================
+   UniversTech design tokens
+   Deep indigo + gold, taken from the university mark.
+   Primitives first, then semantic tokens, then legacy aliases so older
+   page-level styles keep resolving while the redesign rolls out.
+   ========================================================================== */
+
+:root {
+  /* ---- brand primitives ---- */
+  --ut-indigo-950: #120e2e;
+  --ut-indigo-900: #1a1440;
+  --ut-indigo-800: #221a52;
+  --ut-indigo-700: #2a2160;
+  --ut-indigo-600: #3a2e80;
+  --ut-indigo-500: #4c3ea3;
+  --ut-indigo-400: #6c5cc4;
+  --ut-indigo-300: #8e82d6;
+  --ut-indigo-200: #c3bbeb;
+  --ut-indigo-100: #e7e3f7;
+  --ut-indigo-50: #f4f1fc;
+
+  --ut-gold-700: #6b4e00;
+  --ut-gold-600: #946a00;
+  --ut-gold-500: #c99a00;
+  --ut-gold-400: #e5b010;
+  --ut-gold-300: #f0c419;
+  --ut-gold-200: #f7dd7e;
+  --ut-gold-100: #fbefc4;
+  --ut-gold-50: #fdf8e6;
+
+  /* ---- neutral primitives ---- */
+  --ut-ink-950: #0b0a1c;
+  --ut-ink-900: #12102a;
+  --ut-ink-800: #191635;
+  --ut-ink-700: #221d42;
+  --ut-ink-600: #2b2654;
+  --ut-ink-500: #3b3468;
+  --ut-ink-400: #7c7699;
+  --ut-ink-300: #ada7cc;
+  --ut-ink-200: #d8d4ea;
+  --ut-ink-100: #e9e6f4;
+  --ut-ink-50: #f6f4fb;
+  --ut-white: #ffffff;
+
+  /* ---- status primitives ---- */
+  --ut-green-600: #1e7a4f;
+  --ut-green-500: #2f9e68;
+  --ut-green-400: #4fc38a;
+  --ut-red-600: #b4232f;
+  --ut-red-500: #d1434f;
+  --ut-red-400: #f0717b;
+  --ut-amber-600: #8a5a00;
+  --ut-amber-500: #b47c12;
+
+  /* ---- spacing scale ---- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 56px;
+
+  /* ---- radii ---- */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+
+  /* ---- type ---- */
+  --font-sans: 'IBM Plex Sans Arabic', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', monospace;
+  --font-display: var(--font-sans);
+  --font-body: var(--font-sans);
+
+  --text-2xs: 0.6875rem;
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-md: 0.875rem;
+  --text-base: 0.9375rem;
+  --text-lg: 1.0625rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+
+  /* ---- motion ---- */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 140ms;
+  --dur: 220ms;
+  --dur-slow: 380ms;
+
+  /* ---- chrome ---- */
+  --topbar-h: 68px;
+  --tabbar-h: 62px;
+  --content-max: 1280px;
+}
+
+/* ============================ LIGHT THEME ============================ */
+:root,
+[data-theme='light'] {
+  color-scheme: light;
+
+  --color-canvas: var(--ut-ink-50);
+  --color-surface: var(--ut-white);
+  --color-surface-2: #fbfafe;
+  --color-surface-3: var(--ut-indigo-50);
+  --color-surface-inset: var(--ut-ink-100);
+  --color-border: var(--ut-ink-100);
+  --color-border-strong: #cfc9e4;
+
+  --color-text: #171334;
+  --color-text-muted: #5e5878;
+  --color-text-faint: #8a84a3;
+  --color-text-inverse: var(--ut-white);
+
+  --color-primary: var(--ut-indigo-700);
+  --color-primary-hover: var(--ut-indigo-600);
+  --color-primary-soft: var(--ut-indigo-50);
+  --color-primary-tint: rgba(42, 33, 96, 0.08);
+  --color-on-primary: var(--ut-white);
+
+  --color-accent: var(--ut-gold-600);
+  --color-accent-strong: var(--ut-gold-500);
+  --color-accent-fill: var(--ut-gold-400);
+  --color-accent-soft: var(--ut-gold-50);
+  --color-accent-tint: rgba(229, 176, 16, 0.16);
+  --color-on-accent: var(--ut-indigo-900);
+
+  --color-success: var(--ut-green-600);
+  --color-success-soft: rgba(47, 158, 104, 0.1);
+  --color-warning: var(--ut-amber-600);
+  --color-warning-soft: rgba(180, 124, 18, 0.12);
+  --color-danger: var(--ut-red-600);
+  --color-danger-soft: rgba(180, 35, 47, 0.09);
+  --color-info: var(--ut-indigo-500);
+  --color-info-soft: rgba(76, 62, 163, 0.09);
+
+  --color-focus: var(--ut-gold-500);
+  --focus-ring: 0 0 0 3px rgba(201, 154, 0, 0.35);
+
+  --shadow-xs: 0 1px 2px rgba(18, 14, 46, 0.06);
+  --shadow-sm: 0 1px 2px rgba(18, 14, 46, 0.05), 0 4px 12px -6px rgba(18, 14, 46, 0.12);
+  --shadow-md: 0 12px 32px -16px rgba(18, 14, 46, 0.28);
+  --shadow-lg: 0 26px 60px -28px rgba(18, 14, 46, 0.34);
+  --shadow: var(--shadow-md);
+
+  --scrollbar-thumb: #d5cfe6;
+  --scrollbar-thumb-hover: #bdb5d6;
+  --topbar-bg: rgba(255, 255, 255, 0.86);
+  --overlay: rgba(18, 14, 46, 0.42);
+}
+
+/* ============================ DARK THEME ============================= */
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --color-canvas: var(--ut-ink-950);
+  --color-surface: var(--ut-ink-900);
+  --color-surface-2: var(--ut-ink-800);
+  --color-surface-3: var(--ut-ink-700);
+  --color-surface-inset: #100d24;
+  --color-border: var(--ut-ink-600);
+  --color-border-strong: var(--ut-ink-500);
+
+  --color-text: #f3f1ff;
+  --color-text-muted: var(--ut-ink-300);
+  --color-text-faint: var(--ut-ink-400);
+  --color-text-inverse: var(--ut-indigo-900);
+
+  --color-primary: var(--ut-gold-300);
+  --color-primary-hover: #ffd84a;
+  --color-primary-soft: rgba(240, 196, 25, 0.1);
+  --color-primary-tint: rgba(240, 196, 25, 0.14);
+  --color-on-primary: var(--ut-indigo-900);
+
+  --color-accent: var(--ut-gold-300);
+  --color-accent-strong: var(--ut-gold-400);
+  --color-accent-fill: var(--ut-gold-400);
+  --color-accent-soft: rgba(240, 196, 25, 0.12);
+  --color-accent-tint: rgba(240, 196, 25, 0.16);
+  --color-on-accent: var(--ut-indigo-900);
+
+  --color-success: var(--ut-green-400);
+  --color-success-soft: rgba(79, 195, 138, 0.14);
+  --color-warning: var(--ut-gold-200);
+  --color-warning-soft: rgba(240, 196, 25, 0.14);
+  --color-danger: var(--ut-red-400);
+  --color-danger-soft: rgba(240, 113, 123, 0.14);
+  --color-info: var(--ut-indigo-300);
+  --color-info-soft: rgba(142, 130, 214, 0.16);
+
+  --color-focus: var(--ut-gold-300);
+  --focus-ring: 0 0 0 3px rgba(240, 196, 25, 0.4);
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 2px 8px -2px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 16px 38px -20px rgba(0, 0, 0, 0.75);
+  --shadow-lg: 0 30px 70px -30px rgba(0, 0, 0, 0.85);
+  --shadow: var(--shadow-md);
+
+  --scrollbar-thumb: #322b5e;
+  --scrollbar-thumb-hover: #443b78;
+  --topbar-bg: rgba(18, 16, 42, 0.82);
+  --overlay: rgba(5, 4, 14, 0.62);
+}
+
+/* ======================= LEGACY ALIASES ============================== */
+/* Older page styles reference these names; keep them pointing at the
+   semantic tokens above so nothing drifts. */
+:root {
+  --bg: var(--color-canvas);
+  --bg-2: var(--color-surface-2);
+  --panel: var(--color-surface);
+  --card: var(--color-surface);
+  --card-hi: var(--color-surface-3);
+  --line: var(--color-border);
+  --line-2: var(--color-border-strong);
+  --txt: var(--color-text);
+  --muted: var(--color-text-muted);
+  --faint: var(--color-text-faint);
+
+  --vio: var(--color-primary);
+  --ind: var(--ut-indigo-500);
+  --cy: var(--color-accent);
+  --amb: var(--ut-gold-500);
+  --pnk: #b4235a;
+  --grn: var(--color-success);
+  --red: var(--ut-red-500);
+  --danger: var(--color-danger);
+
+  --grad: linear-gradient(135deg, var(--ut-indigo-600) 0%, var(--ut-indigo-700) 100%);
+  --grad-2: linear-gradient(135deg, var(--ut-indigo-700), var(--ut-gold-600));
+  --grad-gold: linear-gradient(135deg, var(--ut-gold-400), var(--ut-gold-300));
+  --glow-vio: 0 0 0 1px rgba(42, 33, 96, 0.12);
+  --glow-cy: 0 0 0 1px rgba(201, 154, 0, 0.35);
+
+  --r: var(--radius-lg);
+  --r-sm: var(--radius-sm);
+  --r-lg: var(--radius-xl);
+}
+
+/* ---- tone pairs (stat icons, avatars, inline accents) ---- */
+:root,
+[data-theme='light'] {
+  --tone-indigo-bg: rgba(76, 62, 163, 0.1);
+  --tone-indigo-fg: var(--ut-indigo-600);
+  --tone-gold-bg: rgba(201, 154, 0, 0.16);
+  --tone-gold-fg: #7a5900;
+  --tone-green-bg: rgba(47, 158, 104, 0.12);
+  --tone-green-fg: var(--ut-green-600);
+  --tone-rose-bg: rgba(180, 35, 90, 0.1);
+  --tone-rose-fg: #a31f52;
+  --tone-red-bg: rgba(180, 35, 47, 0.1);
+  --tone-red-fg: var(--ut-red-600);
+  --color-indigo-wash: rgba(42, 33, 96, 0.055);
+  --color-gold-wash: rgba(229, 176, 16, 0.05);
+}
+
+[data-theme='dark'] {
+  --tone-indigo-bg: rgba(142, 130, 214, 0.16);
+  --tone-indigo-fg: var(--ut-indigo-200);
+  --tone-gold-bg: rgba(240, 196, 25, 0.14);
+  --tone-gold-fg: var(--ut-gold-200);
+  --tone-green-bg: rgba(79, 195, 138, 0.14);
+  --tone-green-fg: var(--ut-green-400);
+  --tone-rose-bg: rgba(240, 113, 123, 0.12);
+  --tone-rose-fg: #ffb0c4;
+  --tone-red-bg: rgba(240, 113, 123, 0.14);
+  --tone-red-fg: var(--ut-red-400);
+}

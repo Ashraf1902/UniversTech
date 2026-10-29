@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { APP_ROOTS, CHANGE_PASSWORD_PATHS, request } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { useI18n } from '../lib/i18n'
+import { Brand, BrandMark } from '../lib/Brand'
+import { useTheme } from '../lib/theme'
 import { Avatar, Btn, Field, I, Modal, useToast } from '../lib/ui'
 
 export const NAV = {
@@ -26,7 +28,7 @@ export const NAV = {
     { to: '/app/professor/quizzes', icon: 'award', key: 'quizzes' },
     { to: '/app/professor/grades', icon: 'chart', key: 'grades' },
     { to: '/app/professor/appeals', icon: 'mail', key: 'gradeAppeals' },
-  { to: '/app/professor/announcements', icon: 'info', key: 'announcements' },
+    { to: '/app/professor/announcements', icon: 'info', key: 'announcements' },
     { to: '/app/professor/notifications', icon: 'bell', key: 'notifications', notify: true },
   ],
   admin: [
@@ -40,16 +42,24 @@ export const NAV = {
     { to: '/app/admin/rollover', icon: 'refresh', key: 'rollover', scope: 'semesters' },
     { to: '/app/admin/schedules', icon: 'clock', key: 'schedules', scope: 'schedules' },
     { to: '/app/admin/events', icon: 'spark', key: 'events', scope: 'events' },
-  { to: '/app/admin/announcements', icon: 'info', key: 'announcements', scope: 'courses' },
+    { to: '/app/admin/announcements', icon: 'info', key: 'announcements', scope: 'courses' },
     { to: '/app/admin/grades', icon: 'award', key: 'gradesCards', scope: 'grades' },
     { to: '/app/admin/payments', icon: 'wallet', key: 'rolePayments', scope: 'payments' },
     { to: '/app/admin/appeals', icon: 'mail', key: 'gradeAppeals', scope: 'grades' },
-  { to: '/app/admin/activity', icon: 'file', key: 'activityLog', scope: 'activity' },
-  { to: '/app/admin/import', icon: 'upload', key: 'bulkImport', scope: ['accounts', 'courses'] },
-  { to: '/app/admin/reports', icon: 'chart', key: 'reports', scope: 'reports' },
-  { to: '/app/admin/settings', icon: 'lock', key: 'settings', scope: 'settings' },
+    { to: '/app/admin/activity', icon: 'file', key: 'activityLog', scope: 'activity' },
+    { to: '/app/admin/import', icon: 'upload', key: 'bulkImport', scope: ['accounts', 'courses'] },
+    { to: '/app/admin/reports', icon: 'chart', key: 'reports', scope: 'reports' },
+    { to: '/app/admin/settings', icon: 'lock', key: 'settings', scope: 'settings' },
     { to: '/app/admin/admins', icon: 'shield', key: 'adminsRoles', super: true },
   ],
+}
+
+/* Four destinations that stay pinned to the mobile tab bar; everything else
+   lives behind "More". */
+const MOBILE_PINS = {
+  student: ['/app/student', '/app/student/courses', '/app/student/schedule', '/app/student/notifications'],
+  professor: ['/app/professor', '/app/professor/courses', '/app/professor/timetable', '/app/professor/notifications'],
+  admin: ['/app/admin', '/app/admin/accounts', '/app/admin/semesters', '/app/admin/settings'],
 }
 
 const NOTIF_PATH = {
@@ -152,7 +162,7 @@ function ChangePasswordModal({ open, onClose, role }) {
             autoComplete="new-password"
           />
         </Field>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--muted)', fontSize: '0.85rem' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)' }}>
           <input type="checkbox" checked={show} onChange={(e) => setShow(e.target.checked)} />
           {t('showPasswords')}
         </label>
@@ -164,12 +174,16 @@ function ChangePasswordModal({ open, onClose, role }) {
 export default function DashboardLayout({ role }) {
   const { user, logout } = useAuth()
   const { t, lang, setLang } = useI18n()
+  const { theme, toggle: toggleTheme } = useTheme()
   const location = useLocation()
   const navigate = useNavigate()
-  const [open, setOpen] = useState(false)
+  const [sheet, setSheet] = useState(false)
   const [menu, setMenu] = useState(false)
+  const [more, setMore] = useState(false)
   const [pwdOpen, setPwdOpen] = useState(false)
   const [unread, setUnread] = useState(0)
+  const menuRef = useRef(null)
+  const moreRef = useRef(null)
 
   const nav = useMemo(() => {
     const all = NAV[role] || []
@@ -184,6 +198,7 @@ export default function DashboardLayout({ role }) {
           (Array.isArray(n.scope) ? n.scope.some((s) => roles.includes(s)) : roles.includes(n.scope))),
     )
   }, [role, user?.is_super_admin, user?.roles])
+
   const current = useMemo(() => {
     const exact = nav.find((n) => n.end && location.pathname === n.to)
     if (exact) return exact
@@ -191,7 +206,37 @@ export default function DashboardLayout({ role }) {
     return partial || nav[0]
   }, [nav, location.pathname])
 
-  useEffect(() => setOpen(false), [location.pathname])
+  const pins = useMemo(() => {
+    const wanted = MOBILE_PINS[role] || []
+    const picked = wanted.map((to) => nav.find((n) => n.to === to)).filter(Boolean)
+    return picked.length ? picked : nav.slice(0, 4)
+  }, [nav, role])
+
+  const overflow = useMemo(() => nav.filter((n) => !pins.some((p) => p.to === n.to)), [nav, pins])
+
+  /* The top bar shows the role's pinned destinations plus the next few, so the
+     full admin list never turns into a horizontal scroller. */
+  const inline = useMemo(() => {
+    if (nav.length <= 5) return nav
+    const keep = new Set(pins.map((p) => p.to))
+    for (const item of nav) {
+      if (keep.size >= 5) break
+      keep.add(item.to)
+    }
+    return nav.filter((n) => keep.has(n.to))
+  }, [nav, pins])
+
+  const inlineSet = useMemo(() => new Set(inline.map((n) => n.to)), [inline])
+  const moreItems = useMemo(() => nav.filter((n) => !inlineSet.has(n.to)), [nav, inlineSet])
+
+  const isActive = (item) =>
+    item.end ? location.pathname === item.to : location.pathname.startsWith(item.to)
+
+  useEffect(() => {
+    setSheet(false)
+    setMenu(false)
+    setMore(false)
+  }, [location.pathname])
 
   useEffect(() => {
     const path = NOTIF_PATH[role]
@@ -209,98 +254,227 @@ export default function DashboardLayout({ role }) {
     }
   }, [role, location.pathname])
 
+  useEffect(() => {
+    if (!menu && !more) return
+    const onDoc = (e) => {
+      if (!menuRef.current?.contains(e.target)) setMenu(false)
+      if (!moreRef.current?.contains(e.target)) setMore(false)
+    }
+    document.addEventListener('mousedown', onDoc)
+    return () => document.removeEventListener('mousedown', onDoc)
+  }, [menu, more])
+
+  useEffect(() => {
+    if (!sheet && !menu && !more) return
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return
+      setSheet(false)
+      setMenu(false)
+      setMore(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [sheet, menu, more])
+
   const doLogout = async () => {
     await logout()
     navigate('/login')
   }
 
+  const notifPath = NOTIF_PATH[role] ? `${APP_ROOTS[role]}/notifications` : null
+  const pageLabel = t(current?.key) || current?.label || t('dashboard')
+
   return (
     <div className="shell">
-      <aside className={`sidebar ${open ? 'open' : ''}`}>
-        <NavLink to={APP_ROOTS[role]} className="logo">
-          <span className="logo-mark">
-            <I name="cap" size={20} />
-          </span>
-          Univers<span className="grad-text">Tech</span>
+      <header className="topbar">
+        <NavLink to={APP_ROOTS[role]} className="brand" aria-label="UniversTech">
+          <Brand size="md" className="brand-wide" />
+          <BrandMark size={30} className="brand-narrow" />
         </NavLink>
 
-        <nav style={{ flex: 1 }}>
-          <div className="nav-grp-lbl">{t('menu')}</div>
-          {nav.map((item) => (
+        <span className="page-now">{pageLabel}</span>
+
+        <nav className="topnav" aria-label={t('menu')}>
+          {inline.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               end={item.end}
-              className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+              className={({ isActive: on }) => `nav-item ${on ? 'active' : ''}`}
             >
-              <I name={item.icon} size={19} />
+              <I name={item.icon} size={17} />
               <span>{t(item.key)}</span>
               {item.notify && unread ? <span className="cnt">{unread > 9 ? '9+' : unread}</span> : null}
             </NavLink>
           ))}
         </nav>
 
-        <div className="side-foot">
-          <button className="user-mini" onClick={() => setMenu((m) => !m)} style={{ width: '100%' }}>
-            <Avatar name={user?.name || 'User'} size={38} />
-            <span className="meta" style={{ textAlign: 'left' }}>
-              <div className="nm">{user?.name || 'User'}</div>
-              <div className="rl">{t(role)}</div>
-            </span>
-            <I name="chevron" size={16} style={{ marginLeft: 'auto', color: 'var(--faint)' }} />
-          </button>
-          {menu ? (
-            <div className="card" style={{ padding: 8, marginTop: 8 }}>
-              <button className="nav-item" style={{ width: '100%' }} onClick={() => { setMenu(false); setPwdOpen(true) }}>
-                <I name="lock" size={18} />
-                <span>{t('changePassword')}</span>
-              </button>
-              <button className="nav-item" style={{ width: '100%' }} onClick={doLogout}>
-                <I name="logout" size={18} />
-                <span>{t('signOut')}</span>
-              </button>
-            </div>
-          ) : null}
-        </div>
-      </aside>
+        {moreItems.length ? (
+          <div className="nav-more-wrap" ref={moreRef}>
+            <button
+              type="button"
+              className={`nav-item nav-more-btn ${moreItems.some(isActive) ? 'active' : ''}`}
+              onClick={() => setMore((m) => !m)}
+              aria-haspopup="menu"
+              aria-expanded={more}
+            >
+              <I name="more" size={17} />
+              <span>{t('more')}</span>
+              <I name="chevronDown" size={14} />
+            </button>
 
-      {open ? <div className="dimmer" onClick={() => setOpen(false)} /> : null}
+            {more ? (
+              <div className="moremenu" role="menu">
+                {moreItems.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    end={item.end}
+                    role="menuitem"
+                    className={({ isActive: on }) => `nav-item ${on ? 'active' : ''}`}
+                    onClick={() => setMore(false)}
+                  >
+                    <I name={item.icon} size={17} />
+                    <span>{t(item.key)}</span>
+                    {item.notify && unread ? <span className="cnt">{unread > 9 ? '9+' : unread}</span> : null}
+                  </NavLink>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        <div className="top-actions">
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={toggleTheme}
+            aria-label={theme === 'dark' ? 'Light theme' : 'Dark theme'}
+            title={theme === 'dark' ? 'Light theme' : 'Dark theme'}
+          >
+            <I name={theme === 'dark' ? 'sun' : 'moon'} size={18} />
+          </button>
+
+          <button
+            className="lang-toggle"
+            onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
+            title={t('langLabel')}
+            aria-label={t('langLabel')}
+          >
+            <I name="globe" size={16} />
+            <span>{lang === 'ar' ? t('switchToEn') : t('switchToAr')}</span>
+          </button>
+
+          {notifPath ? (
+            <NavLink to={notifPath} className="icon-btn" aria-label={t('notifications')} title={t('notifications')}>
+              <I name="bell" size={19} />
+              {unread ? <span className="badge-dot" /> : null}
+            </NavLink>
+          ) : null}
+
+          <div className="usermenu-wrap" ref={menuRef}>
+            <button
+              type="button"
+              className="user-chip"
+              onClick={() => setMenu((m) => !m)}
+              aria-haspopup="menu"
+              aria-expanded={menu}
+            >
+              <Avatar name={user?.name || 'User'} size={34} />
+              <span className="u-meta">
+                <span className="u-name">{user?.name || 'User'}</span>
+                <span className="u-role">{t(role)}</span>
+              </span>
+              <I name="chevronDown" size={15} />
+            </button>
+
+            {menu ? (
+              <div className="usermenu" role="menu">
+                <div className="um-head">
+                  <div className="um-name">{user?.name || 'User'}</div>
+                  <div className="um-mail">{user?.email || t(role)}</div>
+                </div>
+                <button
+                  type="button"
+                  className="nav-item"
+                  role="menuitem"
+                  onClick={() => {
+                    setMenu(false)
+                    setPwdOpen(true)
+                  }}
+                >
+                  <I name="lock" size={17} />
+                  <span>{t('changePassword')}</span>
+                </button>
+                <button type="button" className="nav-item danger" role="menuitem" onClick={doLogout}>
+                  <I name="logout" size={17} />
+                  <span>{t('signOut')}</span>
+                </button>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </header>
 
       <div className="main">
-        <header className="topbar">
-          <button className="icon-btn topbar-burger" onClick={() => setOpen(true)} aria-label="Open menu">
-            <I name="menu" size={20} />
-          </button>
-          <div>
-            <div className="page-title">{t(current?.key) || current?.label || t('dashboard')}</div>
-            <div className="page-sub">{t('welcomeBack', { name: user?.name?.split(' ')[0] || 'there' })}</div>
-          </div>
-          <div className="top-actions">
-            {NOTIF_PATH[role] ? (
-              <NavLink to={`${APP_ROOTS[role]}/notifications`} className="icon-btn" aria-label={t('notifications')}>
-                <I name="bell" size={19} />
-                {unread ? <span className="badge-dot" /> : null}
-              </NavLink>
-            ) : null}
-            <button
-              className="lang-toggle"
-              onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
-              title={t('langLabel')}
-              aria-label={t('langLabel')}
-            >
-              <I name="globe" size={17} />
-              <span>{lang === 'ar' ? t('switchToEn') : t('switchToAr')}</span>
-            </button>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingLeft: 8 }}>
-              <Avatar name={user?.name || 'User'} size={38} />
-            </div>
-          </div>
-        </header>
-
         <main className="content" key={location.pathname}>
           <Outlet />
         </main>
       </div>
+
+      <nav className="tabbar" aria-label={t('menu')}>
+        <div className="tabbar-in">
+          {pins.map((item) => (
+            <NavLink key={item.to} to={item.to} end={item.end} className={({ isActive }) => (isActive ? 'active' : '')}>
+              <I name={item.icon} size={21} />
+              <span>{t(item.key)}</span>
+              {item.notify && unread ? <span className="tb-cnt">{unread > 9 ? '9+' : unread}</span> : null}
+            </NavLink>
+          ))}
+          <button type="button" className={sheet ? 'on' : ''} onClick={() => setSheet((s) => !s)}>
+            <I name="more" size={21} />
+            <span>{t('more')}</span>
+          </button>
+        </div>
+      </nav>
+
+      {sheet ? (
+        <>
+          <div className="dimmer" onClick={() => setSheet(false)} />
+          <div className="sheet" role="dialog" aria-modal="true" aria-label={t('menu')}>
+            <div className="sheet-head">
+              <h3>{t('menu')}</h3>
+              <button type="button" className="icon-btn" onClick={() => setSheet(false)} aria-label={t('close')}>
+                <I name="x" size={18} />
+              </button>
+            </div>
+            <div className="sheet-grid">
+              {overflow.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.end}
+                  className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+                >
+                  <I name={item.icon} size={19} />
+                  <span>{t(item.key)}</span>
+                  {item.notify && unread ? <span className="cnt">{unread > 9 ? '9+' : unread}</span> : null}
+                </NavLink>
+              ))}
+            </div>
+            <div className="sheet-actions">
+              <button type="button" className="nav-item" onClick={() => { setSheet(false); setPwdOpen(true) }}>
+                <I name="lock" size={18} />
+                <span>{t('changePassword')}</span>
+              </button>
+              <button type="button" className="nav-item danger" onClick={doLogout}>
+                <I name="logout" size={18} />
+                <span>{t('signOut')}</span>
+              </button>
+            </div>
+          </div>
+        </>
+      ) : null}
 
       <ChangePasswordModal open={pwdOpen} onClose={() => setPwdOpen(false)} role={role} />
     </div>

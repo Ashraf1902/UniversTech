@@ -1,222 +1,113 @@
 import { createContext, cloneElement, isValidElement, useContext, useEffect, useId, useRef, useState } from 'react'
 import { useI18n } from './i18n'
+import {
+  ArrowDown,
+  ArrowRight,
+  Award,
+  Bell,
+  BookOpen,
+  Building2,
+  Calendar,
+  ChartColumn,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Clock,
+  Download,
+  Eye,
+  EyeOff,
+  FileText,
+  Globe,
+  GraduationCap,
+  Info,
+  Layers,
+  LayoutDashboard,
+  Lock,
+  LogIn,
+  LogOut,
+  Mail,
+  Menu,
+  MoreHorizontal,
+  Moon,
+  Pencil,
+  Play,
+  Plus,
+  RefreshCw,
+  Search,
+  Settings,
+  ShieldCheck,
+  Sparkles,
+  Sun,
+  Trash2,
+  TrendingUp,
+  Upload,
+  User,
+  Users,
+  Wallet,
+  X,
+} from 'lucide-react'
 
 /* ---------------- ICONS ---------------- */
-const PATHS = {
-  grid: (
-    <>
-      <rect x="3" y="3" width="7" height="7" rx="1.5" />
-      <rect x="14" y="3" width="7" height="7" rx="1.5" />
-      <rect x="3" y="14" width="7" height="7" rx="1.5" />
-      <rect x="14" y="14" width="7" height="7" rx="1.5" />
-    </>
-  ),
-  book: (
-    <>
-      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-    </>
-  ),
-  users: (
-    <>
-      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-    </>
-  ),
-  user: (
-    <>
-      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-      <circle cx="12" cy="7" r="4" />
-    </>
-  ),
-  bell: (
-    <>
-      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-    </>
-  ),
-  calendar: (
-    <>
-      <rect x="3" y="4" width="18" height="18" rx="2" />
-      <path d="M16 2v4M8 2v4M3 10h18" />
-    </>
-  ),
-  award: (
-    <>
-      <circle cx="12" cy="8" r="6" />
-      <path d="M15.5 12.9 17 22l-5-3-5 3 1.5-9.1" />
-    </>
-  ),
-  clock: (
-    <>
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 6v6l4 2" />
-    </>
-  ),
-  chart: <path d="M12 20V10M18 20V4M6 20v-4" />,
-  logout: (
-    <>
-      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-      <path d="M16 17l5-5-5-5M21 12H9" />
-    </>
-  ),
-  menu: <path d="M3 12h18M3 6h18M3 18h18" />,
-  x: <path d="M18 6 6 18M6 6l12 12" />,
-  chevron: <path d="M9 18l6-6-6-6" />,
-  check: <path d="M20 6 9 17l-5-5" />,
-  plus: <path d="M12 5v14M5 12h14" />,
-  trash: (
-    <>
-      <path d="M3 6h18" />
-      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-    </>
-  ),
-  edit: <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />,
-  search: (
-    <>
-      <circle cx="11" cy="11" r="8" />
-      <path d="m21 21-4.35-4.35" />
-    </>
-  ),
-  play: <polygon points="6 3 20 12 6 21 6 3" />,
-  file: (
-    <>
-      <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
-      <path d="M13 2v7h7" />
-    </>
-  ),
-  upload: (
-    <>
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-      <path d="M17 8l-5-5-5 5M12 3v12" />
-    </>
-  ),
-  download: (
-    <>
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-      <path d="M7 10l5 5 5-5M12 15V3" />
-    </>
-  ),
-  mail: (
-    <>
-      <rect x="2" y="4" width="20" height="16" rx="2" />
-      <path d="m22 6-10 7L2 6" />
-    </>
-  ),
-  lock: (
-    <>
-      <rect x="3" y="11" width="18" height="11" rx="2" />
-      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-    </>
-  ),
-  building: (
-    <>
-      <rect x="4" y="2" width="16" height="20" rx="2" />
-      <path d="M9 22v-4h6v4M8 6h.01M12 6h.01M16 6h.01M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01" />
-    </>
-  ),
-  cap: (
-    <>
-      <path d="M22 10 12 5 2 10l10 5 10-5z" />
-      <path d="M6 12v5c0 1.66 2.69 3 6 3s6-1.34 6-3v-5" />
-    </>
-  ),
-  spark: (
-    <>
-      <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" />
-      <path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z" />
-    </>
-  ),
-  shield: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />,
-  arrow: (
-    <>
-      <path d="M5 12h14" />
-      <path d="m12 5 7 7-7 7" />
-    </>
-  ),
-  down: (
-    <>
-      <path d="M12 5v14" />
-      <path d="m19 12-7 7-7-7" />
-    </>
-  ),
-  refresh: (
-    <>
-      <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
-      <path d="M21 3v5h-5" />
-      <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
-      <path d="M3 21v-5h5" />
-    </>
-  ),
-  info: (
-    <>
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 16v-4M12 8h.01" />
-    </>
-  ),
-  layers: (
-    <>
-      <path d="M12 2 2 7l10 5 10-5-10-5z" />
-      <path d="m2 17 10 5 10-5M2 12l10 5 10-5" />
-    </>
-  ),
-  trend: (
-    <>
-      <path d="m23 6-9.5 9.5-5-5L1 18" />
-      <path d="M17 6h6v6" />
-    </>
-  ),
-  wallet: (
-    <>
-      <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
-      <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
-      <path d="M18 12a2 2 0 0 0 0 4h4v-4z" />
-    </>
-  ),
-  eye: (
-    <>
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-      <circle cx="12" cy="12" r="3" />
-    </>
-  ),
-  eyeOff: (
-    <>
-      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-      <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
-      <path d="M1 1l22 22" />
-    </>
-  ),
-  globe: (
-    <>
-      <circle cx="12" cy="12" r="10" />
-      <path d="M2 12h20" />
-      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-    </>
-  ),
+/* Lucide line icons, mapped onto the short names the pages already use so no
+   page-level markup has to change. */
+const ICONS = {
+  grid: LayoutDashboard,
+  book: BookOpen,
+  users: Users,
+  user: User,
+  bell: Bell,
+  calendar: Calendar,
+  clock: Clock,
+  award: Award,
+  chart: ChartColumn,
+  logout: LogOut,
+  menu: Menu,
+  x: X,
+  chevron: ChevronRight,
+  chevronDown: ChevronDown,
+  check: Check,
+  plus: Plus,
+  trash: Trash2,
+  edit: Pencil,
+  search: Search,
+  play: Play,
+  file: FileText,
+  upload: Upload,
+  download: Download,
+  mail: Mail,
+  lock: Lock,
+  building: Building2,
+  cap: GraduationCap,
+  spark: Sparkles,
+  shield: ShieldCheck,
+  arrow: ArrowRight,
+  down: ArrowDown,
+  refresh: RefreshCw,
+  info: Info,
+  layers: Layers,
+  trend: TrendingUp,
+  wallet: Wallet,
+  eye: Eye,
+  eyeOff: EyeOff,
+  globe: Globe,
+  settings: Settings,
+  sun: Sun,
+  moon: Moon,
+  more: MoreHorizontal,
+  login: LogIn,
 }
 
-export function I({ name, size = 20, className = '', style }) {
-  const glyph = PATHS[name] || PATHS.info
+export function I({ name, size = 20, className = '', style, strokeWidth = 1.8 }) {
+  const Glyph = ICONS[name] || Info
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
+    <Glyph
+      size={size}
+      strokeWidth={strokeWidth}
+      className={`i ${className}`}
       style={style}
       aria-hidden="true"
-    >
-      {glyph}
-    </svg>
+      focusable="false"
+    />
   )
 }
 
@@ -364,8 +255,8 @@ export function Ring({ value = 0, max = 4, size = 86, label, sub }) {
       <svg width={size} height={size}>
         <defs>
           <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#7c5cff" />
-            <stop offset="100%" stopColor="#29d3f7" />
+            <stop offset="0%" stopColor="var(--ut-indigo-600)" />
+            <stop offset="100%" stopColor="var(--ut-gold-400)" />
           </linearGradient>
         </defs>
         <circle className="r-track" cx={size / 2} cy={size / 2} r={r} strokeWidth="7" fill="none" />
@@ -414,11 +305,11 @@ export function Btn({ variant = 'primary', size, icon, iconRight, loading, child
 
 /* ---------------- AVATAR ---------------- */
 const AV = [
-  'linear-gradient(135deg,#7c5cff,#29d3f7)',
-  'linear-gradient(135deg,#f563b0,#7c5cff)',
-  'linear-gradient(135deg,#29d3f7,#34f5a2)',
-  'linear-gradient(135deg,#ffce66,#f563b0)',
-  'linear-gradient(135deg,#5a73ff,#7c5cff)',
+  'linear-gradient(135deg, var(--ut-indigo-600), var(--ut-indigo-800))',
+  'linear-gradient(135deg, var(--ut-indigo-700), var(--ut-indigo-500))',
+  'linear-gradient(135deg, var(--ut-indigo-800), var(--ut-gold-500))',
+  'linear-gradient(135deg, var(--ut-gold-600), var(--ut-indigo-700))',
+  'linear-gradient(135deg, var(--ut-indigo-500), var(--ut-indigo-700))',
 ]
 export function Avatar({ name = '?', size = 42, radius = 13 }) {
   const initials = name
@@ -439,12 +330,12 @@ export function Avatar({ name = '?', size = 42, radius = 13 }) {
 /* ---------------- STATCARD ---------------- */
 export function StatCard({ icon, label, value, sub, tone = 'vio', delay = 0, children }) {
   const tones = {
-    vio: ['rgba(124,92,255,.16)', '#a48bff'],
-    cy: ['rgba(41,211,247,.14)', '#6fe3ff'],
-    grn: ['rgba(52,245,162,.14)', '#8af7c7'],
-    pnk: ['rgba(245,99,176,.14)', '#ffb0d6'],
-    amb: ['rgba(255,206,102,.14)', '#ffe0a0'],
-    red: ['rgba(255,93,122,.14)', '#ffc2cd'],
+    vio: ['var(--tone-indigo-bg)', 'var(--tone-indigo-fg)'],
+    cy: ['var(--tone-gold-bg)', 'var(--tone-gold-fg)'],
+    grn: ['var(--tone-green-bg)', 'var(--tone-green-fg)'],
+    pnk: ['var(--tone-rose-bg)', 'var(--tone-rose-fg)'],
+    amb: ['var(--tone-gold-bg)', 'var(--tone-gold-fg)'],
+    red: ['var(--tone-red-bg)', 'var(--tone-red-fg)'],
   }
   const [bg, color] = tones[tone] || tones.vio
   return (

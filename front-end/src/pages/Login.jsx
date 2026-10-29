@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { APP_ROOTS, FORGOT_PASSWORD_PATHS, request } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { useI18n } from '../lib/i18n'
+import { Brand } from '../lib/Brand'
 import { Btn, Field, I, Reveal, useToast } from '../lib/ui'
 
 const ROLES = [
@@ -150,12 +151,7 @@ export default function Login() {
         <div className="hero-grid" style={{ position: 'absolute', inset: 0 }} />
 
         <Reveal className="plank">
-          <span className="logo" style={{ justifyContent: 'center' }}>
-            <span className="logo-mark">
-              <I name="cap" size={20} />
-            </span>
-            Univers<span className="grad-text">Tech</span>
-          </span>
+          <Brand size="lg" className="auth-lockup" />
 
           {events.length ? (
             <div className="events-rail">
@@ -197,6 +193,7 @@ export default function Login() {
 
       <main className="auth-form">
         <Reveal className="auth-card">
+          <Brand size="md" className="auth-brand" />
           {tab !== 'forgot' ? (
             <div className="auth-tabs" role="tablist">
               <button
@@ -269,7 +266,7 @@ export default function Login() {
                   <form onSubmit={sendReset}>
                     <Field label={t('email')}>
                       <div style={{ position: 'relative' }}>
-                        <I name="mail" size={17} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--faint)' }} />
+                        <I name="mail" size={17} style={{ position: 'absolute', insetInlineStart: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--faint)' }} />
                         <input
                           className="input"
                           type="email"
@@ -277,7 +274,7 @@ export default function Login() {
                           placeholder={t('emailPh')}
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
-                          style={{ paddingLeft: 42 }}
+                          style={{ paddingInlineStart: 42 }}
                           autoComplete="email"
                         />
                       </div>
@@ -312,7 +309,7 @@ export default function Login() {
               <form onSubmit={submit}>
                 <Field label={t('email')}>
                   <div style={{ position: 'relative' }}>
-                    <I name="mail" size={17} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--faint)' }} />
+                    <I name="mail" size={17} style={{ position: 'absolute', insetInlineStart: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--faint)' }} />
                     <input
                       className="input"
                       type="email"
@@ -320,7 +317,7 @@ export default function Login() {
                       placeholder={t('emailPh')}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      style={{ paddingLeft: 42 }}
+                      style={{ paddingInlineStart: 42 }}
                       autoComplete="email"
                     />
                   </div>
@@ -328,7 +325,7 @@ export default function Login() {
 
                 <Field label={t('password')}>
                   <div style={{ position: 'relative' }}>
-                    <I name="lock" size={17} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--faint)' }} />
+                    <I name="lock" size={17} style={{ position: 'absolute', insetInlineStart: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--faint)' }} />
                     <input
                       className="input"
                       type={show ? 'text' : 'password'}
@@ -336,13 +333,13 @@ export default function Login() {
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      style={{ paddingLeft: 42, paddingRight: 44 }}
+                      style={{ paddingInlineStart: 42, paddingInlineEnd: 44 }}
                       autoComplete="current-password"
                     />
                     <button
                       type="button"
                       onClick={() => setShow((s) => !s)}
-                      style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--faint)' }}
+                      style={{ position: 'absolute', insetInlineEnd: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--faint)' }}
                       aria-label={t('togglePassword')}
                     >
                       <I name={show ? 'eyeOff' : 'eye'} size={17} />
@@ -397,7 +394,7 @@ export default function Login() {
                       <button
                         type="button"
                         onClick={() => setRegShow((s) => !s)}
-                        style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--faint)' }}
+                        style={{ position: 'absolute', insetInlineEnd: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--faint)' }}
                         aria-label={t('togglePassword')}
                       >
                         <I name={regShow ? 'eyeOff' : 'eye'} size={17} />
