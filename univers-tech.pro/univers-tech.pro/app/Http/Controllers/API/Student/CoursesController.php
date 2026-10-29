@@ -203,7 +203,7 @@ class CoursesController extends Controller
         ]);
 
         $enrollment = auth()->user()->studentCourses()
-            ->registered()
+            ->current()
             ->with('course.lectures')
             ->firstWhere('course_id', $data['course_id']);
 
@@ -237,11 +237,9 @@ class CoursesController extends Controller
             );
         }
 
-        $progress = StudentLecture::where('student_id', auth()->id())
-            ->where('course_id', $data['course_id'])
-            ->count();
-
         $totalLectures = $enrollment->course->lectures->count();
+
+        $progress = $enrollment->watchedLectureCount($totalLectures);
 
         DB::transaction(function () use ($enrollment, $data, $progress) {
             $enrollment->update([
@@ -254,7 +252,7 @@ class CoursesController extends Controller
             'progress' => $progress,
             'total_lectures' => $totalLectures,
             'new_lecture' => $watched->wasRecentlyCreated,
-            'progress_percent' => $totalLectures > 0 ? round($progress / $totalLectures * 100) : 0,
+            'progress_percent' => $totalLectures > 0 ? (int) round($progress / $totalLectures * 100) : 0,
         ]);
     }
 
@@ -278,7 +276,7 @@ class CoursesController extends Controller
 
         $schedules = Schedule::where('semester_id', $activeSemester->id)
             ->whereIn('course_id', $courseIds)
-            ->with('course')
+            ->with(['course.professor', 'room'])
             ->get()
             ->sortBy(fn (Schedule $schedule) => sprintf(
                 '%02d|%s',
@@ -294,6 +292,9 @@ class CoursesController extends Controller
                 'section_type' => $schedule->section_type,
                 'course_name' => $schedule->course?->course_name,
                 'course_code' => $schedule->course?->course_code,
+                'professor' => $schedule->course?->professor?->name,
+                'room' => $schedule->room?->name,
+                'building' => $schedule->room?->building,
                 'path' => $schedule->path ? url('uploads/' . $schedule->path) : null,
             ]);
 
@@ -311,10 +312,12 @@ class CoursesController extends Controller
                     ->where('course_id', $enrollment->course_id)
                     ->get();
 
+                $totalLectures = $enrollment->course->lectures()->count();
+
                 return [
                     'course_name' => $enrollment->course->course_name,
-                    'progress' => $enrollment->progress,
-                    'total_lectures' => $enrollment->course->lectures()->count(),
+                    'progress' => $enrollment->progressCount($totalLectures),
+                    'total_lectures' => $totalLectures,
                     'attendance_count' => $attendances->count(),
                     'present' => $attendances->where('status', true)->count(),
                     'absent' => $attendances->where('status', false)->count(),

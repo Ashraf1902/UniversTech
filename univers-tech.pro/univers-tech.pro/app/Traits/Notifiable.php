@@ -77,7 +77,7 @@ trait Notifiable
     /**
      * Notify a professor (e.g. about a student submission).
      */
-    protected function notifyProfessor(int $professorId, string $title, string $content, ?int $studentId = null): void
+    protected function notifyProfessor(?int $professorId, string $title, string $content, ?int $studentId = null): void
     {
         if (! $professorId) {
             return;

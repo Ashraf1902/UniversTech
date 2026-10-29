@@ -139,10 +139,66 @@ class StudentCourse extends Model
         );
     }
 
+    /**
+     * Number of lectures the course currently has. A course belongs to exactly
+     * one semester, so this is also the current-semester lecture total for the
+     * enrollment.
+     */
+    public function lectureTotal(): int
+    {
+        return $this->course->lectures()->count();
+    }
+
+    /**
+     * Watched lectures that still exist and belong to this enrollment's course.
+     *
+     * `student_lectures` keeps a course_id copy, so a row can outlive a course
+     * change or point at a lecture from another course. Filtering through the
+     * course's own lectures (and the course semester) keeps progress tied to the
+     * lectures the student is actually taking this term.
+     */
     public function watchedLectureIds()
     {
+        $lectureIds = $this->course->lectures()->select('lectures.id');
+
         return StudentLecture::where('student_id', $this->student_id)
             ->where('course_id', $this->course_id)
+            ->whereIn('lecture_id', $lectureIds)
+            ->distinct()
             ->pluck('lecture_id');
+    }
+
+    /**
+     * Progress derived from real watch records, capped at the lecture total.
+     */
+    public function watchedLectureCount(?int $total = null): int
+    {
+        $total ??= $this->lectureTotal();
+
+        if ($total === 0) {
+            return 0;
+        }
+
+        return min($this->watchedLectureIds()->count(), $total);
+    }
+
+    /**
+     * Stored progress, clamped to the number of lectures the course has now.
+     * Seeded/legacy rows can hold values above the total (e.g. 15 out of 3).
+     */
+    public function progressCount(?int $total = null): int
+    {
+        $total ??= $this->lectureTotal();
+
+        return max(0, min((int) $this->progress, $total));
+    }
+
+    public function progressPercent(?int $total = null): int
+    {
+        $total ??= $this->lectureTotal();
+
+        return $total > 0
+            ? (int) round($this->progressCount($total) / $total * 100)
+            : 0;
     }
 }

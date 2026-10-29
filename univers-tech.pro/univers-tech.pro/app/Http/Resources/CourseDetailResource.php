@@ -13,18 +13,18 @@ class CourseDetailResource extends JsonResource
     {
         $lectures = $this->course->lectures;
 
-        $progress = $lectures->count() > 0
-            ? min(intval($this->progress) / $lectures->count() * 100, 100)
-            : 0;
+        $progress = $this->progressPercent($lectures->count());
 
         return [
             'id' => $this->id,
             'course_id' => $this->course->id,
             'course_name' => $this->course->course_name,
             'course_code' => $this->course->course_code,
+            'no_of_hours' => $this->course->no_of_hours,
             'course_professor' => $this->course->professor?->name,
             'cover_image' => url('uploads/' . $this->course->cover_image),
             'progress_percent' => $progress,
+            'total_lectures' => $lectures->count(),
             'lectures' => LecturesResource::collection($lectures),
             'quizzes' => QuizResource::collection($this->course->quizzes),
             'announcements' => $this->course->announcements()
