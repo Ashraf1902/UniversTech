@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\EventAdminController;
 use App\Http\Controllers\Admin\GradeAdminController;
 use App\Http\Controllers\Admin\ImportAdminController;
 use App\Http\Controllers\Admin\PaymentAdminController;
+use App\Http\Controllers\Admin\QuizSubmissionAdminController;
 use App\Http\Controllers\Admin\ReportAdminController;
 use App\Http\Controllers\Admin\RoomAdminController;
 use App\Http\Controllers\Admin\ScheduleAdminController;
@@ -153,6 +154,12 @@ Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
         Route::post('import/courses/apply', [ImportAdminController::class, 'coursesApply']);
     });
 
+    // Quiz submission downloads (confidential; courses or grades scope)
+    Route::middleware('admin-scope:courses,grades')->group(function () {
+        Route::get('quiz-submissions/{id}/download', [QuizSubmissionAdminController::class, 'download'])
+            ->name('admin.quiz-submissions.download');
+    });
+
     // Enrollment settings (§0.7)
     Route::middleware('admin-scope:settings')->group(function () {
         Route::get('settings/get/all', [SettingAdminController::class, 'index']);
@@ -255,6 +262,8 @@ Route::middleware(['auth:sanctum', 'role:professor', 'active'])->group(function 
     Route::post('quiz/store', [QuizProfessorController::class, 'store']);
     Route::get('quiz/get/all/{id}', [QuizProfessorController::class, 'getQuizzesCourse']);
     Route::get('quiz/submissions/{id}', [QuizProfessorController::class, 'submissions']);
+    Route::get('quiz/submissions/{id}/download', [QuizProfessorController::class, 'downloadSubmission'])
+        ->name('professor.quiz-submissions.download');
     Route::post('quiz/submission/grade', [QuizProfessorController::class, 'gradeSubmission']);
     Route::delete('quiz/delete/{id}', [QuizProfessorController::class, 'delete']);
     Route::post('professor/grade/store', [GradeProfessorController::class, 'store']);

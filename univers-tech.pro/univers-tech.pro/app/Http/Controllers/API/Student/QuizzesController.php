@@ -9,13 +9,17 @@ use App\Models\QuizSubmission;
 use App\Models\StudentCourse;
 use App\Support\ActivityLogger;
 use App\Support\Settings;
-use App\Traits\File\UpdateFile;
+use App\Traits\DownloadsQuizSubmission;
 use App\Traits\Notifiable;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class QuizzesController extends Controller
 {
-    use Notifiable, UpdateFile;
+    use Notifiable, DownloadsQuizSubmission;
 
     /**
      * All published quizzes of the courses the student is registered in,
@@ -91,7 +95,7 @@ class QuizzesController extends Controller
         }
 
         $file = $request->hasFile('file')
-            ? $this->uploadFile($request, 'file', 'quiz_submissions')
+            ? $this->storeSubmissionFile($request, $quiz)
             : null;
 
         $submission = DB::transaction(function () use ($quiz, $existing, $file, $request) {
@@ -102,10 +106,9 @@ class QuizzesController extends Controller
                 ];
 
                 if ($file) {
-                    if ($existing->file) {
-                        $this->deleteFile($existing->file);
-                    }
-                    $attributes['file'] = $file;
+                    $this->deleteSubmissionFile($existing->file);
+                    $attributes['file'] = $file['file'];
+                    $attributes['original_name'] = $file['original_name'];
                 }
 
                 $existing->update($attributes);
@@ -116,7 +119,8 @@ class QuizzesController extends Controller
             return QuizSubmission::create([
                 'quiz_id' => $quiz->id,
                 'student_id' => auth()->id(),
-                'file' => $file,
+                'file' => $file['file'] ?? null,
+                'original_name' => $file['original_name'] ?? null,
                 'answer_text' => $request->input('answer_text'),
                 'submitted_at' => now(),
             ]);
@@ -198,13 +202,79 @@ class QuizzesController extends Controller
     {
         return [
             'id' => $submission->id,
-            'file' => $submission->file ? url('uploads/' . $submission->file) : null,
+            'download_url' => $submission->file
+                ? route('student.quiz-submissions.download', ['id' => $submission->id], false)
+                : null,
+            'original_name' => $submission->original_name,
             'answer_text' => $submission->answer_text,
             'submitted_at' => $submission->submitted_at,
             'score' => $submission->score,
             'feedback' => $submission->feedback,
             'graded_at' => $submission->graded_at,
         ];
+    }
+
+    /**
+     * Stream the authenticated student's own submission from the private disk.
+     */
+    public function download(Request $request, $id)
+    {
+        $submission = QuizSubmission::with('quiz.course')->find($id);
+
+        if (! $submission) {
+            return SendResponse(404, 'Submission not found.');
+        }
+
+        if (! Gate::forUser($request->user())->allows('download', $submission)) {
+            return SendResponse(403, 'You are not allowed to download this file.');
+        }
+
+        return $this->downloadQuizSubmission($submission);
+    }
+
+    /**
+     * Store the upload on the private disk under a server-generated name.
+     *
+     * @return array{file: string, original_name: string}
+     */
+    private function storeSubmissionFile(Request $request, Quiz $quiz): array
+    {
+        $file = $request->file('file');
+
+        $extension = strtolower($file->extension() ?: $file->getClientOriginalExtension());
+        $allowed = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'];
+
+        if (! in_array($extension, $allowed, true)) {
+            abort(422, 'The file type is not allowed.');
+        }
+
+        $path = $file->storeAs(
+            'quiz-submissions/' . $quiz->id,
+            Str::uuid()->toString() . '.' . $extension,
+            'private'
+        );
+
+        $original = basename(str_replace('\\', '/', $file->getClientOriginalName()));
+
+        return [
+            'file' => $path,
+            'original_name' => mb_substr($original !== '' ? $original : 'submission.' . $extension, 0, 255),
+        ];
+    }
+
+    /**
+     * Remove a replaced submission from both the private disk and the legacy
+     * public location (files already moved by files:move-private only exist on
+     * the private disk).
+     */
+    private function deleteSubmissionFile(?string $path): void
+    {
+        if (! $path) {
+            return;
+        }
+
+        Storage::disk('private')->delete($path);
+        Storage::disk('files')->delete($path);
     }
 
     /**

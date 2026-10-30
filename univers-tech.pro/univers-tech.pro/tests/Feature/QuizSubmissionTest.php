@@ -40,6 +40,7 @@ class QuizSubmissionTest extends TestCase
         parent::setUp();
 
         Storage::fake('files');
+        Storage::fake('private');
 
         $admin = Admin::factory()->create(['id' => 1, 'is_super_admin' => true]);
         $department = Department::factory()->create(['id' => 1, 'admin_id' => $admin->id]);

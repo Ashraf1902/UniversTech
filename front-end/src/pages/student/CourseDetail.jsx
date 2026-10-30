@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { request } from '../../lib/api'
 import { useI18n } from '../../lib/i18n'
 import { useAsync } from '../../lib/hooks'
+import { CoverImage } from '../../lib/media'
 import { Badge, Btn, CourseLoader, Empty, I, Reveal, Ring, useToast } from '../../lib/ui'
 import { Head } from './_shared'
 export function StudentCourseDetail() {
@@ -112,7 +113,13 @@ export function StudentCourseDetail() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
           <Reveal className="card" style={{ textAlign: 'center' }}>
-            <div style={{ height: 130, borderRadius: 14, marginBottom: 18, background: course.cover_image && !course.cover_image.endsWith('default.jpg') ? `center/cover url(${course.cover_image})` : 'var(--grad)' }} />
+            <CoverImage
+              className="course-hero-cover"
+              src={course.cover_image && !course.cover_image.endsWith('default.jpg') ? course.cover_image : null}
+              alt={course.course_name}
+              icon="book"
+              mark={course.course_code}
+            />
             <div className="gpa-meter" style={{ justifyContent: 'center' }}>
               <Ring value={course.progress_percent || 0} max={100} label={`${Math.round(course.progress_percent || 0)}%`} />
               <div style={{ textAlign: 'left' }}>

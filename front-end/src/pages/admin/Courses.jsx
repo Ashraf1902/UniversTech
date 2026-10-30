@@ -3,6 +3,7 @@ import { request } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 import { Badge, Btn, Field, Pager, useToast } from '../../lib/ui'
 import { useI18n } from '../../lib/i18n'
+import { CoverImage } from '../../lib/media'
 import { DataTable, FormModal, Head, SearchBar, useDebounced, useFieldErrors, useList, useOptions, withSearch } from './_shared'
 import { CourseEnrollmentModal } from './Enrollment.jsx'
 
@@ -120,7 +121,7 @@ const remove = async (row) => {
         loading={loading}
         rows={paged.items}
         columns={[
-          { key: 'course_name', label: t('course'), main: true, render: (r) => (<div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><span className="av" style={{ width: 36, height: 36, borderRadius: 10, background: r.cover_image && !r.cover_image.endsWith('default.jpg') ? `center/cover url(${r.cover_image})` : 'var(--grad)', fontSize: '0.7rem' }} />{r.course_name}</div>) },
+          { key: 'course_name', label: t('course'), main: true, render: (r) => (<div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><CoverImage className="course-thumb-cover" src={r.cover_image && !r.cover_image.endsWith('default.jpg') ? r.cover_image : null} alt={r.course_name} icon="book" />{r.course_name}</div>) },
           { key: 'course_code', label: t('code'), render: (r) => <Badge tone="vio">{r.course_code}</Badge> },
           { key: 'professor', label: t('professor'), render: (r) => r.professor || '—' },
           { key: 'department', label: t('department'), render: (r) => r.department || t('general') },

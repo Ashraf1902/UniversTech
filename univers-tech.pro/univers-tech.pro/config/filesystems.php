@@ -50,6 +50,20 @@ return [
             'throw' => false,
         ],
 
+        /*
+         * Non-web-reachable storage for confidential uploads (quiz
+         * submissions). The root must live outside the public docroot; in
+         * production it is a dedicated Wasmer volume mounted at
+         * /app/storage/private. Files here are only ever served by
+         * authenticated controller downloads, never by the web server.
+         */
+        'private' => [
+            'driver' => 'local',
+            'root' => env('PRIVATE_FILES_ROOT', storage_path('app/private')),
+            'visibility' => 'private',
+            'throw' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),

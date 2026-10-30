@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { normalizePage, request } from '../../lib/api'
+import { downloadErrorKey, downloadFile, normalizePage, request } from '../../lib/api'
 import { useI18n } from '../../lib/i18n'
 import { useAsync } from '../../lib/hooks'
 import { Badge, Btn, Empty, Field, I, Modal, Pager, Reveal, Spinner, useToast } from '../../lib/ui'
@@ -24,6 +24,19 @@ const [open, setOpen] = useState(false)
   const subPaged = normalizePage(subs.data?.submissions)
   const [gradeForm, setGradeForm] = useState({})
   const [gradeBusy, setGradeBusy] = useState(null)
+  const [downloading, setDownloading] = useState(null)
+
+  const downloadSubmission = async (submission) => {
+    if (!submission?.download_url) return
+    setDownloading(submission.id)
+    try {
+      await downloadFile(submission.download_url, submission.original_name || undefined)
+    } catch (e) {
+      toast.error(t(downloadErrorKey(e)))
+    } finally {
+      setDownloading(null)
+    }
+  }
 
   const submit = async () => {
     if (!form.name || !form.pdf) {
@@ -165,7 +178,17 @@ await request(`/api/quiz/delete/${id}`, { method: 'DELETE' })
                       </div>
                     </div>
                     {s.graded_at ? <Badge tone="grn">{t('quizGraded')}</Badge> : <Badge tone="amb" dot>{t('quizNotSubmitted')}</Badge>}
-                    {s.file ? <a href={s.file} target="_blank" rel="noreferrer"><Btn size="sm" variant="soft" icon="file">{t('openAction')}</Btn></a> : null}
+                    {s.download_url ? (
+                      <Btn
+                        size="sm"
+                        variant="soft"
+                        icon="download"
+                        loading={downloading === s.id}
+                        onClick={() => downloadSubmission(s)}
+                      >
+                        {downloading === s.id ? t('downloading') : t('downloadSubmission')}
+                      </Btn>
+                    ) : null}
                   </div>
                   {s.answer_text ? <div style={{ fontSize: '0.85rem', color: 'var(--muted)' }}>{s.answer_text}</div> : null}
                   <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr auto', gap: 10, alignItems: 'end' }}>

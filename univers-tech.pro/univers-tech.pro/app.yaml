@@ -23,6 +23,7 @@ env:
   QUEUE_CONNECTION: sync
   DB_CONNECTION: mysql
   FILES_DISK_ROOT: /app/public/uploads
+  PRIVATE_FILES_ROOT: /app/storage/private   # confidential files (quiz submissions); outside the docroot
   TRUSTED_PROXIES: "*"                            # trust edge X-Forwarded-For/-Proto (see bootstrap/app.php)
   PAYMENT_DEMO_MODE: "true"     # the app's real flag name in config/services.php
   UNIVERSITY_TIMEZONE: "Africa/Cairo"   # campus wall-clock tz for timetable times (config/university.php)
@@ -32,6 +33,11 @@ env:
 volumes:
   - name: uploads
     mount: /app/public/uploads
+  # Confidential storage (quiz submissions). Deliberately mounted outside
+  # /app/public so the PHP docroot can never serve these files directly.
+  # Never rename an existing volume: renaming deletes its data on deploy.
+  - name: private
+    mount: /app/storage/private
 scaling:
   mode: single_concurrency       # VERIFY against Wasmer Edge PHP docs (php -S is single-threaded)
 app_id: da_KN4IZtyUPopm

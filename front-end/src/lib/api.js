@@ -159,7 +159,21 @@ export async function downloadFile(path, filename) {
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
-  URL.revokeObjectURL(url)
+  // Revoke on the next tick: revoking synchronously can abort the download in
+  // some browsers (notably Firefox) before it has started reading the blob.
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
+/**
+ * Map a failed download to an i18n key so callers can show a translated
+ * message instead of the raw server string.
+ */
+export function downloadErrorKey(err) {
+  const status = Number(err?.status) || 0
+  if (status === 403) return 'downloadForbidden'
+  if (status === 404) return 'downloadNotFound'
+  if (status === 0) return 'downloadNetworkError'
+  return 'downloadFailed'
 }
 
 export function getFieldErrors(err) {

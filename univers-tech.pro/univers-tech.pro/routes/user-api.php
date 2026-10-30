@@ -72,5 +72,7 @@ Route::middleware(['role:student', 'active'])->group(function () {
         Route::get('quizzes', [QuizzesController::class, 'index']);
         Route::get('quiz/{id}', [QuizzesController::class, 'show']);
         Route::post('quiz/{id}/submit', [QuizzesController::class, 'submit']);
+        Route::get('quiz-submissions/{id}/download', [QuizzesController::class, 'download'])
+            ->name('student.quiz-submissions.download');
     });
 });

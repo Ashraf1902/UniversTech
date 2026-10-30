@@ -11,13 +11,15 @@ use App\Models\QuizSubmission;
 use App\Models\StudentCourse;
 use App\Support\ActivityLogger;
 use App\Traits\AuthorizesCourseOwnership;
+use App\Traits\DownloadsQuizSubmission;
 use App\Traits\File\UploadFile;
 use App\Traits\Notifiable;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class QuizProfessorController extends Controller
 {
-    use AuthorizesCourseOwnership, UploadFile, Notifiable;
+    use AuthorizesCourseOwnership, DownloadsQuizSubmission, UploadFile, Notifiable;
 
     public function getQuizzesCourse(Request $request, $id)
     {
@@ -132,7 +134,10 @@ class QuizProfessorController extends Controller
                     'name' => $submission->student->name,
                     'email' => $submission->student->email,
                 ] : null,
-                'file' => $submission->file ? url('uploads/' . $submission->file) : null,
+                'download_url' => $submission->file
+                    ? route('professor.quiz-submissions.download', ['id' => $submission->id], false)
+                    : null,
+                'original_name' => $submission->original_name,
                 'answer_text' => $submission->answer_text,
                 'submitted_at' => $submission->submitted_at,
                 'score' => $submission->score,
@@ -148,6 +153,24 @@ class QuizProfessorController extends Controller
             ],
             'submissions' => $submissions,
         ]);
+    }
+
+    /**
+     * Stream a submission belonging to one of the professor's own courses.
+     */
+    public function downloadSubmission(Request $request, $id)
+    {
+        $submission = QuizSubmission::with('quiz.course')->find($id);
+
+        if (! $submission) {
+            return SendResponse(404, 'Submission not found.');
+        }
+
+        if (! Gate::forUser($request->user())->allows('download', $submission)) {
+            return SendResponse(403, 'You are not allowed to download this file.');
+        }
+
+        return $this->downloadQuizSubmission($submission);
     }
 
     /**

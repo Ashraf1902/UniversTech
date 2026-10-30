@@ -13,6 +13,7 @@ class QuizSubmission extends Model
         'quiz_id',
         'student_id',
         'file',
+        'original_name',
         'answer_text',
         'submitted_at',
         'score',
@@ -46,5 +47,25 @@ class QuizSubmission extends Model
     public function isGraded(): bool
     {
         return $this->graded_at !== null;
+    }
+
+    /**
+     * Sanitized filename offered in Content-Disposition. The original client
+     * filename is display-only; it is never part of a storage path.
+     */
+    public function downloadName(): string
+    {
+        $original = $this->original_name
+            ? basename(str_replace('\\', '/', $this->original_name))
+            : '';
+
+        $original = trim(preg_replace('/[\x00-\x1F\x7F"\\\\\/]+/', '', $original) ?? '');
+
+        if ($original === '' || $original === '.' || $original === '..') {
+            $extension = pathinfo((string) $this->file, PATHINFO_EXTENSION);
+            $original = 'quiz-submission-' . $this->id . ($extension !== '' ? '.' . $extension : '');
+        }
+
+        return $original;
     }
 }

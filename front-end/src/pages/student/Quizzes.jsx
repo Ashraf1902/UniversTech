@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { normalizePage, request } from '../../lib/api'
+import { downloadErrorKey, downloadFile, normalizePage, request } from '../../lib/api'
 import { useI18n } from '../../lib/i18n'
 import { useAsync } from '../../lib/hooks'
 import { Badge, Btn, Empty, Field, I, Modal, Pager, Reveal, Spinner, useToast } from '../../lib/ui'
@@ -22,6 +22,19 @@ export function StudentQuizzes() {
   const [form, setForm] = useState({ answer_text: '', file: null })
   const [busy, setBusy] = useState(false)
   const [errors, setErrors] = useState({})
+  const [downloading, setDownloading] = useState(null)
+
+  const downloadSubmission = async (submission) => {
+    if (!submission?.download_url) return
+    setDownloading(submission.id)
+    try {
+      await downloadFile(submission.download_url, submission.original_name || undefined)
+    } catch (e) {
+      toast.error(t(downloadErrorKey(e)))
+    } finally {
+      setDownloading(null)
+    }
+  }
 
   const openSubmit = (quiz) => {
     setActive(quiz)
@@ -92,7 +105,22 @@ export function StudentQuizzes() {
                     <div style={{ marginTop: 12, borderTop: '1px solid var(--line)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 6, fontSize: '0.85rem' }}>
                       <div><strong>{t('yourSubmission')}:</strong> {q.submission.submitted_at ? new Date(q.submission.submitted_at).toLocaleString() : '—'}</div>
                       {q.submission.answer_text ? <div style={{ color: 'var(--muted)' }}>{q.submission.answer_text}</div> : null}
-                      {q.submission.file ? <a href={q.submission.file} target="_blank" rel="noreferrer">{t('openSubmissionFile')}</a> : null}
+                      {q.submission.download_url ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                          <Btn
+                            size="sm"
+                            variant="soft"
+                            icon="download"
+                            loading={downloading === q.submission.id}
+                            onClick={() => downloadSubmission(q.submission)}
+                          >
+                            {downloading === q.submission.id ? t('downloading') : t('downloadSubmission')}
+                          </Btn>
+                          {q.submission.original_name ? (
+                            <span style={{ color: 'var(--faint)', fontSize: '0.78rem', wordBreak: 'break-all' }}>{q.submission.original_name}</span>
+                          ) : null}
+                        </div>
+                      ) : null}
                       {q.submission.graded_at ? (
                         <div>
                           <strong>{t('scoreLabel')}:</strong> {q.submission.score}/{q.max_score}

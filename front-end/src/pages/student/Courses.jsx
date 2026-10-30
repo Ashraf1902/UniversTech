@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { normalizePage, request } from '../../lib/api'
 import { useI18n } from '../../lib/i18n'
 import { useAsync } from '../../lib/hooks'
+import { CoverImage } from '../../lib/media'
 import { Btn, CourseLoader, Empty, I, Pager, Prog, Reveal, useToast } from '../../lib/ui'
 import { DemoBanner, Head, money } from './_shared'
 
@@ -17,7 +18,7 @@ function CourseCard({ course, footer, delay = 0, t }) {
 
   return (
     <Reveal className="card course-card" delay={delay}>
-      <div className={`course-cover ${cover ? 'has-image' : ''}`} style={cover ? { backgroundImage: `url(${cover})` } : undefined}>
+      <CoverImage className="course-cover" src={cover} alt={course.course_name} icon="book" mark={course.course_code}>
         <span className="course-cover-veil" />
         {course.course_code ? <span className="course-code">{course.course_code}</span> : null}
         {course.no_of_hours ? <span className="course-hours">{t('crHours', { n: course.no_of_hours })}</span> : null}
@@ -25,7 +26,7 @@ function CourseCard({ course, footer, delay = 0, t }) {
           <Prog value={progress} sm />
           <b>{progress}%</b>
         </span>
-      </div>
+      </CoverImage>
       <div className="course-body">
         <h3>{course.course_name}</h3>
         <p className="course-prof">

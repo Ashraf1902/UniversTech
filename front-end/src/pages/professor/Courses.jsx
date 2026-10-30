@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { CoverImage } from '../../lib/media'
 import { Badge, Btn, CourseLoader, Empty, Reveal } from '../../lib/ui'
 import { useI18n } from '../../lib/i18n'
 import { Head, useMyCourses } from './_shared'
@@ -14,7 +15,13 @@ export function ProfessorCourses() {
         <div className="grid grid-3">
           {courses.map((c, i) => (
             <Reveal key={c.id} className="card" delay={i * 0.05}>
-              <div style={{ height: 110, borderRadius: 14, marginBottom: 18, background: c.cover_image && !c.cover_image.endsWith('default.jpg') ? `center/cover url(${c.cover_image})` : 'var(--grad)' }} />
+              <CoverImage
+                className="prof-course-cover"
+                src={c.cover_image && !c.cover_image.endsWith('default.jpg') ? c.cover_image : null}
+                alt={c.course_name}
+                icon="book"
+                mark={c.course_code}
+              />
               <h3 style={{ fontSize: '1.02rem', marginBottom: 6 }}>{c.course_name}</h3>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
                 {c.course_code ? <Badge tone="vio">{c.course_code}</Badge> : null}
