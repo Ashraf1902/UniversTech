@@ -35,6 +35,11 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->statefulApi();
 
+        // There is no login page: never send a guest to route('login'). Without
+        // this the default auth middleware throws while building the redirect
+        // and the client gets a 500 instead of a clean 401.
+        $middleware->redirectGuestsTo(null);
+
         $middleware->alias([
             'role' => \App\Http\Middleware\CheckUserRole::class,
             'admin-scope' => \App\Http\Middleware\CheckAdminScope::class,
@@ -58,6 +63,15 @@ return Application::configure(basePath: dirname(__DIR__))
                     message: 'error in body request',
                     data: $e->errors()
                 );
+            }
+        });
+
+        // This is an API-only backend: an unauthenticated API call must never
+        // turn into a redirect to a (non-existent) login page or a 500. Render
+        // it as the usual JSON envelope whatever the Accept header asks for.
+        $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, \Illuminate\Http\Request $request) {
+            if ($request->is('api/*')) {
+                return SendResponse(401, 'Unauthenticated.');
             }
         });
     })->create();
