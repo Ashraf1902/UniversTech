@@ -762,6 +762,7 @@ export default {
   appealThisGrade: 'Appeal this grade',
   submitAppeal: 'Submit appeal',
   appealSubmitted: 'Appeal submitted',
+  appealUnavailable: 'Appeals are unavailable for this grade because the grade reference is missing. Please contact the administration.',
   myAppeals: 'My appeals',
   responseNote: 'Response',
   respond: 'Respond',

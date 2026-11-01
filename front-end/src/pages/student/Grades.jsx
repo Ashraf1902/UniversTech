@@ -76,7 +76,7 @@ function SemesterCard({ card, index, onAppeal, t }) {
               size="sm"
               variant="soft"
               icon="mail"
-              title={t('appealGrade')}
+              title={row.grade_id == null ? t('appealUnavailable') : t('appealGrade')}
               aria-label={`${t('appealGrade')}: ${row.course_name}`}
               onClick={() => onAppeal(row)}
             />
@@ -120,18 +120,26 @@ export function StudentGrades() {
   const hasResults = cards.some((card) => (card.courses || []).length > 0)
 
   const openAppeal = (row) => {
+    if (row.grade_id == null) {
+      toast.error(t('appealUnavailable'))
+      return
+    }
     setAppealRow(row)
     setReason('')
     setReasonError('')
   }
 
   const submitAppeal = async () => {
+    if (appealRow?.grade_id == null) {
+      setReasonError(t('appealUnavailable'))
+      return
+    }
     setBusy(true)
     setReasonError('')
     try {
       await request('/api/user/grade/appeal', {
         method: 'POST',
-        data: { grade_id: appealRow.id, reason },
+        data: { grade_id: appealRow.grade_id, reason },
       })
       toast.success(t('appealSubmitted'))
       setAppealRow(null)
@@ -255,7 +263,7 @@ export function StudentGrades() {
         footer={
           <>
             <Btn variant="ghost" onClick={() => setAppealRow(null)}>{t('cancel')}</Btn>
-            <Btn loading={busy} onClick={submitAppeal} icon="check" disabled={!reason}>{t('submitAppeal')}</Btn>
+            <Btn loading={busy} onClick={submitAppeal} icon="check" disabled={!reason || appealRow?.grade_id == null}>{t('submitAppeal')}</Btn>
           </>
         }
       >

@@ -762,6 +762,7 @@
   appealThisGrade: 'الاعتراض على هذه الدرجة',
   submitAppeal: 'إرسال الاعتراض',
   appealSubmitted: 'تم إرسال الاعتراض',
+  appealUnavailable: 'لا يمكن تقديم اعتراض على هذه الدرجة لأن مرجع الدرجة غير متاح. يرجى التواصل مع الإدارة.',
   myAppeals: 'اعتراضاتي',
   responseNote: 'الرد',
   respond: 'الرد',
