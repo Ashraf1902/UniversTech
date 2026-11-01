@@ -390,4 +390,55 @@ class PrivateQuizSubmissionsTest extends TestCase
         Storage::disk('files')->put('quiz_submissions/legacy.pdf', 'legacy');
         $this->submission->forceFill(['file' => 'quiz_submissions/legacy.pdf', 'original_name' => 'legacy.pdf'])->save();
     }
+
+    public function test_deleting_a_submission_row_removes_its_private_file(): void
+    {
+        $path = $this->submission->file;
+
+        $this->assertTrue(Storage::disk('private')->exists($path));
+
+        $this->submission->delete();
+
+        $this->assertDatabaseMissing('quiz_submissions', ['id' => $this->submission->id]);
+        $this->assertFalse(Storage::disk('private')->exists($path));
+    }
+
+    public function test_professor_deleting_a_quiz_removes_the_cascaded_private_files(): void
+    {
+        $path = $this->submission->file;
+
+        Sanctum::actingAs($this->professorA);
+
+        $this->deleteJson('/api/quiz/delete/' . $this->quiz->id)->assertOk();
+
+        $this->assertDatabaseMissing('quizzes', ['id' => $this->quiz->id]);
+        $this->assertDatabaseMissing('quiz_submissions', ['id' => $this->submission->id]);
+        $this->assertFalse(Storage::disk('private')->exists($path));
+    }
+
+    public function test_purging_a_course_removes_the_cascaded_private_files(): void
+    {
+        $path = $this->submission->file;
+
+        $this->course->forceDelete();
+
+        $this->assertDatabaseMissing('quizzes', ['id' => $this->quiz->id]);
+        $this->assertDatabaseMissing('quiz_submissions', ['id' => $this->submission->id]);
+        $this->assertFalse(Storage::disk('private')->exists($path));
+    }
+
+    public function test_archiving_a_student_keeps_the_file_but_purging_removes_it(): void
+    {
+        $path = $this->submission->file;
+
+        $this->student->delete();
+
+        $this->assertSoftDeleted('users', ['id' => $this->student->id]);
+        $this->assertTrue(Storage::disk('private')->exists($path));
+
+        $this->student->forceDelete();
+
+        $this->assertDatabaseMissing('quiz_submissions', ['id' => $this->submission->id]);
+        $this->assertFalse(Storage::disk('private')->exists($path));
+    }
 }

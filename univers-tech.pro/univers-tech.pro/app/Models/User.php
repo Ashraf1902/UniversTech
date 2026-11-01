@@ -8,6 +8,7 @@ use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\HasApiTokens;
 use App\Traits\LogsActivity;
 
@@ -42,6 +43,28 @@ class User extends Authenticatable implements CanResetPasswordContract
         'gender' => 'boolean',
         'type' => 'integer',
     ];
+
+    protected static function booted(): void
+    {
+        // Archiving a student (soft delete) keeps everything for a possible
+        // restore. A permanent purge cascades their quiz_submissions rows in
+        // the database, so remove the confidential files explicitly.
+        static::deleting(function (User $user) {
+            if (! $user->isForceDeleting()) {
+                return;
+            }
+
+            $files = QuizSubmission::query()
+                ->where('student_id', $user->id)
+                ->whereNotNull('file')
+                ->pluck('file')
+                ->all();
+
+            if ($files !== []) {
+                Storage::disk('private')->delete($files);
+            }
+        });
+    }
 
     public function isProfessor(): bool
     {
