@@ -5,12 +5,12 @@ import { useI18n } from '../../lib/i18n'
 import { useAsync } from '../../lib/hooks'
 import { CoverImage } from '../../lib/media'
 import { Badge, Btn, CourseLoader, Empty, I, Reveal, Ring, useToast } from '../../lib/ui'
-import { Head } from './_shared'
+
 export function StudentCourseDetail() {
   const { id } = useParams()
   const { t } = useI18n()
   const toast = useToast()
-  const { data: course, loading } = useAsync(() => request(`/api/user/course/${id}`), [id])
+  const { data: course, loading, error } = useAsync(() => request(`/api/user/course/${id}`), [id])
   const [watched, setWatched] = useState({})
 
   const watch = async (lecture) => {
@@ -24,37 +24,105 @@ export function StudentCourseDetail() {
   }
 
   if (loading) return <CourseLoader label={t('openingCourse')} />
-  if (!course) return <Empty icon="book" title={t('courseNotFound')} />
+  if (!course) {
+    if (error?.status === 403) {
+      return (
+        <Empty
+          icon="wallet"
+          title={t('unlockCourses')}
+          sub={t('courseLockedSub')}
+          action={
+            <Link to="/app/student/payments">
+              <Btn variant="soft" icon="wallet">{t('viewPayments')}</Btn>
+            </Link>
+          }
+        />
+      )
+    }
+    return <Empty icon="book" title={t('courseNotFound')} />
+  }
+
+  const cover = course.cover_image && !course.cover_image.endsWith('default.jpg') ? course.cover_image : null
+  const progress = Math.max(0, Math.min(100, Math.round(Number(course.progress_percent) || 0)))
 
   return (
     <>
-      <Head kicker={t('course')} title={course.course_name} sub={`${course.course_code || ''} · ${course.course_professor || t('noProfessor')}`} actions={<Link to="/app/student/courses"><Btn variant="ghost" icon="chevron" style={{ transform: 'scaleX(-1)' }}>{t('back')}</Btn></Link>} />
+      <Reveal className="std-course-hero">
+        <CoverImage className="std-course-hero-art" src={cover} alt={course.course_name} icon="book" mark={course.course_code}>
+          <span className="std-course-hero-veil" />
+        </CoverImage>
+        <div className="std-course-hero-inner">
+          <div>
+            <span className="std-eyebrow">{t('course')} · {course.course_code || '—'}</span>
+            <h1>{course.course_name}</h1>
+            <div className="std-chips">
+              <Badge tone="cy"><I name="user" size={12} /> {course.course_professor || t('noProfessor')}</Badge>
+              <Badge><I name="clock" size={12} /> {t('creditHrs', { n: course.no_of_hours })}</Badge>
+              <Badge tone="vio"><I name="file" size={12} /> {t('totalCount', { n: course.total_lectures || 0 })}</Badge>
+            </div>
+          </div>
+          <div className="std-course-hero-progress">
+            <Ring value={progress} max={100} size={104} label={`${progress}%`} sub={t('progress')} />
+          </div>
+        </div>
+      </Reveal>
 
-      <div className="grid grid-2" style={{ gridTemplateColumns: '1fr 320px', alignItems: 'start' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+      <div className="std-course-grid">
+        <div className="std-course-main">
           <Reveal className="card">
             <div className="card-head">
               <h3>{t('lectures')}</h3>
               <Badge tone="cy">{t('totalCount', { n: course.lectures?.length || 0 })}</Badge>
             </div>
             {course.lectures?.length ? (
-              course.lectures.map((l, i) => {
-                const done = watched[l.id]
-                return (
-                  <div className="list-row" key={l.id}>
-                    <span className="av" style={{ background: done ? 'rgba(52,245,162,.16)' : 'var(--grad)', color: done ? '#8af7c7' : '#fff', width: 40, height: 40 }}>
-                      {done ? <I name="check" size={17} /> : i + 1}
-                    </span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, fontSize: '0.92rem' }}>{l.lecture_name}</div>
-                      <div style={{ fontSize: '0.78rem', color: 'var(--faint)' }}>{done ? t('watched') : t('notStarted')}</div>
-                    </div>
-                    <Btn size="sm" variant="soft" icon="play" onClick={() => watch(l)}>{t('watch')}</Btn>
-                  </div>
-                )
-              })
+              <ol className="std-lectures">
+                {course.lectures.map((lecture, index) => {
+                  const done = watched[lecture.id]
+                  return (
+                    <li className={`std-lecture ${done ? 'is-done' : ''}`} key={lecture.id}>
+                      <span className="std-lecture-index">
+                        {done ? <I name="check" size={16} /> : String(index + 1).padStart(2, '0')}
+                      </span>
+                      <div className="std-lecture-body">
+                        <strong>{lecture.lecture_name}</strong>
+                        <span>{done ? t('watched') : t('notStarted')}</span>
+                      </div>
+                      <Btn size="sm" variant="soft" icon="play" onClick={() => watch(lecture)}>{t('watch')}</Btn>
+                    </li>
+                  )
+                })}
+              </ol>
             ) : (
               <Empty icon="file" title={t('noLecturesYet')} sub={t('noLecturesYetSub')} />
+            )}
+          </Reveal>
+
+          <Reveal className="card" delay={0.06}>
+            <div className="card-head">
+              <h3>{t('quizzes')}</h3>
+              <Badge tone="pnk">{t('totalCount', { n: course.quizzes?.length || 0 })}</Badge>
+            </div>
+            {course.quizzes?.length ? (
+              <div>
+                {course.quizzes.map((quiz) => (
+                  <div className="list-row" key={quiz.id}>
+                    <span className="std-quiz-icon tone-pnk" style={{ width: 38, height: 38 }}>
+                      <I name="award" size={17} />
+                    </span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: 'var(--text-md)' }}>{quiz.name}</div>
+                      <div style={{ fontSize: 'var(--text-2xs)', color: 'var(--color-text-faint)' }}>
+                        {quiz.due_at ? t('due', { date: new Date(quiz.due_at).toLocaleDateString() }) : t('noDueDate')}
+                      </div>
+                    </div>
+                    <a href={quiz.content} target="_blank" rel="noreferrer">
+                      <Btn size="sm" variant="soft" icon="file">{t('openAction')}</Btn>
+                    </a>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <Empty icon="award" title={t('noQuizzes')} />
             )}
           </Reveal>
 
@@ -66,16 +134,20 @@ export function StudentCourseDetail() {
             {course.announcements?.length ? (
               course.announcements.map((a) => (
                 <div className="list-row" key={a.id} style={{ alignItems: 'flex-start' }}>
-                  <span className="av" style={{ background: 'rgba(139,92,246,.16)', color: '#c4b5fd', width: 40, height: 40 }}>
+                  <span className="std-dispatch-icon" style={{ width: 38, height: 38 }}>
                     <I name="info" size={17} />
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, fontSize: '0.92rem' }}>{a.title}</div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--muted)', marginTop: 6, whiteSpace: 'pre-line' }}>{a.body}</div>
-                    <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                    <div style={{ fontWeight: 600, fontSize: 'var(--text-md)' }}>{a.title}</div>
+                    <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', marginTop: 6, whiteSpace: 'pre-line' }}>{a.body}</div>
+                    <div className="std-chips" style={{ marginTop: 10 }}>
                       {a.author ? <Badge tone="cy">{t('profPrefix')} {a.author}</Badge> : null}
                       {a.created_at ? <Badge>{a.created_at}</Badge> : null}
-                      {a.attachment ? <a href={a.attachment} target="_blank" rel="noreferrer" className="badge amb">{t('attachment')}</a> : null}
+                      {a.attachment ? (
+                        <a href={a.attachment} target="_blank" rel="noreferrer" className="badge amb">
+                          <I name="file" size={12} /> {t('attachment')}
+                        </a>
+                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -84,51 +156,29 @@ export function StudentCourseDetail() {
               <Empty icon="info" title={t('noAnnouncements')} sub={t('noAnnouncementsSub')} />
             )}
           </Reveal>
+        </div>
 
-          <Reveal className="card" delay={0.08}>
+        <aside className="std-course-side">
+          <Reveal className="card">
             <div className="card-head">
-              <h3>{t('quizzes')}</h3>
-              <Badge tone="pnk">{t('totalCount', { n: course.quizzes?.length || 0 })}</Badge>
+              <h3>{t('courseSummary')}</h3>
             </div>
-            {course.quizzes?.length ? (
-              course.quizzes.map((q) => (
-                <div className="list-row" key={q.id}>
-                  <span className="av" style={{ background: 'rgba(245,99,176,.16)', color: '#ffb0d6', width: 40, height: 40 }}>
-                    <I name="award" size={17} />
-                  </span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, fontSize: '0.92rem' }}>{q.name}</div>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--faint)' }}>{q.due_at ? t('due', { date: new Date(q.due_at).toLocaleDateString() }) : t('noDueDate')}</div>
-                  </div>
-                  <a href={q.content} target="_blank" rel="noreferrer">
-                    <Btn size="sm" variant="soft" icon="file">{t('openAction')}</Btn>
-                  </a>
-                </div>
-              ))
-            ) : (
-              <Empty icon="award" title={t('noQuizzes')} />
-            )}
+            <dl className="std-facts">
+              <div><dt>{t('code')}</dt><dd>{course.course_code || '—'}</dd></div>
+              <div><dt>{t('creditHours')}</dt><dd>{course.no_of_hours ?? '—'}</dd></div>
+              <div><dt>{t('professor')}</dt><dd>{course.course_professor || t('noProfessor')}</dd></div>
+              <div><dt>{t('lectures')}</dt><dd>{course.total_lectures ?? 0}</dd></div>
+              <div><dt>{t('quizzes')}</dt><dd>{course.quizzes?.length ?? 0}</dd></div>
+              <div><dt>{t('announcements')}</dt><dd>{course.announcements?.length ?? 0}</dd></div>
+            </dl>
           </Reveal>
-        </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
-          <Reveal className="card" style={{ textAlign: 'center' }}>
-            <CoverImage
-              className="course-hero-cover"
-              src={course.cover_image && !course.cover_image.endsWith('default.jpg') ? course.cover_image : null}
-              alt={course.course_name}
-              icon="book"
-              mark={course.course_code}
-            />
-            <div className="gpa-meter" style={{ justifyContent: 'center' }}>
-              <Ring value={course.progress_percent || 0} max={100} label={`${Math.round(course.progress_percent || 0)}%`} />
-              <div style={{ textAlign: 'left' }}>
-                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700 }}>{t('progress')}</div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--faint)' }}>{t('acrossLectures')}</div>
-              </div>
-            </div>
+          <Reveal className="card" delay={0.06}>
+            <Link to="/app/student/courses" style={{ display: 'block' }}>
+              <Btn variant="soft" icon="chevron" style={{ width: '100%', transform: 'scaleX(-1)' }}>{t('back')}</Btn>
+            </Link>
           </Reveal>
-        </div>
+        </aside>
       </div>
     </>
   )

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { normalizePage, request } from '../../lib/api'
 import { useI18n } from '../../lib/i18n'
 import { useAsync } from '../../lib/hooks'
-import { Badge, Btn, Empty, Modal, Pager, Reveal, Spinner, useToast } from '../../lib/ui'
+import { Badge, Btn, Empty, I, Modal, Pager, Reveal, Spinner, useToast } from '../../lib/ui'
 import { DemoBanner, Head, money } from './_shared'
 
 const STATUS_META = {
@@ -24,7 +24,7 @@ export function StudentPayments() {
   const { t, lang } = useI18n()
   const toast = useToast()
   const [page, setPage] = useState(1)
-  const { data, loading, error, run } = useAsync(() => request(`/api/user/payments?page=${page}`), [page])
+  const { data, loading, error } = useAsync(() => request(`/api/user/payments?page=${page}`), [page])
   const paged = normalizePage(data)
 
   const [receipt, setReceipt] = useState(null)
@@ -79,44 +79,55 @@ td,th{border-bottom:1px solid #ddd;padding:8px 4px;font-size:.9rem}
 
       <DemoBanner />
 
+      <Reveal className="card std-note">
+        <span className="std-note-icon">
+          <I name="info" size={18} />
+        </span>
+        <div>
+          <strong>{t('paymentsStatement')}</strong>
+          <p>{t('paymentsHonesty')}</p>
+        </div>
+      </Reveal>
+
       {loading ? (
         <Spinner size={24} />
       ) : paged.items.length ? (
         <>
-          <div className="table-wrap">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>{t('receiptNumber')}</th>
-                  <th>{t('type')}</th>
-                  <th>{t('semester')}</th>
-                  <th>{t('amount')}</th>
-                  <th>{t('status')}</th>
-                  <th>{t('date')}</th>
-                  <th style={{ textAlign: 'right' }}>{t('actions')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paged.items.map((p) => (
-                  <tr key={p.id}>
-                    <td className="cell-main">{p.receipt_number || '—'}</td>
-                    <td>{p.type === 'courses' ? t('typeCourses') : t('typeYear')}</td>
-                    <td>{p.semester?.name || '—'}</td>
-                    <td>{money(p.amount)}</td>
-                    <td><StatusBadge status={p.status} /></td>
-                    <td>{p.created_at ? new Date(p.created_at).toLocaleDateString() : '—'}</td>
-                    <td style={{ textAlign: 'right' }}>
-                      <div className="row-actions">
-                        {p.has_receipt ? (
-                          <Btn size="sm" variant="soft" icon="file" loading={receiptBusy} onClick={() => viewReceipt(p)}>{t('viewReceipt')}</Btn>
-                        ) : null}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Reveal className="card std-statement">
+            <div className="std-statement-head">
+              <div>
+                <span className="std-eyebrow">{t('paymentsStatement')}</span>
+                <h2>{t('myPayments')}</h2>
+              </div>
+              <div className="std-statement-meta">
+                <strong>{paged.total}</strong>
+                <span>{t('paymentsTransactions')}</span>
+              </div>
+            </div>
+            <p className="std-statement-note">
+              {t('paymentsPageRange', { from: paged.from ?? 0, to: paged.to ?? 0, total: paged.total ?? 0 })}
+            </p>
+
+            <div className="std-pay-list">
+              {paged.items.map((p) => (
+                <article className="std-pay-row" key={p.id}>
+                  <div className="std-pay-main">
+                    <span className="std-pay-no">{p.receipt_number || '—'}</span>
+                    <span className="std-pay-sub">
+                      {p.type === 'courses' ? t('typeCourses') : t('typeYear')} · {p.semester?.name || '—'} · {p.created_at ? new Date(p.created_at).toLocaleDateString() : '—'}
+                    </span>
+                  </div>
+                  <div className="std-pay-amount">{money(p.amount)}</div>
+                  <StatusBadge status={p.status} />
+                  {p.has_receipt ? (
+                    <Btn size="sm" variant="soft" icon="file" loading={receiptBusy} onClick={() => viewReceipt(p)}>
+                      {t('viewReceipt')}
+                    </Btn>
+                  ) : null}
+                </article>
+              ))}
+            </div>
+          </Reveal>
           <Pager page={paged.page} last={paged.last_page} onPage={setPage} />
         </>
       ) : (
@@ -146,19 +157,19 @@ td,th{border-bottom:1px solid #ddd;padding:8px 4px;font-size:.9rem}
         {receipt ? (
           <Reveal>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-              <span style={{ color: 'var(--muted)' }}>{t('receiptNumber')}</span>
+              <span style={{ color: 'var(--color-text-muted)' }}>{t('receiptNumber')}</span>
               <strong>{receipt.receipt_number}</strong>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-              <span style={{ color: 'var(--muted)' }}>{t('issuedOn')}</span>
+              <span style={{ color: 'var(--color-text-muted)' }}>{t('issuedOn')}</span>
               <span>{new Date(receipt.issued_at).toLocaleString()}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-              <span style={{ color: 'var(--muted)' }}>{t('student')}</span>
+              <span style={{ color: 'var(--color-text-muted)' }}>{t('student')}</span>
               <span>{receipt.student?.name}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-              <span style={{ color: 'var(--muted)' }}>{t('status')}</span>
+              <span style={{ color: 'var(--color-text-muted)' }}>{t('status')}</span>
               <StatusBadge status={receipt.status} />
             </div>
             <div className="table-wrap" style={{ marginTop: 12 }}>

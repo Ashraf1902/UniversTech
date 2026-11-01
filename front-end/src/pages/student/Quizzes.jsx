@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { downloadErrorKey, downloadFile, normalizePage, request } from '../../lib/api'
 import { useI18n } from '../../lib/i18n'
 import { useAsync } from '../../lib/hooks'
@@ -69,44 +70,84 @@ export function StudentQuizzes() {
     <>
       <Head kicker={t('assessment')} title={t('myQuizzes')} sub={t('myQuizzesSub')} />
 
+      <Reveal className="card std-note">
+        <span className="std-note-icon">
+          <I name="lock" size={18} />
+        </span>
+        <div>
+          <strong>{t('myQuizzes')}</strong>
+          <p>{t('quizzesNote')}</p>
+        </div>
+      </Reveal>
+
       {quizzes.loading ? (
         <Spinner size={24} />
+      ) : quizzes.error?.status === 403 ? (
+        <Reveal className="card">
+          <Empty
+            icon="wallet"
+            title={t('unlockCourses')}
+            sub={t('courseLockedSub')}
+            action={
+              <Link to="/app/student/payments">
+                <Btn variant="soft" icon="wallet">{t('viewPayments')}</Btn>
+              </Link>
+            }
+          />
+        </Reveal>
       ) : paged.items.length ? (
         <>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div className="std-quiz-list">
             {paged.items.map((q, i) => {
               const meta = STATUS[q.status] || STATUS.not_submitted
+              const score = q.submission?.score
               return (
-                <Reveal key={q.id} className="card" delay={i * 0.04}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-                    <span className="av" style={{ background: 'rgba(245,99,176,.16)', color: '#ffb0d6' }}><I name="award" size={18} /></span>
-                    <div style={{ flex: 1, minWidth: 160 }}>
-                      <div style={{ fontWeight: 600 }}>{q.name}</div>
-                      <div style={{ fontSize: '0.78rem', color: 'var(--faint)' }}>
-                        {q.course?.course_name || ''} · {q.due_at ? t('due', { date: new Date(q.due_at).toLocaleDateString() }) : t('noDueDate')} · {t('maxScoreLabel', { n: q.max_score })}
+                <Reveal key={q.id} className="card std-quiz" delay={i * 0.04}>
+                  <div className="std-quiz-main">
+                    <span className={`std-quiz-icon tone-${meta.tone}`}>
+                      <I name="award" size={20} />
+                    </span>
+                    <div className="std-quiz-id">
+                      <h3>{q.name}</h3>
+                      <div className="std-quiz-meta">
+                        <span><I name="book" size={13} />{q.course?.course_name || '—'}</span>
+                        <span><I name="clock" size={13} />{q.due_at ? t('due', { date: new Date(q.due_at).toLocaleDateString() }) : t('noDueDate')}</span>
+                        <span><I name="award" size={13} />{t('maxScoreLabel', { n: q.max_score })}</span>
                       </div>
                     </div>
-                    <Badge tone={meta.tone} dot>{t(meta.key)}</Badge>
-                    {q.submission && q.submission.score != null ? <Badge tone="grn">{q.submission.score}/{q.max_score}</Badge> : null}
-                    <a href={q.content} target="_blank" rel="noreferrer"><Btn size="sm" variant="soft" icon="file">{t('openAction')}</Btn></a>
+                    <div className="std-quiz-side">
+                      <Badge tone={meta.tone} dot>{t(meta.key)}</Badge>
+                      {score != null ? <Badge tone="grn">{score}/{q.max_score}</Badge> : null}
+                    </div>
+                  </div>
+
+                  <div className="std-quiz-actions">
+                    <a href={q.content} target="_blank" rel="noreferrer">
+                      <Btn size="sm" variant="soft" icon="file">{t('openAction')}</Btn>
+                    </a>
                     {q.can_submit ? (
-                      <Btn size="sm" icon="upload" onClick={() => openSubmit(q)}>{q.submission ? t('resubmit') : t('submitQuiz')}</Btn>
+                      <Btn size="sm" icon="upload" onClick={() => openSubmit(q)}>
+                        {q.submission ? t('resubmit') : t('submitQuiz')}
+                      </Btn>
                     ) : null}
                   </div>
 
                   {q.blocked_reason === 'deadline_passed' ? (
-                    <div className="form-alert" role="status" style={{ marginTop: 12 }}>{t('quizDeadlinePassed')}</div>
+                    <div className="form-alert" role="status">{t('quizDeadlinePassed')}</div>
                   ) : null}
                   {q.blocked_reason === 'already_submitted' ? (
-                    <div style={{ marginTop: 12, fontSize: '0.8rem', color: 'var(--faint)' }}>{t('quizAlreadySubmitted')}</div>
+                    <div className="std-card-sub">{t('quizAlreadySubmitted')}</div>
                   ) : null}
 
                   {q.submission ? (
-                    <div style={{ marginTop: 12, borderTop: '1px solid var(--line)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 6, fontSize: '0.85rem' }}>
-                      <div><strong>{t('yourSubmission')}:</strong> {q.submission.submitted_at ? new Date(q.submission.submitted_at).toLocaleString() : '—'}</div>
-                      {q.submission.answer_text ? <div style={{ color: 'var(--muted)' }}>{q.submission.answer_text}</div> : null}
+                    <div className="std-submission">
+                      <div>
+                        <strong>{t('yourSubmission')}:</strong>{' '}
+                        {q.submission.submitted_at ? new Date(q.submission.submitted_at).toLocaleString() : '—'}
+                      </div>
+                      {q.submission.answer_text ? <p>{q.submission.answer_text}</p> : null}
                       {q.submission.download_url ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                        <div className="std-submission-file">
                           <Btn
                             size="sm"
                             variant="soft"
@@ -117,7 +158,7 @@ export function StudentQuizzes() {
                             {downloading === q.submission.id ? t('downloading') : t('downloadSubmission')}
                           </Btn>
                           {q.submission.original_name ? (
-                            <span style={{ color: 'var(--faint)', fontSize: '0.78rem', wordBreak: 'break-all' }}>{q.submission.original_name}</span>
+                            <span className="std-card-sub">{q.submission.original_name}</span>
                           ) : null}
                         </div>
                       ) : null}
@@ -145,7 +186,12 @@ export function StudentQuizzes() {
         open={!!active}
         onClose={() => setActive(null)}
         title={active ? `${t('submitQuiz')}: ${active.name}` : ''}
-        footer={<><Btn variant="ghost" onClick={() => setActive(null)}>{t('cancel')}</Btn><Btn loading={busy} onClick={submit} icon="upload">{t('submitQuiz')}</Btn></>}
+        footer={
+          <>
+            <Btn variant="ghost" onClick={() => setActive(null)}>{t('cancel')}</Btn>
+            <Btn loading={busy} onClick={submit} icon="upload">{t('submitQuiz')}</Btn>
+          </>
+        }
       >
         <Field label={t('answerText')} error={errors?.answer_text?.[0]}>
           <textarea className="textarea" rows={5} value={form.answer_text} onChange={(e) => setForm({ ...form, answer_text: e.target.value })} placeholder={t('answerTextPh')} />

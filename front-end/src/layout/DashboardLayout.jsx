@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { APP_ROOTS, CHANGE_PASSWORD_PATHS, request } from '../lib/api'
+import { APP_ROOTS, request } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { useI18n } from '../lib/i18n'
 import { Brand, BrandMark } from '../lib/Brand'
 import { useTheme } from '../lib/theme'
-import { Avatar, Btn, Field, I, Modal, useToast } from '../lib/ui'
+import { Avatar, I } from '../lib/ui'
+import ChangePasswordModal from './ChangePasswordModal'
 
 export const NAV = {
   student: [
@@ -13,11 +14,13 @@ export const NAV = {
     { to: '/app/student/courses', icon: 'book', key: 'myCourses' },
     { to: '/app/student/catalog', icon: 'layers', key: 'courseCatalog' },
     { to: '/app/student/schedule', icon: 'calendar', key: 'schedule' },
+    { to: '/app/student/grades', icon: 'chart', key: 'myGrades' },
     { to: '/app/student/attendance', icon: 'check', key: 'myAttendance' },
     { to: '/app/student/quizzes', icon: 'award', key: 'myQuizzes' },
     { to: '/app/student/payments', icon: 'wallet', key: 'myPayments' },
-    { to: '/app/student/reports', icon: 'chart', key: 'reportsGpa' },
+    { to: '/app/student/events', icon: 'spark', key: 'events' },
     { to: '/app/student/notifications', icon: 'bell', key: 'notifications', notify: true },
+    { to: '/app/student/profile', icon: 'user', key: 'myProfile' },
   ],
   professor: [
     { to: '/app/professor', end: true, icon: 'grid', key: 'overview' },
@@ -72,103 +75,6 @@ export function RoleGate({ role, children }) {
   if (!isAuthed) return <Navigate to="/login" replace />
   if (current && current !== role) return <Navigate to={APP_ROOTS[current] || '/'} replace />
   return children
-}
-
-function ChangePasswordModal({ open, onClose, role }) {
-  const { t } = useI18n()
-  const toast = useToast()
-  const [current, setCurrent] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirm, setConfirm] = useState('')
-  const [show, setShow] = useState(false)
-  const [busy, setBusy] = useState(false)
-
-  useEffect(() => {
-    if (!open) {
-      setCurrent('')
-      setPassword('')
-      setConfirm('')
-      setShow(false)
-      setBusy(false)
-    }
-  }, [open])
-
-  const submit = async (e) => {
-    e.preventDefault()
-    if (password !== confirm) {
-      toast.error(t('passwordsDoNotMatch'))
-      return
-    }
-    setBusy(true)
-    try {
-      await request(CHANGE_PASSWORD_PATHS[role], {
-        method: 'POST',
-        data: { current_password: current, password, password_confirmation: confirm },
-      })
-      toast.success(t('passwordChangedToast'))
-      onClose()
-    } catch (err) {
-      toast.error(err.message || t('somethingWrong'))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title={t('changePasswordTitle')}
-      footer={
-        <>
-          <Btn variant="ghost" onClick={onClose}>{t('cancel')}</Btn>
-          <Btn type="submit" form="ut-change-password" loading={busy} iconRight={busy ? undefined : 'check'}>
-            {t('saveChanges')}
-          </Btn>
-        </>
-      }
-    >
-      <p className="subt" style={{ marginBottom: 18 }}>{t('changePasswordSub')}</p>
-      <form id="ut-change-password" onSubmit={submit}>
-        <Field label={t('currentPassword')}>
-          <input
-            className="input"
-            type={show ? 'text' : 'password'}
-            required
-            value={current}
-            onChange={(e) => setCurrent(e.target.value)}
-            autoComplete="current-password"
-          />
-        </Field>
-        <Field label={t('newPassword')} hint={t('passwordMinChars')}>
-          <input
-            className="input"
-            type={show ? 'text' : 'password'}
-            required
-            minLength={6}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="new-password"
-          />
-        </Field>
-        <Field label={t('confirmPassword')}>
-          <input
-            className="input"
-            type={show ? 'text' : 'password'}
-            required
-            minLength={6}
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-            autoComplete="new-password"
-          />
-        </Field>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)' }}>
-          <input type="checkbox" checked={show} onChange={(e) => setShow(e.target.checked)} />
-          {t('showPasswords')}
-        </label>
-      </form>
-    </Modal>
-  )
 }
 
 export default function DashboardLayout({ role }) {

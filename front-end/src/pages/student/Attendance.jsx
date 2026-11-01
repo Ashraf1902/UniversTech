@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { request } from '../../lib/api'
 import { useI18n } from '../../lib/i18n'
 import { useAsync } from '../../lib/hooks'
-import { Badge, Empty, Prog, Reveal, Spinner } from '../../lib/ui'
+import { Badge, Btn, Empty, I, Reveal, Ring, Spinner } from '../../lib/ui'
 import { Head } from './_shared'
 
 const STATUS_META = {
@@ -17,61 +17,83 @@ function StatusBadge({ status }) {
   return <Badge tone={meta.tone} dot>{t(meta.key)}</Badge>
 }
 
-function CourseAttendance({ course }) {
+function clampPct(value) {
+  return Math.max(0, Math.min(100, Number(value) || 0))
+}
+
+function CourseAttendance({ course, delay = 0 }) {
   const { t } = useI18n()
   const [open, setOpen] = useState(false)
   const records = course.records || []
+  const absence = clampPct(course.absence_percentage)
+  const status = course.status || 'ok'
 
   return (
-    <Reveal className="card" style={{ marginBottom: 20 }}>
-      <div className="card-head">
+    <Reveal className="card std-att-card" delay={delay}>
+      <div className="std-att-head">
         <div>
-          <h3 style={{ marginBottom: 4 }}>{course.course_name}</h3>
-          <div style={{ fontSize: '0.78rem', color: 'var(--faint)' }}>
-            {course.course_code || ''} · {t('warnThresholdLabel', { n: course.warn_threshold })} · {t('barThresholdLabel', { n: course.bar_threshold })}
+          <h3>{course.course_name}</h3>
+          <div className="std-card-sub">
+            {course.course_code || '—'} · {t('warnThresholdLabel', { n: course.warn_threshold })} · {t('barThresholdLabel', { n: course.bar_threshold })}
           </div>
         </div>
-        <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
-          <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1.3rem' }}>{course.absence_percentage}%</div>
-          <StatusBadge status={course.status} />
+        <div className="std-att-rate">
+          <strong>{course.absence_percentage ?? 0}%</strong>
+          <span>{t('absenceRate')}</span>
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}>
+      <div className="std-att-counts">
         <Badge tone="grn">{t('presentCount', { n: course.present })}</Badge>
         <Badge tone={course.absent ? 'red' : ''}>{t('absentCount', { n: course.absent })}</Badge>
         <Badge>{t('totalSessions')}: {course.total}</Badge>
+        <StatusBadge status={status} />
       </div>
 
-      <Prog value={course.absence_percentage} tone={course.status === 'barred' ? '' : 'cy'} />
+      <div className="std-scale">
+        <div
+          className="std-scale-track"
+          role="img"
+          aria-label={`${t('absenceRate')}: ${absence}%`}
+        >
+          <span className={`std-scale-fill is-${status}`} style={{ width: `${absence}%` }} />
+          {course.warn_threshold != null ? (
+            <i className="std-scale-mark is-warn" style={{ insetInlineStart: `${clampPct(course.warn_threshold)}%` }} />
+          ) : null}
+          {course.bar_threshold != null ? (
+            <i className="std-scale-mark is-bar" style={{ insetInlineStart: `${clampPct(course.bar_threshold)}%` }} />
+          ) : null}
+        </div>
+        <div className="std-scale-legend">
+          <span className="std-legend is-warn">{t('warnThresholdLabel', { n: course.warn_threshold })}</span>
+          <span className="std-legend is-bar">{t('barThresholdLabel', { n: course.bar_threshold })}</span>
+        </div>
+      </div>
 
-      {course.status === 'barred' ? (
-        <div className="form-alert" role="status" style={{ marginTop: 14 }}>{t('barredNotice')}</div>
+      {status === 'barred' ? (
+        <div className="form-alert" role="status">{t('barredNotice')}</div>
       ) : null}
 
       {records.length ? (
         <>
-          <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop: 14 }} onClick={() => setOpen((o) => !o)}>
-            {t('attendanceRecords')}
-          </button>
+          <Btn size="sm" variant="ghost" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+            <I name="chevronDown" size={15} style={{ transform: open ? 'rotate(180deg)' : undefined, transition: 'transform .2s' }} />
+            {open ? t('hideRecords') : t('showRecords')}
+          </Btn>
           {open ? (
-            <div className="table-wrap" style={{ border: 'none', background: 'transparent', marginTop: 10 }}>
-              <table className="table">
-                <thead>
-                  <tr><th>{t('date')}</th><th>{t('lecture')}</th><th>{t('status')}</th><th>{t('reason')}</th><th>{t('recordedBy')}</th></tr>
-                </thead>
-                <tbody>
-                  {records.map((r) => (
-                    <tr key={r.id}>
-                      <td>{r.date || '—'}</td>
-                      <td className="cell-main">{r.lecture || '—'}</td>
-                      <td>{r.present ? <Badge tone="grn">{t('present')}</Badge> : <Badge tone="red">{t('absent')}</Badge>}</td>
-                      <td style={{ maxWidth: 260 }}>{r.reason || '—'}</td>
-                      <td>{r.recorded_by || '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="std-att-records">
+              {records.map((r) => (
+                <div className="std-record" key={r.id}>
+                  <span className="std-record-date">{r.date || '—'}</span>
+                  <div className="std-record-lecture">
+                    <strong>{r.lecture || '—'}</strong>
+                    <span>
+                      {r.reason || '—'} · {t('recordedBy')}: {r.recorded_by || '—'}
+                    </span>
+                  </div>
+                  {r.present ? <Badge tone="grn">{t('present')}</Badge> : <Badge tone="red">{t('absent')}</Badge>}
+                </div>
+              ))}
             </div>
           ) : null}
         </>
@@ -87,11 +109,56 @@ export function StudentAttendance() {
   if (loading) return <Spinner size={26} />
   const courses = data?.courses || []
 
+  const totals = courses.reduce(
+    (acc, course) => {
+      acc.total += Number(course.total) || 0
+      acc.present += Number(course.present) || 0
+      acc.absent += Number(course.absent) || 0
+      return acc
+    },
+    { total: 0, present: 0, absent: 0 },
+  )
+  const attendanceRate = totals.total ? Math.round((totals.present / totals.total) * 100) : 0
+  const overallAbsence = totals.total ? Math.round((totals.absent / totals.total) * 100) : 0
+  const atRisk = courses.filter((course) => course.status && course.status !== 'ok').length
+
   return (
     <>
       <Head kicker={t('attendance')} title={t('myAttendance')} sub={t('myAttendanceSub')} />
+
       {courses.length ? (
-        courses.map((c) => <CourseAttendance key={c.course_id} course={c} />)
+        <Reveal className="std-hero std-hero--attendance">
+          <div className="std-hero-body">
+            <span className="std-eyebrow">{t('attendanceSummary')}</span>
+            <h2 className="std-hero-title">{t('myAttendance')}</h2>
+            <p className="std-hero-note">{t('attendanceHeroNote')}</p>
+          </div>
+          <div className="std-hero-ring">
+            <Ring value={attendanceRate} max={100} size={122} label={`${attendanceRate}%`} sub={t('attendanceRate')} />
+          </div>
+          <dl className="std-hero-stats">
+            <div>
+              <dt>{t('sessionsAttended')}</dt>
+              <dd>{totals.present}<span className="std-stat-of">/{totals.total}</span></dd>
+            </div>
+            <div>
+              <dt>{t('overallAbsence')}</dt>
+              <dd>{overallAbsence}%</dd>
+            </div>
+            <div>
+              <dt>{t('coursesAtRisk')}</dt>
+              <dd>{atRisk}</dd>
+            </div>
+          </dl>
+        </Reveal>
+      ) : null}
+
+      {courses.length ? (
+        <div className="std-att-grid">
+          {courses.map((course, index) => (
+            <CourseAttendance key={course.course_id} course={course} delay={index * 0.05} />
+          ))}
+        </div>
       ) : (
         <Reveal className="card">
           <Empty icon="calendar" title={t('noAttendanceYet')} sub={t('noAttendanceYetSub')} />
