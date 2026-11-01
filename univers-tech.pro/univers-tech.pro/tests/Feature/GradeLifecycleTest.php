@@ -292,6 +292,95 @@ class GradeLifecycleTest extends TestCase
         $this->assertSame(1.0, (float) $reports->json('data.overall.cumulative_gpa'));
     }
 
+    public function test_reports_expose_the_grade_id_used_to_submit_an_appeal(): void
+    {
+        $course = $this->makeCourse();
+        $grade = Grade::create([
+            'student_id' => $this->student->id,
+            'course_id' => $course->id,
+            'semester_id' => $this->semester->id,
+            'marks' => 55,
+            'max_marks' => 100,
+            'status' => Grade::STATUS_PUBLISHED,
+            'published_at' => now(),
+        ]);
+
+        Sanctum::actingAs($this->student);
+
+        $row = $this->getJson('/api/user/reports')
+            ->assertOk()
+            ->json('data.semester_cards.0.courses.0');
+
+        $this->assertSame($grade->id, $row['grade_id']);
+
+        $this->postJson('/api/user/grade/appeal', [
+            'grade_id' => $row['grade_id'],
+            'reason' => 'Please recheck question 3.',
+        ])->assertOk()->assertJsonPath('data.status', GradeAppeal::STATUS_PENDING);
+
+        $this->assertDatabaseHas('grade_appeals', [
+            'grade_id' => $grade->id,
+            'student_id' => $this->student->id,
+        ]);
+    }
+
+    public function test_a_duplicate_pending_appeal_is_rejected_and_not_duplicated(): void
+    {
+        $course = $this->makeCourse();
+        $grade = Grade::create([
+            'student_id' => $this->student->id,
+            'course_id' => $course->id,
+            'semester_id' => $this->semester->id,
+            'marks' => 55,
+            'max_marks' => 100,
+            'status' => Grade::STATUS_PUBLISHED,
+            'published_at' => now(),
+        ]);
+
+        Sanctum::actingAs($this->student);
+
+        $payload = ['grade_id' => $grade->id, 'reason' => 'Please recheck.'];
+        $this->postJson('/api/user/grade/appeal', $payload)->assertOk();
+        $this->postJson('/api/user/grade/appeal', $payload)
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'You already have a pending appeal for this grade.');
+
+        $this->assertSame(1, GradeAppeal::where('grade_id', $grade->id)->count());
+    }
+
+    public function test_a_resolved_appeal_does_not_block_a_new_one(): void
+    {
+        $course = $this->makeCourse();
+        $grade = Grade::create([
+            'student_id' => $this->student->id,
+            'course_id' => $course->id,
+            'semester_id' => $this->semester->id,
+            'marks' => 55,
+            'max_marks' => 100,
+            'status' => Grade::STATUS_PUBLISHED,
+            'published_at' => now(),
+        ]);
+
+        Sanctum::actingAs($this->student);
+
+        $first = $this->postJson('/api/user/grade/appeal', [
+            'grade_id' => $grade->id,
+            'reason' => 'First attempt.',
+        ])->assertOk();
+
+        GradeAppeal::whereKey($first->json('data.id'))->update([
+            'status' => GradeAppeal::STATUS_REJECTED,
+            'responded_at' => now(),
+        ]);
+
+        $this->postJson('/api/user/grade/appeal', [
+            'grade_id' => $grade->id,
+            'reason' => 'Second attempt.',
+        ])->assertOk();
+
+        $this->assertSame(2, GradeAppeal::where('grade_id', $grade->id)->count());
+    }
+
     public function test_ownership_is_still_enforced_for_grades(): void
     {
         $course = $this->makeCourse();
@@ -402,6 +491,8 @@ class GradeLifecycleTest extends TestCase
             'grade_id' => $grade->id,
             'reason' => 'Not mine.',
         ])->assertStatus(404);
+
+        $this->assertSame(0, GradeAppeal::where('grade_id', $grade->id)->count());
     }
 
     public function test_only_the_owning_professor_or_an_admin_can_respond_to_an_appeal(): void
