@@ -388,6 +388,7 @@ class CoursesController extends Controller
         $components = $grade->course?->gradeComponents ?? collect();
 
         return [
+            'grade_id' => $grade->id,
             'course_id' => $grade->course_id,
             'course_name' => $grade->course?->course_name,
             'course_code' => $grade->course?->course_code,

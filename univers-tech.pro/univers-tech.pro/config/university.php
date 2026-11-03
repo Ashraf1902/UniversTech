@@ -16,4 +16,17 @@ return [
 
     'timezone' => env('UNIVERSITY_TIMEZONE', 'Africa/Cairo'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Academic year
+    |--------------------------------------------------------------------------
+    |
+    | The month (1-12) the academic year starts. A courses payment counts for
+    | the academic year its paid date falls into: from the 1st of this month
+    | to the day before the same month next year, in the campus timezone above.
+    |
+    */
+
+    'academic_year_start_month' => (int) env('UNIVERSITY_ACADEMIC_YEAR_START_MONTH', 9),
+
 ];

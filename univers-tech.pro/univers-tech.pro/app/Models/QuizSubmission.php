@@ -4,10 +4,23 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class QuizSubmission extends Model
 {
     use HasFactory;
+
+    protected static function booted(): void
+    {
+        // Confidential answer files live outside the database; removing the
+        // row must remove the file too, otherwise every deleted submission
+        // leaves an orphan on the private volume forever.
+        static::deleting(function (QuizSubmission $submission) {
+            if ($submission->file) {
+                Storage::disk('private')->delete($submission->file);
+            }
+        });
+    }
 
     protected $fillable = [
         'quiz_id',

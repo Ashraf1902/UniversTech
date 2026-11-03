@@ -21,7 +21,7 @@ Set these once, before/at the first deploy. Values are chosen by the owner and a
 | `DB_PASSWORD` | Wasmer | **Injected automatically** by Wasmer (with `DB_HOST`/`DB_PORT`/`DB_NAME`/`DB_USERNAME`). Do not set by hand. |
 | `MAIL_USERNAME`, `MAIL_PASSWORD` | Wasmer secret | **Only** if switching `MAIL_MAILER` off `log` to `smtp`. Until then no mail is delivered. |
 
-Non-secret settings already live in `app.yaml` and need no dashboard entry: `APP_ENV=production`, `APP_DEBUG=false`, `CACHE_STORE=database`, `FRONTEND_URL=https://universtech.vercel.app`, `MAIL_MAILER=log`, `PAYMENT_DEMO_MODE=true`, `TRUSTED_PROXIES=*`.
+Non-secret settings already live in `app.yaml` and need no dashboard entry: `APP_ENV=production`, `APP_DEBUG=false`, `CACHE_STORE=database`, `FRONTEND_URL=https://universtech.vercel.app`, `MAIL_MAILER=log`, `PAYMENT_DEMO_MODE=true`, `TRUSTED_PROXIES=*`, `UNIVERSITY_TIMEZONE=Africa/Cairo`, `UNIVERSITY_ACADEMIC_YEAR_START_MONTH=9`.
 
 ---
 

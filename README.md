@@ -262,6 +262,7 @@ Runtime policy values live in the `settings` table and fall back to `config/enro
 | `PAYMENT_DEMO_MODE` | When `true`, payments succeed without a real charge (no Stripe call). |
 | `PAYMENT_CURRENCY` | Currency code for payments. |
 | `DB_CONNECTION` / `DATABASE_URL` | MySQL locally; Postgres on Render. |
+| `UNIVERSITY_TIMEZONE` / `UNIVERSITY_ACADEMIC_YEAR_START_MONTH` | Campus wall-clock timezone (default `Africa/Cairo`) and the month the academic year starts (default `9`, September). The start month drives the courses-payment access window. |
 
 ---
 

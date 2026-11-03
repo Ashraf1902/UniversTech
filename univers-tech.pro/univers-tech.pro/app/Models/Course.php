@@ -33,7 +33,9 @@ class Course extends Model
                 return;
             }
 
-            Storage::disk('files')->delete($course->cover_image);
+            if ($course->cover_image) {
+                Storage::disk('files')->delete($course->cover_image);
+            }
 
             foreach ($course->lectures as $lecture) {
                 Storage::disk('files')->delete($lecture->content);
@@ -43,6 +45,19 @@ class Course extends Model
                 if ($schedule->path) {
                     Storage::disk('files')->delete($schedule->path);
                 }
+            }
+
+            // Force deleting cascades courses -> quizzes -> quiz_submissions in
+            // the database, bypassing Eloquent events, so collect the private
+            // answer files explicitly before the rows disappear.
+            $submissionFiles = QuizSubmission::query()
+                ->whereIn('quiz_id', $course->quizzes()->select('id'))
+                ->whereNotNull('file')
+                ->pluck('file')
+                ->all();
+
+            if ($submissionFiles !== []) {
+                Storage::disk('private')->delete($submissionFiles);
             }
         });
     }
