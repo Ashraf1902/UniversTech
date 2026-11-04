@@ -571,6 +571,8 @@ export default {
   attendanceSheetSub: 'سجّل حضور كل الطلاب لمحاضرة واحدة ثم احفظ الفصل كله مرة واحدة. السجلات الموجودة تُفتح جاهزة للتعديل.',
   saveAttendance: 'حفظ الحضور',
   attendanceSaved: 'تم حفظ الحضور لـ {n} طالب.',
+  attendanceNoChanges: 'لا توجد تغييرات في الحضور لحفظها.',
+  attendanceWindowLocked: 'سجل أو أكثر أقدم من مدة تعديل الحضور المسموح بها، لذلك لم يتم حفظ أي شيء. اطلب من المسؤول تعديل هذه السجلات.',
   editingRecord: 'تعديل',
   existingRecords: '{n} سجل موجود',
   studentsAttendanceTitle: 'الطلاب والحضور',

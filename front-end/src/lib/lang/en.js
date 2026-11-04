@@ -571,6 +571,8 @@ export default {
   attendanceSheetSub: 'Mark every student for one lecture, then save the whole class at once. Existing records open ready to edit.',
   saveAttendance: 'Save attendance',
   attendanceSaved: 'Attendance saved for {n} students.',
+  attendanceNoChanges: 'No attendance changes to save.',
+  attendanceWindowLocked: 'One or more records are older than the attendance correction window, so nothing was saved. Ask an administrator to change those records.',
   editingRecord: 'Editing',
   existingRecords: '{n} existing',
   studentsAttendanceTitle: 'Students & attendance',

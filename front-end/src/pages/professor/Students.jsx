@@ -104,17 +104,37 @@ export function ProfessorStudents() {
   const saveAttendance = async () => {
     if (!activeLectureId || !list.length) return
 
+    // Only send rows that are new or actually changed. Resending an untouched
+    // existing record can push it past the 48-hour correction window and make
+    // the whole bulk save fail, even though the professor edited nothing there.
+    const attendances = []
+
+    list.forEach((student) => {
+      const row = draft[student.id] || { status: true, reason: '' }
+      const nextStatus = Boolean(row.status)
+      const nextReason = nextStatus ? null : (String(row.reason || '').trim() || null)
+      const existing = attendanceFor(student, activeLectureId)
+
+      if (!existing) {
+        attendances.push({ student_id: student.id, status: nextStatus, reason: nextReason })
+        return
+      }
+
+      const existingStatus = Boolean(existing.status)
+      const existingReason = existingStatus ? null : (String(existing.reason || '').trim() || null)
+
+      if (existingStatus !== nextStatus || existingReason !== nextReason) {
+        attendances.push({ student_id: student.id, status: nextStatus, reason: nextReason })
+      }
+    })
+
+    if (!attendances.length) {
+      toast.info(t('attendanceNoChanges'))
+      return
+    }
+
     setBusy(true)
     try {
-      const attendances = list.map((student) => {
-        const row = draft[student.id] || { status: true, reason: '' }
-        return {
-          student_id: student.id,
-          status: Boolean(row.status),
-          reason: row.status ? null : (String(row.reason || '').trim() || null),
-        }
-      })
-
       const result = await request('/api/professors/attendance/bulk', {
         method: 'POST',
         data: { lecture_id: Number(activeLectureId), date: sheetDate, attendances },
@@ -123,7 +143,9 @@ export function ProfessorStudents() {
       toast.success(t('attendanceSaved', { n: result?.total ?? attendances.length }))
       await students.run()
     } catch (e) {
-      toast.error(e.message)
+      // A 403 means at least one row is outside the correction window. Keep the
+      // sheet exactly as the professor left it so no typed work is lost.
+      toast.error(e.status === 403 ? t('attendanceWindowLocked') : e.message)
     } finally {
       setBusy(false)
     }
