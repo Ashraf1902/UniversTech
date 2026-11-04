@@ -16,7 +16,7 @@ Generated: 10/14/2026 04:08:40
 - [x] Stage 10: Schedules (A3, P4) - 138 tests pass (+12 new; SQLite via env override; CI uses MySQL); rooms table + room_id, room/professor conflict blocking + level+department warning sharing ScheduleOverlap, existing-conflict report, professor timetable (own courses, active semester); migration reversible; frontend build green; pending owner approval
 - [x] Stage 11: Announcements/events (P3, A7) - 155 tests pass (+17 new; SQLite via env override; CI uses MySQL); announcements table + notifications category/course/announcement columns, professor CRUD (own-course policy) with queued fan-out to registered students only, admin moderation under courses scope; event audience targeting (all|targeted) via event_departments/event_levels pivots, public carousel stays public, student events feed scoped to them; migrations reversible; frontend build green; pending owner approval
 - [x] Stage 12: Bulk import, reports (A2, A8) - 186 tests pass (+31 new; SQLite via env override; CI uses MySQL); CSV import (plain fgetcsv, no new dependency, owner-approved) with two-step preview-then-apply (nothing written before confirm), per-row validation/duplicate detection, skip-bad-rows + downloadable error file (owner-approved), random password + queued password-set email for new students (never a fixed default), transactional 200-row chunks, files discarded not stored, audit-logged with summary counts only; UTF-8 verified with and without BOM using Arabic names, templates and report CSV exports carry a UTF-8 BOM (+Arabic sample values) so Excel renders them correctly; reports under reports scope aggregating in SQL (enrollment, payments collected by status/period/department, attendance per course/level + students over threshold) with filters + CSV export (report_exported logged); new report indexes migration reversible; frontend build green; pending owner approval
-- [x] Stage 13: Final QA, docs, sign-off — 197 tests pass (+11 new AuthorizationSweepTest, 46 assertions; SQLite via env override; CI uses MySQL); frontend build green (90 modules); notification indexes migration reversible; DatabaseSeeder reworked to a deterministic demo dataset (demo accounts only, shared password `Demo@12345`); i18n en/ar 954/954 PARITY OK across 58 files; README rewritten + docs/ADMIN-GUIDE.md added + settings table; pending owner sign-off
+- [x] Stage 13: Final QA, docs, sign-off — 197 tests pass (+11 new AuthorizationSweepTest, 46 assertions; SQLite via env override; CI uses MySQL); frontend build green (90 modules); notification indexes migration reversible; DatabaseSeeder reworked to a deterministic demo dataset (demo accounts only, shared non-admin password from `DEMO_PASSWORD` or generated and printed at seed time); i18n en/ar 954/954 PARITY OK across 58 files; README rewritten + docs/ADMIN-GUIDE.md added + settings table; pending owner sign-off
 
 ---
 
@@ -60,7 +60,7 @@ Every roadmap ID is complete. Evidence = file(s) and/or test(s).
 
 ## STAGE 13 — Demo accounts (fresh `migrate:fresh --seed`)
 
-Shared password **`Demo@12345`**:
+Shared non-admin password from **`DEMO_PASSWORD`** (random 16-character password generated and printed at seed time when unset); admin password from `DEMO_SUPER_ADMIN_PASSWORD` (same fallback).
 
 | Role | Email |
 | --- | --- |

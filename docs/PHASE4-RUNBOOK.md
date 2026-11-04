@@ -17,7 +17,8 @@ Set these once, before/at the first deploy. Values are chosen by the owner and a
 | Secret | Where | Note |
 | --- | --- | --- |
 | `APP_KEY` | Wasmer secret | Generate once locally: `php artisan key:generate --show` → `base64:...`. **Never change it later** — rotating invalidates sessions and tokens. Do **not** put it in `app.yaml`. |
-| `DEMO_SUPER_ADMIN_PASSWORD` | Wasmer secret | Strong password for the seeded `superadmin@universtech.demo`. If unset, the seeder prints a random one once — capture it. |
+| `DEMO_SUPER_ADMIN_PASSWORD` | Wasmer secret | Strong password for the seeded admin accounts (super admin and scoped admins). If unset, the seeder prints a random one once — capture it. |
+| `DEMO_PASSWORD` | Wasmer secret | Shared password for the seeded non-admin demo accounts (professors, students, applicants). If unset, the seeder prints a random one once — capture it. |
 | `DB_PASSWORD` | Wasmer | **Injected automatically** by Wasmer (with `DB_HOST`/`DB_PORT`/`DB_NAME`/`DB_USERNAME`). Do not set by hand. |
 | `MAIL_USERNAME`, `MAIL_PASSWORD` | Wasmer secret | **Only** if switching `MAIL_MAILER` off `log` to `smtp`. Until then no mail is delivered. |
 
@@ -117,13 +118,13 @@ PS> curl.exe -s https://universtech.vercel.app/api/health         # -> {"status"
 
 ## 6. Three realm logins
 
-Student and professor use the shared demo password `Demo@12345`; the admin password is the `DEMO_SUPER_ADMIN_PASSWORD` secret (type it, do not save it).
+Student and professor use the password from the `DEMO_PASSWORD` secret; the admin password is the `DEMO_SUPER_ADMIN_PASSWORD` secret (type them, do not save them). If either secret was unset when seeding, use the random password the seeder printed once.
 
 ```powershell
 # student
-PS> curl.exe -s -X POST https://universtech-api.wasmer.app/api/auth/login -H "Content-Type: application/json" --data '{\"email\":\"student@universtech.demo\",\"password\":\"Demo@12345\"}'
+PS> curl.exe -s -X POST https://universtech-api.wasmer.app/api/auth/login -H "Content-Type: application/json" --data '{\"email\":\"student@universtech.demo\",\"password\":\"<DEMO_PASSWORD>\"}'
 # professor
-PS> curl.exe -s -X POST https://universtech-api.wasmer.app/api/prof/auth/login -H "Content-Type: application/json" --data '{\"email\":\"professor@universtech.demo\",\"password\":\"Demo@12345\"}'
+PS> curl.exe -s -X POST https://universtech-api.wasmer.app/api/prof/auth/login -H "Content-Type: application/json" --data '{\"email\":\"professor@universtech.demo\",\"password\":\"<DEMO_PASSWORD>\"}'
 # admin
 PS> curl.exe -s -X POST https://universtech-api.wasmer.app/api/admin/auth/login -H "Content-Type: application/json" --data '{\"email\":\"superadmin@universtech.demo\",\"password\":\"<DEMO_SUPER_ADMIN_PASSWORD>\"}'
 ```

@@ -316,11 +316,9 @@ npm run dev                  # → http://localhost:5173 (proxies /api → 127.0
 
 ## Demo accounts
 
-`php artisan migrate:fresh --seed` runs `DatabaseSeeder`, which creates a **deterministic, idempotent** demo dataset. All accounts share the password:
+`php artisan migrate:fresh --seed` runs `DatabaseSeeder`, which creates a **deterministic, idempotent** demo dataset.
 
-```
-Demo@12345
-```
+Passwords are never committed. Set `DEMO_PASSWORD` for the shared non-admin demo accounts (professors, students and applicants) and `DEMO_SUPER_ADMIN_PASSWORD` for the seeded admin accounts. Leave either unset and the seeder generates a random 16-character password and prints it once at seed time.
 
 | Role | Email | Scope / notes |
 | --- | --- | --- |
