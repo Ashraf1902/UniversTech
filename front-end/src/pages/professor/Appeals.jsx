@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { buildQuery, normalizePage, request } from '../../lib/api'
 import { useI18n } from '../../lib/i18n'
 import { useAsync } from '../../lib/hooks'
-import { Badge, Btn, Empty, Field, Modal, Pager, Spinner, useToast } from '../../lib/ui'
+import { Badge, Btn, Empty, Field, Modal, Pager, Reveal, Spinner, useToast } from '../../lib/ui'
 import { CourseSelect, Head, useFieldErrors, useMyCourses } from './_shared'
 
 export function AppealStatus({ status }) {
@@ -14,7 +14,7 @@ export function AppealStatus({ status }) {
 }
 
 export function ProfessorAppeals() {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
   const [params, setParams] = useSearchParams()
   const { courses, loading: cLoading } = useMyCourses()
   const courseId = Number(params.get('course')) || ''
@@ -76,38 +76,53 @@ export function ProfessorAppeals() {
         <Spinner size={24} />
       ) : paged.items.length ? (
         <>
-          <div className="table-wrap">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>{t('student')}</th>
-                  <th>{t('course')}</th>
-                  <th>{t('marks')}</th>
-                  <th>{t('appealReason')}</th>
-                  <th>{t('status')}</th>
-                  <th>{t('submittedOn')}</th>
-                  <th style={{ textAlign: 'right' }}>{t('action')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paged.items.map((a) => (
-                  <tr key={a.id}>
-                    <td className="cell-main">{a.student}</td>
-                    <td>{a.course || '—'}</td>
-                    <td>{a.marks != null ? `${a.marks}/${a.max_marks}` : '—'}</td>
-                    <td style={{ maxWidth: 320 }}>{a.reason}</td>
-                    <td><AppealStatus status={a.status} /></td>
-                    <td>{a.created_at ? new Date(a.created_at).toLocaleDateString() : '—'}</td>
-                    <td style={{ textAlign: 'right' }}>
-                      <div className="row-actions">
-                        {a.status === 'pending' ? <Btn size="sm" variant="soft" icon="mail" title={t('respond')} onClick={() => openRespond(a)} /> : null}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Reveal className="card">
+            <div className="card-head">
+              <div>
+                <h3>{t('gradeAppeals')}</h3>
+                <span className="home-card-sub">{t('total')}: {paged.total ?? paged.items.length}</span>
+              </div>
+            </div>
+
+            <div className="std-appeal-list">
+              {paged.items.map((appeal) => (
+                <article className="std-appeal" key={appeal.id}>
+                  <div className="std-appeal-head">
+                    <div>
+                      <strong>{appeal.student || '—'}</strong>
+                      <span className="std-appeal-date">
+                        {appeal.course || '—'}
+                        {appeal.marks != null ? ` · ${appeal.marks}/${appeal.max_marks}` : ''}
+                      </span>
+                    </div>
+                    <div>
+                      <AppealStatus status={appeal.status} />
+                      <span className="std-appeal-date">
+                        {appeal.created_at
+                          ? new Date(appeal.created_at).toLocaleDateString(lang, { day: 'numeric', month: 'short', year: 'numeric' })
+                          : '—'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <p className="std-appeal-reason">{appeal.reason}</p>
+
+                  {appeal.response_note ? (
+                    <div className="std-appeal-response">
+                      <span>{t('responseNote')}</span>
+                      {appeal.response_note}
+                    </div>
+                  ) : null}
+
+                  {appeal.status === 'pending' ? (
+                    <div className="prof-appeal-action">
+                      <Btn size="sm" variant="soft" icon="mail" onClick={() => openRespond(appeal)}>{t('respond')}</Btn>
+                    </div>
+                  ) : null}
+                </article>
+              ))}
+            </div>
+          </Reveal>
           <Pager page={paged.page} last={paged.last_page} onPage={setPage} />
         </>
       ) : (
@@ -121,21 +136,20 @@ export function ProfessorAppeals() {
         footer={<><Btn variant="ghost" onClick={() => setOpen(false)}>{t('cancel')}</Btn><Btn loading={busy} onClick={submit} icon="check" disabled={!form.note}>{t('sendResponse')}</Btn></>}
       >
         {target ? (
-          <div className="card" style={{ marginBottom: 16, padding: 14 }}>
-            <div style={{ fontWeight: 600 }}>{target.student} · {target.course || '—'}</div>
-            <div style={{ color: 'var(--muted)', fontSize: '0.85rem', marginTop: 6 }}>{target.reason}</div>
+          <div className="prof-appeal-context">
+            <strong>{target.student} · {target.course || '—'}</strong>
+            {target.marks != null ? <span>{target.marks}/{target.max_marks}</span> : null}
+            <p>{target.reason}</p>
           </div>
         ) : null}
         <Field label={t('decision')}>
-          <div style={{ display: 'flex', gap: 18 }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <input type="radio" name="appeal-action" checked={form.action === 'accept'} onChange={() => setForm({ ...form, action: 'accept' })} />
+          <div className="radio-row">
+            <button type="button" className={`chip ${form.action === 'accept' ? 'on' : ''}`} onClick={() => setForm({ ...form, action: 'accept' })}>
               {t('acceptAppeal')}
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <input type="radio" name="appeal-action" checked={form.action === 'reject'} onChange={() => setForm({ ...form, action: 'reject' })} />
+            </button>
+            <button type="button" className={`chip ${form.action === 'reject' ? 'on' : ''}`} onClick={() => setForm({ ...form, action: 'reject' })}>
               {t('rejectAppeal')}
-            </label>
+            </button>
           </div>
         </Field>
         <Field label={t('appealNote')} hint={t('appealNoteHint')} error={errors?.note?.[0]}>

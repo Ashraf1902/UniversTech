@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import { buildQuery, normalizePage, request } from '../../lib/api'
+import { assetUrl, buildQuery, normalizePage, request } from '../../lib/api'
 import { useI18n } from '../../lib/i18n'
 import { useAsync } from '../../lib/hooks'
-import { Badge, Btn, Empty, Field, Modal, Pager, Spinner, useToast } from '../../lib/ui'
+import { Badge, Btn, Empty, Field, I, Modal, Pager, Reveal, Spinner, useToast } from '../../lib/ui'
 import { CourseSelect, Head, useFieldErrors, useMyCourses } from './_shared'
 
 export function ProfessorAnnouncements() {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
   const toast = useToast()
   const { courses, loading: cLoading } = useMyCourses()
   const [courseId, setCourseId] = useState('')
@@ -97,47 +97,47 @@ export function ProfessorAnnouncements() {
         <Spinner size={24} />
       ) : paged.items.length ? (
         <>
-          <div className="table-wrap">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>{t('course')}</th>
-                  <th>{t('title')}</th>
-                  <th>{t('body')}</th>
-                  <th>{t('attachment')}</th>
-                  <th>{t('postedOn')}</th>
-                  <th style={{ textAlign: 'right' }}>{t('action')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paged.items.map((a) => (
-                  <tr key={a.id}>
-                    <td className="cell-main">
-                      {a.course_name || '—'}
-                      {a.course_code ? <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--faint)' }}>{a.course_code}</span> : null}
-                    </td>
-                    <td style={{ maxWidth: 220 }}>{a.title}</td>
-                    <td style={{ maxWidth: 320 }}>
-                      <span style={{ display: 'inline-block', maxWidth: 320, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.body}</span>
-                    </td>
-                    <td>
-                      {a.attachment ? (
-                        <a href={a.attachment} target="_blank" rel="noreferrer" className="badge amb">{t('openAction')}</a>
-                      ) : (
-                        <Badge>{t('none')}</Badge>
-                      )}
-                    </td>
-                    <td>{a.created_at ? new Date(a.created_at).toLocaleDateString() : '—'}</td>
-                    <td style={{ textAlign: 'right' }}>
-                      <div className="row-actions">
-                        <Btn size="sm" variant="soft" icon="edit" title={t('edit')} onClick={() => openEdit(a)} />
-                        <Btn size="sm" variant="danger" icon="trash" title={t('delete')} onClick={() => remove(a)} />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="std-dispatch">
+            {paged.items.map((row, index) => (
+              <Reveal key={row.id} className="std-dispatch-item" delay={index * 0.04}>
+                <span className="std-dispatch-icon">
+                  <I name="info" size={18} />
+                </span>
+                <div className="std-dispatch-body">
+                  <div className="std-dispatch-head">
+                    <h3>{row.title}</h3>
+                    <span>
+                      {row.created_at
+                        ? new Date(row.created_at).toLocaleDateString(lang, { day: 'numeric', month: 'short', year: 'numeric' })
+                        : '—'}
+                    </span>
+                  </div>
+
+                  <div className="std-chips">
+                    {row.course?.course_name || row.course_name ? (
+                      <Badge tone="cy">{row.course?.course_name || row.course_name}</Badge>
+                    ) : null}
+                    {row.course?.course_code || row.course_code ? (
+                      <Badge>{row.course?.course_code || row.course_code}</Badge>
+                    ) : null}
+                    {row.attachment ? (
+                      <a href={assetUrl(row.attachment)} target="_blank" rel="noreferrer">
+                        <Badge tone="amb"><I name="file" size={12} /> {t('openAttachment')}</Badge>
+                      </a>
+                    ) : (
+                      <Badge>{t('none')}</Badge>
+                    )}
+                  </div>
+
+                  <p>{row.body}</p>
+
+                  <div className="prof-dispatch-actions">
+                    <Btn size="sm" variant="soft" icon="edit" title={t('edit')} onClick={() => openEdit(row)} />
+                    <Btn size="sm" variant="danger" icon="trash" title={t('delete')} onClick={() => remove(row)} />
+                  </div>
+                </div>
+              </Reveal>
+            ))}
           </div>
           <Pager page={paged.page} last={paged.last_page} onPage={setPage} />
         </>
@@ -158,7 +158,9 @@ export function ProfessorAnnouncements() {
         }
       >
         {editId ? (
-          <div className="card" style={{ marginBottom: 16, padding: 14, fontWeight: 600 }}>{form.title}</div>
+          <div className="prof-appeal-context">
+            <strong>{form.title}</strong>
+          </div>
         ) : (
           <CourseSelect courses={courses} value={form.course_id} onChange={(id) => setForm({ ...form, course_id: id })} loading={cLoading} />
         )}

@@ -203,6 +203,19 @@ export function normalizePage(res) {
   }
 }
 
+/**
+ * Some endpoints (legacy paginators) return a raw upload filename instead of a
+ * full URL. Normalize both shapes to something the browser can open.
+ */
+export function assetUrl(value) {
+  if (!value) return null
+  const path = String(value)
+  if (/^(https?:)?\/\//i.test(path) || path.startsWith('data:')) return path
+  const clean = path.replace(/^\/+/, '')
+  const uploads = clean.startsWith('uploads/') ? clean : `uploads/${clean}`
+  return `${API_BASE}/${uploads}`
+}
+
 export function buildQuery(params) {
   const q = Object.entries(params || {})
     .filter(([, v]) => v !== undefined && v !== null && v !== '')

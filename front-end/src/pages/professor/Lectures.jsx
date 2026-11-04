@@ -3,10 +3,11 @@ import { useSearchParams } from 'react-router-dom'
 import { request } from '../../lib/api'
 import { useI18n } from '../../lib/i18n'
 import { useAsync } from '../../lib/hooks'
-import { Btn, Empty, Field, I, Modal, Reveal, Spinner, useToast } from '../../lib/ui'
+import { Badge, Btn, Empty, Field, I, Modal, Reveal, Spinner, useToast } from '../../lib/ui'
 import { CourseSelect, Head, useFieldErrors, useMyCourses } from './_shared'
+
 export function ProfessorLectures() {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
   const [params, setParams] = useSearchParams()
   const { courses, loading: cLoading } = useMyCourses()
   const courseId = Number(params.get('course')) || ''
@@ -18,6 +19,7 @@ export function ProfessorLectures() {
   const { errors, setErrors, clear: clearErrors, apply: applyErrors } = useFieldErrors()
 
   const list = Array.isArray(lectures.data) ? lectures.data : []
+  const activeCourse = courses.find((course) => course.id === courseId)
 
   const submit = async () => {
     if (!form.name || !form.pdf) {
@@ -45,7 +47,7 @@ export function ProfessorLectures() {
 
   return (
     <>
-<Head
+      <Head
         kicker={t('content')}
         title={t('lectures')}
         sub={t('lecturesSub')}
@@ -56,22 +58,39 @@ export function ProfessorLectures() {
       </div>
 
       {!courseId ? (
-        <Empty icon="file" title={t('selectCourse')} />
+        <Empty icon="file" title={t('selectCourse')} sub={t('chooseCourseSub')} />
       ) : lectures.loading ? (
         <Spinner size={24} />
       ) : list.length ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {list.map((l, i) => (
-            <Reveal key={l.id} className="card" delay={i * 0.04} style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-              <span className="av" style={{ background: 'var(--grad)' }}><I name="file" size={18} /></span>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600 }}>{l.name}</div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--faint)' }}>{new Date(l.created_at).toLocaleDateString()}</div>
-              </div>
-              <a href={l.path} target="_blank" rel="noreferrer"><Btn size="sm" variant="soft" icon="play">{t('openAction')}</Btn></a>
-            </Reveal>
-          ))}
-        </div>
+        <Reveal className="card">
+          <div className="card-head">
+            <div>
+              <h3>{activeCourse?.course_name || t('lectures')}</h3>
+              <span className="home-card-sub">{t('lecturesCount', { n: list.length })}</span>
+            </div>
+            {activeCourse?.course_code ? <Badge tone="cy">{activeCourse.course_code}</Badge> : null}
+          </div>
+
+          <ol className="std-lectures">
+            {list.map((lecture, index) => (
+              <li key={lecture.id} className="std-lecture">
+                <span className="std-lecture-index">{String(index + 1).padStart(2, '0')}</span>
+                <div className="std-lecture-body">
+                  <strong>{lecture.name}</strong>
+                  <span>
+                    <I name="clock" size={12} />{' '}
+                    {lecture.created_at
+                      ? new Date(lecture.created_at).toLocaleDateString(lang, { day: 'numeric', month: 'short', year: 'numeric' })
+                      : '—'}
+                  </span>
+                </div>
+                <a href={lecture.path} target="_blank" rel="noreferrer">
+                  <Btn size="sm" variant="soft" icon="play">{t('openAction')}</Btn>
+                </a>
+              </li>
+            ))}
+          </ol>
+        </Reveal>
       ) : (
         <Empty icon="file" title={t('noLectures')} sub={t('uploadFirstLecture')} />
       )}
@@ -82,7 +101,7 @@ export function ProfessorLectures() {
         title={t('uploadLecture')}
         footer={<><Btn variant="ghost" onClick={() => setOpen(false)}>{t('cancel')}</Btn><Btn loading={busy} onClick={submit} icon="upload">{t('upload')}</Btn></>}
       >
-<Field label={t('lectureName')} error={errors?.name?.[0]}><input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={t('lectureNamePh')} /></Field>
+        <Field label={t('lectureName')} error={errors?.name?.[0]}><input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={t('lectureNamePh')} /></Field>
         <Field label={t('pdfFile')} error={errors?.pdf?.[0]}><input className="input" type="file" accept="application/pdf" onChange={(e) => setForm({ ...form, pdf: e.target.files?.[0] || null })} /></Field>
       </Modal>
     </>

@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { buildQuery, normalizePage, request } from '../../lib/api'
 import { useI18n } from '../../lib/i18n'
 import { useAsync } from '../../lib/hooks'
-import { Badge, Btn, Empty, Field, Modal, Pager, Prog, RateBadge, Spinner, useToast } from '../../lib/ui'
+import { Badge, Btn, Empty, Field, Modal, Pager, Prog, RateBadge, Reveal, Spinner, useToast } from '../../lib/ui'
 import { CourseSelect, Head, useFieldErrors, useMyCourses } from './_shared'
 
 export function GradeStatus({ status }) {
@@ -68,7 +68,7 @@ function ComponentsModal({ open, onClose, courseId, onSaved }) {
             </div>
           ))}
           <Btn size="sm" variant="soft" icon="plus" onClick={() => setRows([...rows, { name: '', weight: '0' }])}>{t('addComponent')}</Btn>
-          <p style={{ marginTop: 12, color: total === 100 ? 'var(--muted)' : '#ffc2cd', fontSize: '0.82rem' }}>
+          <p style={{ marginTop: 12, color: total === 100 ? 'var(--color-text-muted)' : 'var(--color-danger)', fontSize: 'var(--text-sm)' }}>
             {t('weightsTotal', { n: total })}
           </p>
         </>
@@ -78,7 +78,7 @@ function ComponentsModal({ open, onClose, courseId, onSaved }) {
 }
 
 export function ProfessorGrades() {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
   const [params, setParams] = useSearchParams()
   const { courses, loading: cLoading } = useMyCourses()
   const courseId = Number(params.get('course')) || ''
@@ -98,6 +98,7 @@ export function ProfessorGrades() {
   const [compOpen, setCompOpen] = useState(false)
   const { errors, clear: clearErrors, apply: applyErrors } = useFieldErrors()
 
+  const activeCourse = courses.find((course) => course.id === courseId)
   const studentList = Array.isArray(students.data) ? students.data : []
   const componentList = Array.isArray(components.data) ? components.data : []
   const hasComponents = componentList.length > 0
@@ -110,11 +111,11 @@ export function ProfessorGrades() {
     setOpen(true)
   }
 
-  const openEdit = (g) => {
-    setEditing(g)
-    setForm({ student_id: String(g.student_id), marks: String(g.marks), max_marks: String(g.max_marks), reason: '' })
+  const openEdit = (grade) => {
+    setEditing(grade)
+    setForm({ student_id: String(grade.student_id), marks: String(grade.marks), max_marks: String(grade.max_marks), reason: '' })
     const map = {}
-    ;(g.component_scores || []).forEach((s) => { map[s.grade_component_id] = { marks: String(s.marks), max_marks: String(s.max_marks) } })
+    ;(grade.component_scores || []).forEach((score) => { map[score.grade_component_id] = { marks: String(score.marks), max_marks: String(score.max_marks) } })
     setScores(map)
     clearErrors()
     setOpen(true)
@@ -129,10 +130,10 @@ export function ProfessorGrades() {
         max_marks: Number(form.max_marks),
       }
       if (hasComponents) {
-        payload.component_scores = componentList.map((c) => ({
-          grade_component_id: c.id,
-          marks: Number(scores[c.id]?.marks) || 0,
-          max_marks: Number(scores[c.id]?.max_marks) || 100,
+        payload.component_scores = componentList.map((component) => ({
+          grade_component_id: component.id,
+          marks: Number(scores[component.id]?.marks) || 0,
+          max_marks: Number(scores[component.id]?.max_marks) || 100,
         }))
       } else {
         payload.marks = Number(form.marks)
@@ -150,9 +151,9 @@ export function ProfessorGrades() {
     }
   }
 
-  const publish = async (g) => {
+  const publish = async (grade) => {
     try {
-      await request('/api/professor/grade/publish', { method: 'POST', data: { grade_id: g.id } })
+      await request('/api/professor/grade/publish', { method: 'POST', data: { grade_id: grade.id } })
       toast.success(t('gradePublished'))
       grades.run().catch(() => {})
     } catch (e) {
@@ -210,40 +211,59 @@ export function ProfessorGrades() {
       </div>
 
       {!courseId ? (
-        <Empty icon="chart" title={t('selectCourse')} />
+        <Empty icon="chart" title={t('selectCourse')} sub={t('chooseCourseSub')} />
       ) : grades.loading ? (
         <Spinner size={24} />
       ) : paged.items.length ? (
         <>
-          <div className="table-wrap">
-            <table className="table">
-              <thead><tr><th>{t('student')}</th><th>{t('semester')}</th><th>{t('marks')}</th><th>{t('percent')}</th><th>{t('rate')}</th><th>{t('status')}</th><th style={{ textAlign: 'right' }}>{t('action')}</th></tr></thead>
-              <tbody>
-                {paged.items.map((g) => (
-                  <tr key={g.id}>
-                    <td className="cell-main">{g.student}</td>
-                    <td>{g.semester || '—'}</td>
-                    <td>{g.marks}/{g.max_marks}</td>
-                    <td style={{ minWidth: 140 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <Prog value={g.percentage} sm />
-                        <span style={{ fontSize: '0.78rem' }}>{g.percentage}%</span>
-                      </div>
-                    </td>
-                    <td><RateBadge rate={g.rate} /></td>
-                    <td><GradeStatus status={g.status} /></td>
-                    <td style={{ textAlign: 'right' }}>
-                      <div className="row-actions">
-                        {g.can_edit ? <Btn size="sm" variant="soft" icon="edit" onClick={() => openEdit(g)} /> : null}
-                        {g.status === 'draft' ? <Btn size="sm" variant="primary" icon="upload" onClick={() => publish(g)} /> : null}
-                        {g.can_delete ? <Btn size="sm" variant="danger" icon="trash" onClick={() => remove(g.id)} /> : null}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Reveal className="card">
+            <div className="card-head">
+              <div>
+                <h3>{activeCourse?.course_name || t('grades')}</h3>
+                <span className="home-card-sub">{t('total')}: {paged.total ?? paged.items.length}</span>
+              </div>
+              {activeCourse?.course_code ? <Badge tone="cy">{activeCourse.course_code}</Badge> : null}
+            </div>
+
+            <div className="std-grade-list">
+              {paged.items.map((grade) => (
+                <article className="std-grade-row prof-grade-row" key={grade.id}>
+                  <div className="std-grade-id">
+                    <strong>{grade.student || '—'}</strong>
+                    <span>{grade.semester || '—'} · {grade.course || activeCourse?.course_name || '—'}</span>
+                  </div>
+
+                  <div className="std-grade-mark">
+                    <span>{t('marks')}</span>
+                    <strong>{grade.marks}/{grade.max_marks}</strong>
+                  </div>
+
+                  <div className="std-grade-pct">
+                    <div className="std-grade-pct-top">
+                      <span>{grade.percentage}%</span>
+                      <RateBadge rate={grade.rate} />
+                    </div>
+                    <Prog value={grade.percentage} sm />
+                  </div>
+
+                  <div className="prof-grade-flags">
+                    <GradeStatus status={grade.status} />
+                    {grade.published_at ? (
+                      <span className="prof-grade-date">
+                        {new Date(grade.published_at).toLocaleDateString(lang, { day: 'numeric', month: 'short' })}
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <div className="prof-grade-actions">
+                    {grade.can_edit ? <Btn size="sm" variant="soft" icon="edit" title={t('edit')} onClick={() => openEdit(grade)} /> : null}
+                    {grade.status === 'draft' ? <Btn size="sm" variant="primary" icon="upload" title={t('statusPublished')} onClick={() => publish(grade)} /> : null}
+                    {grade.can_delete ? <Btn size="sm" variant="danger" icon="trash" title={t('delete')} onClick={() => remove(grade.id)} /> : null}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </Reveal>
           <Pager page={paged.page} last={paged.last_page} onPage={setPage} />
         </>
       ) : (
@@ -262,18 +282,18 @@ export function ProfessorGrades() {
         <Field label={t('student')} error={errors?.student_id?.[0]}>
           <select className="select" value={form.student_id} disabled={Boolean(editing)} onChange={(e) => setForm({ ...form, student_id: e.target.value })}>
             <option value="">{t('selectStudent')}</option>
-            {studentList.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            {studentList.map((student) => <option key={student.id} value={student.id}>{student.name}</option>)}
           </select>
         </Field>
         {hasComponents ? (
           <>
-            {componentList.map((c) => (
-              <div key={c.id} className="grid grid-2" style={{ gap: 14 }}>
-                <Field label={`${c.name} · ${c.weight}%`}>
-                  <input className="input" type="number" min="0" value={scores[c.id]?.marks ?? ''} onChange={(e) => setScores({ ...scores, [c.id]: { ...(scores[c.id] || {}), marks: e.target.value } })} />
+            {componentList.map((component) => (
+              <div key={component.id} className="grid grid-2" style={{ gap: 14 }}>
+                <Field label={`${component.name} · ${component.weight}%`}>
+                  <input className="input" type="number" min="0" value={scores[component.id]?.marks ?? ''} onChange={(e) => setScores({ ...scores, [component.id]: { ...(scores[component.id] || {}), marks: e.target.value } })} />
                 </Field>
                 <Field label={t('maxMarks')}>
-                  <input className="input" type="number" min="1" value={scores[c.id]?.max_marks ?? '100'} onChange={(e) => setScores({ ...scores, [c.id]: { ...(scores[c.id] || {}), max_marks: e.target.value } })} />
+                  <input className="input" type="number" min="1" value={scores[component.id]?.max_marks ?? '100'} onChange={(e) => setScores({ ...scores, [component.id]: { ...(scores[component.id] || {}), max_marks: e.target.value } })} />
                 </Field>
               </div>
             ))}

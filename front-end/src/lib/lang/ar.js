@@ -1,4 +1,4 @@
-﻿export default {
+export default {
   appName: 'يونيفيرس تك',
   appTag: 'الجامعة، بأسلوب راقي',
   heroTitle: 'ادخل إلى',
@@ -470,6 +470,14 @@
   latestEvents: 'أحدث الأحداث',
   noNewEvents: 'لا توجد أحداث جديدة',
   noNotifications: 'لا توجد إشعارات',
+  noNotificationsSub: 'ستظهر هنا تحديثات المواد والمنصة.',
+  studentsCount: '{n} طالب',
+  teachingLoad: 'العبء التدريسي',
+  totalCreditHours: 'إجمالي الساعات المعتمدة',
+  awaitingReply: 'بانتظار ردّك',
+  noPendingAppeals: 'لا توجد تظلمات معلّقة',
+  noPendingAppealsSub: 'ستظهر هنا تظلمات الدرجات الجديدة من طلابك.',
+  noStudentsEnrolledSub: 'سيظهر الطلاب هنا بعد تسجيلهم في هذه المادة.',
 
   loadingYourCourses: 'جارٍ تحميل موادك…',
   loadingCourses: 'جارٍ تحميل المواد…',

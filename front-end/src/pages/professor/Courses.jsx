@@ -2,43 +2,81 @@ import { Link } from 'react-router-dom'
 import { CoverImage } from '../../lib/media'
 import { Badge, Btn, CourseLoader, Empty, Reveal } from '../../lib/ui'
 import { useI18n } from '../../lib/i18n'
-import { Head, useMyCourses } from './_shared'
+import { ProfHero, useMyCourses, useRosterTotals } from './_shared'
+
+const ACTIONS = [
+  { to: 'students', icon: 'users', key: 'students' },
+  { to: 'lectures', icon: 'file', key: 'lectures' },
+  { to: 'quizzes', icon: 'award', key: 'quizzes' },
+  { to: 'grades', icon: 'chart', key: 'grades' },
+]
+
 export function ProfessorCourses() {
   const { t } = useI18n()
   const { courses, loading } = useMyCourses()
+  const roster = useRosterTotals(courses)
+
+  const lectureTotal = courses.reduce((sum, course) => sum + (course.lectures?.length || 0), 0)
+  const creditTotal = courses.reduce((sum, course) => sum + (Number(course.no_of_hours) || 0), 0)
+
   return (
     <>
-      <Head kicker={t('teaching')} title={t('myCourses')} sub={t('myCoursesSub')} />
+      <ProfHero
+        eyebrow={t('teaching')}
+        title={t('myCourses')}
+        sub={t('myCoursesSub')}
+        stats={[
+          { label: t('myCourses'), value: courses.length },
+          { label: t('lecturesUploaded'), value: lectureTotal },
+          { label: t('studentsTaught'), value: roster.loading ? '—' : roster.total },
+          { label: t('totalCreditHours'), value: creditTotal },
+        ]}
+      />
+
       {loading ? (
         <CourseLoader label={t('loadingYourCourses')} />
       ) : courses.length ? (
         <div className="grid grid-3">
-          {courses.map((c, i) => (
-            <Reveal key={c.id} className="card" delay={i * 0.05}>
+          {courses.map((course, index) => (
+            <Reveal key={course.id} className="card course-card prof-course-card" delay={index * 0.05}>
               <CoverImage
-                className="prof-course-cover"
-                src={c.cover_image && !c.cover_image.endsWith('default.jpg') ? c.cover_image : null}
-                alt={c.course_name}
+                className="course-cover"
+                src={course.cover_image && !course.cover_image.endsWith('default.jpg') ? course.cover_image : null}
+                alt={course.course_name}
                 icon="book"
-                mark={c.course_code}
-              />
-              <h3 style={{ fontSize: '1.02rem', marginBottom: 6 }}>{c.course_name}</h3>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
-                {c.course_code ? <Badge tone="vio">{c.course_code}</Badge> : null}
-                <Badge tone="cy">{t('lecturesCount', { n: c.lectures?.length || 0 })}</Badge>
-                {c.no_of_hours ? <Badge>{t('crHours', { n: c.no_of_hours })}</Badge> : null}
-              </div>
-              <div className="grid grid-2" style={{ gap: 8 }}>
-                <Link to={`/app/professor/students?course=${c.id}`}><Btn size="sm" variant="soft" className="btn-block" icon="users">{t('students')}</Btn></Link>
-                <Link to={`/app/professor/lectures?course=${c.id}`}><Btn size="sm" variant="soft" className="btn-block" icon="file">{t('lectures')}</Btn></Link>
-                <Link to={`/app/professor/quizzes?course=${c.id}`}><Btn size="sm" variant="soft" className="btn-block" icon="award">{t('quizzes')}</Btn></Link>
-                <Link to={`/app/professor/grades?course=${c.id}`}><Btn size="sm" variant="soft" className="btn-block" icon="chart">{t('grades')}</Btn></Link>
+                mark={course.course_code}
+              >
+                <span className="course-cover-veil" />
+                {course.course_code ? <span className="course-code">{course.course_code}</span> : null}
+                {course.no_of_hours ? <span className="course-hours">{t('crHours', { n: course.no_of_hours })}</span> : null}
+              </CoverImage>
+              <div className="course-body">
+                <h3>{course.course_name}</h3>
+                <p className="course-prof">
+                  <span>{course.department?.name || t('general')}</span>
+                </p>
+                <div className="std-chips">
+                  <Badge tone="cy">{t('lecturesCount', { n: course.lectures?.length || 0 })}</Badge>
+                  <Badge tone="vio">
+                    {roster.counts[course.id] != null ? t('studentsCount', { n: roster.counts[course.id] }) : t('loadingRecords')}
+                  </Badge>
+                  {course.capacity ? <Badge>{t('capacity')}: {course.capacity}</Badge> : null}
+                </div>
+                <div className="prof-course-actions">
+                  {ACTIONS.map((action) => (
+                    <Link key={action.to} to={`/app/professor/${action.to}?course=${course.id}`}>
+                      <Btn size="sm" variant="soft" className="btn-block" icon={action.icon}>
+                        {t(action.key)}
+                      </Btn>
+                    </Link>
+                  ))}
+                </div>
               </div>
             </Reveal>
           ))}
         </div>
       ) : (
-        <Empty icon="book" title={t('noCoursesAssigned')} />
+        <Empty icon="book" title={t('noCoursesAssigned')} sub={t('noCoursesAssignedSub')} />
       )}
     </>
   )

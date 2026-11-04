@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { normalizePage, request } from '../../lib/api'
 import { useI18n } from '../../lib/i18n'
 import { useAsync } from '../../lib/hooks'
-import { Empty, I, Pager, Reveal, Spinner } from '../../lib/ui'
+import { Badge, Empty, I, Pager, Reveal, Spinner } from '../../lib/ui'
 import { Head } from './_shared'
+
 export function ProfessorNotifications() {
   const { t } = useI18n()
   const [page, setPage] = useState(1)
@@ -13,20 +14,35 @@ export function ProfessorNotifications() {
   return (
     <>
       <Head kicker={t('inbox')} title={t('notifications')} sub={t('notificationsSub')} />
+
       {loading ? (
         <Spinner size={24} />
       ) : paged.items.length ? (
         <>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {paged.items.map((n, i) => (
-              <Reveal key={n.id} className="card" delay={i * 0.04} style={{ display: 'flex', gap: 16 }}>
-                <span className="av" style={{ width: 46, height: 46, background: 'var(--grad)' }}><I name="bell" size={20} /></span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                    <h3 style={{ fontSize: '1rem', margin: 0 }}>{n.title}</h3>
-                    <span style={{ fontSize: '0.76rem', color: 'var(--faint)' }}>{n.created_at}</span>
+          <div className="std-dispatch">
+            {paged.items.map((note, index) => (
+              <Reveal
+                key={note.id}
+                className={`std-dispatch-item ${note.type === 'event' ? 'is-event' : ''}`}
+                delay={index * 0.04}
+              >
+                <span className="std-dispatch-icon">
+                  <I name={note.type === 'event' ? 'spark' : 'bell'} size={18} />
+                </span>
+                <div className="std-dispatch-body">
+                  <div className="std-dispatch-head">
+                    <h3>{note.title}</h3>
+                    <span>{note.created_at}</span>
                   </div>
-                  <p style={{ color: 'var(--muted)', fontSize: '0.88rem', marginTop: 8, whiteSpace: 'pre-line' }}>{n.content}</p>
+
+                  <div className="std-chips">
+                    {note.type === 'event' ? <Badge tone="cy">{t('events')}</Badge> : <Badge>{t('notifications')}</Badge>}
+                    {note.course_name ? <Badge tone="vio">{note.course_name}</Badge> : null}
+                    {note.professor ? <Badge>{note.professor}</Badge> : null}
+                    {note.admin ? <Badge>{note.admin}</Badge> : null}
+                  </div>
+
+                  <p>{note.content}</p>
                 </div>
               </Reveal>
             ))}
@@ -34,7 +50,7 @@ export function ProfessorNotifications() {
           <Pager page={paged.page} last={paged.last_page} onPage={setPage} />
         </>
       ) : (
-        <Empty icon="bell" title={t('noNotifications')} />
+        <Empty icon="bell" title={t('noNotifications')} sub={t('noNotificationsSub')} />
       )}
     </>
   )
