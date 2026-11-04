@@ -256,6 +256,7 @@ Route::middleware(['auth:sanctum', 'role:professor', 'active'])->group(function 
     Route::get('professors/course/student', [CourseProfessorController::class, 'getCoursesStudent']);
     Route::get('professor/schedule', [ScheduleProfessorController::class, 'index']);
     Route::post('professors/make/attendance', [AttendaceProfessorController::class, 'storeAttendace']);
+    Route::post('professors/attendance/bulk', [AttendaceProfessorController::class, 'storeBulkAttendance']);
     Route::post('professors/update/attendance', [AttendaceProfessorController::class, 'updateAttendace']);
     Route::post('lecture/store', [LectureProfessorController::class, 'store']);
     Route::get('lecture/get/all/{id}', [LectureProfessorController::class, 'getLecturesCourse']);

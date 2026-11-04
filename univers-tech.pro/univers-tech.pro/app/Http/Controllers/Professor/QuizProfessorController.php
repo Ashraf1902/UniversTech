@@ -30,12 +30,16 @@ class QuizProfessorController extends Controller
         }
 
         $quizzes = Quiz::where('course_id', $id)
+            ->with('course:id,course_name,course_code')
             ->withCount('submissions')
             ->orderByDesc('created_at')
             ->paginate(15)
             ->through(fn (Quiz $quiz) => [
                 'id' => $quiz->id,
                 'name' => $quiz->name,
+                'course_id' => $quiz->course_id,
+                'course_name' => $quiz->course?->course_name,
+                'course_code' => $quiz->course?->course_code,
                 'content' => url('uploads/' . $quiz->content),
                 'max_score' => $quiz->max_score,
                 'due_at' => $quiz->due_at,

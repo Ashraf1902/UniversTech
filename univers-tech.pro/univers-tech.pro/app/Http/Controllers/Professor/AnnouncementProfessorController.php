@@ -24,9 +24,10 @@ class AnnouncementProfessorController extends Controller
     {
         $announcements = Announcement::where('professor_id', $request->user()->id)
             ->when($request->filled('course_id'), fn ($q) => $q->where('course_id', $request->input('course_id')))
-            ->with(['course:id,course_name,course_code'])
+            ->with(['course:id,course_name,course_code', 'professor:id,name'])
             ->orderByDesc('created_at')
-            ->paginate(15);
+            ->paginate(15)
+            ->through(fn (Announcement $announcement) => $this->format($announcement));
 
         return SendResponse(200, 'Announcements fetched successfully.', $announcements);
     }
