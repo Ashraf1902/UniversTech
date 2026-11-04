@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { buildQuery, request } from '../../lib/api'
 import { useI18n } from '../../lib/i18n'
 import { useAsync } from '../../lib/hooks'
-import { Badge, Btn, Empty, Field, Modal, Spinner, useToast } from '../../lib/ui'
-import { CourseSelect, Head, useFieldErrors, useMyCourses } from './_shared'
+import { Badge, Btn, Empty, Field, Spinner, useToast } from '../../lib/ui'
+import { CourseSelect, Head, useMyCourses } from './_shared'
 
 const STATUS_META = {
   ok: { tone: 'grn', key: 'status_ok' },
@@ -22,6 +22,15 @@ function initials(name) {
     .toUpperCase()
 }
 
+function todayISO() {
+  const now = new Date()
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
+}
+
+function attendanceFor(student, lectureId) {
+  return (student.attendances || []).find((entry) => Number(entry.lec_id) === Number(lectureId))
+}
+
 export function ProfessorStudents() {
   const { t } = useI18n()
   const [params, setParams] = useSearchParams()
@@ -31,10 +40,11 @@ export function ProfessorStudents() {
 
   const students = useAsync(() => (courseId ? request('/api/professors/course/student' + buildQuery({ course_id: courseId })) : Promise.resolve(null)), [courseId])
   const lectures = useAsync(() => (courseId ? request(`/api/lecture/get/all/${courseId}`) : Promise.resolve(null)), [courseId])
-  const [target, setTarget] = useState(null)
-  const [form, setForm] = useState({ lecture_id: '', date: new Date().toISOString().slice(0, 10), status: true, reason: '' })
+
+  const [lectureId, setLectureId] = useState('')
+  const [sheetDate, setSheetDate] = useState(todayISO)
+  const [draft, setDraft] = useState({})
   const [busy, setBusy] = useState(false)
-  const { errors, clear: clearErrors, apply: applyErrors } = useFieldErrors()
 
   const list = Array.isArray(students.data) ? students.data : []
   const lectureList = Array.isArray(lectures.data) ? lectures.data : []
@@ -47,21 +57,73 @@ export function ProfessorStudents() {
   const presentTotal = list.reduce((sum, s) => sum + (s.attendance_summary?.present ?? (s.attendances || []).filter((a) => a.status).length), 0)
   const attendanceRate = sessions && list.length ? Math.round((presentTotal / (sessions * list.length)) * 100) : 0
 
-  const setCourse = (id) => setParams(id ? { course: String(id) } : {})
+  const existingCount = Object.values(draft).filter((row) => row?.existing).length
 
-  const submit = async () => {
+  // The selected lecture is derived so switching courses can never leave a
+  // stale lecture id (and therefore a stale roster sheet) behind.
+  const activeLectureId = lectureList.some((lecture) => String(lecture.id) === String(lectureId))
+    ? String(lectureId)
+    : lectureList.length ? String(lectureList[0].id) : ''
+
+  const setCourse = (id) => {
+    setLectureId('')
+    setDraft({})
+    setParams(id ? { course: String(id) } : {})
+  }
+
+  useEffect(() => {
+    if (!activeLectureId) {
+      setDraft({})
+      return
+    }
+
+    const next = {}
+    let existingDate = ''
+
+    list.forEach((student) => {
+      const match = attendanceFor(student, activeLectureId)
+      if (match?.date && !existingDate) existingDate = String(match.date).slice(0, 10)
+      next[student.id] = {
+        status: match ? Boolean(match.status) : true,
+        reason: match?.reason || '',
+        existing: Boolean(match),
+      }
+    })
+
+    setDraft(next)
+    setSheetDate(existingDate || todayISO())
+  }, [activeLectureId, students.data]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const updateRow = (studentId, patch) => {
+    setDraft((prev) => ({
+      ...prev,
+      [studentId]: { status: true, reason: '', existing: false, ...prev[studentId], ...patch },
+    }))
+  }
+
+  const saveAttendance = async () => {
+    if (!activeLectureId || !list.length) return
+
     setBusy(true)
     try {
-      await request('/api/professors/make/attendance', {
-        method: 'POST',
-        data: { student_id: target.id, lecture_id: Number(form.lecture_id), date: form.date, status: form.status, reason: form.reason || null },
+      const attendances = list.map((student) => {
+        const row = draft[student.id] || { status: true, reason: '' }
+        return {
+          student_id: student.id,
+          status: Boolean(row.status),
+          reason: row.status ? null : (String(row.reason || '').trim() || null),
+        }
       })
-      toast.success(t('attendanceRecorded', { name: target.name }))
-      setTarget(null)
-      clearErrors()
-      students.run().catch(() => {})
+
+      const result = await request('/api/professors/attendance/bulk', {
+        method: 'POST',
+        data: { lecture_id: Number(activeLectureId), date: sheetDate, attendances },
+      })
+
+      toast.success(t('attendanceSaved', { n: result?.total ?? attendances.length }))
+      await students.run()
     } catch (e) {
-      if (!applyErrors(e)) toast.error(e.message)
+      toast.error(e.message)
     } finally {
       setBusy(false)
     }
@@ -81,6 +143,77 @@ export function ProfessorStudents() {
         <Spinner size={24} />
       ) : list.length ? (
         <>
+          <section className="card prof-sheet">
+            <div className="card-head">
+              <div>
+                <h3>{t('attendanceSheet')}</h3>
+                <span className="home-card-sub">{t('attendanceSheetSub')}</span>
+              </div>
+              {existingCount ? <Badge tone="amb">{t('existingRecords', { n: existingCount })}</Badge> : null}
+            </div>
+
+            {lectureList.length ? (
+              <>
+                <div className="prof-sheet-grid">
+                  <Field label={t('lecture')}>
+                    <select className="select" value={activeLectureId} onChange={(e) => setLectureId(e.target.value)}>
+                      {lectureList.map((lecture) => (
+                        <option key={lecture.id} value={lecture.id}>{lecture.name}</option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label={t('date')}>
+                    <input className="input" type="date" value={sheetDate} onChange={(e) => setSheetDate(e.target.value)} />
+                  </Field>
+                </div>
+
+                <div className="prof-sheet-rows">
+                  {list.map((student) => {
+                    const row = draft[student.id] || { status: true, reason: '', existing: false }
+                    return (
+                      <div className="prof-sheet-row" key={student.id}>
+                        <div className="prof-sheet-student">
+                          <span className="prof-roster-avatar is-sm">{initials(student.name)}</span>
+                          <div className="prof-roster-id">
+                            <strong>{student.name}</strong>
+                            <span>{student.email || '—'}</span>
+                          </div>
+                          {row.existing ? <Badge tone="amb">{t('editingRecord')}</Badge> : null}
+                        </div>
+                        <div className="radio-row">
+                          <button type="button" className={`chip ${row.status ? 'on' : ''}`} onClick={() => updateRow(student.id, { status: true })}>
+                            {t('present')}
+                          </button>
+                          <button type="button" className={`chip ${!row.status ? 'on' : ''}`} onClick={() => updateRow(student.id, { status: false })}>
+                            {t('absent')}
+                          </button>
+                        </div>
+                        {row.status ? (
+                          <span className="prof-sheet-blank" aria-hidden="true" />
+                        ) : (
+                          <input
+                            className="input"
+                            value={row.reason}
+                            placeholder={t('reasonPh')}
+                            onChange={(e) => updateRow(student.id, { reason: e.target.value })}
+                          />
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+
+                <div className="prof-sheet-actions">
+                  <Btn loading={busy} onClick={saveAttendance} icon="check" disabled={!sheetDate}>
+                    {t('saveAttendance')}
+                  </Btn>
+                </div>
+              </>
+            ) : (
+              <Empty icon="file" title={t('noLecturesYet')} sub={t('uploadLectureFirst')} />
+            )}
+          </section>
+
           <div className="course-stats">
             <div>
               <span>{t('students')}</span>
@@ -146,18 +279,6 @@ export function ProfessorStudents() {
                       <span>{t('absent')}: {total - present}</span>
                     </div>
                   </div>
-
-                  <Btn
-                    size="sm"
-                    icon="check"
-                    onClick={() => {
-                      clearErrors()
-                      setTarget(s)
-                      setForm((f) => ({ ...f, lecture_id: lectureList[0]?.id || '' }))
-                    }}
-                  >
-                    {t('attendance')}
-                  </Btn>
                 </article>
               )
             })}
@@ -166,45 +287,6 @@ export function ProfessorStudents() {
       ) : (
         <Empty icon="users" title={t('noStudentsEnrolled')} sub={t('noStudentsEnrolledSub')} />
       )}
-
-      <Modal
-        open={!!target}
-        onClose={() => setTarget(null)}
-        title={t('attendanceTitle', { name: target?.name || '' })}
-        footer={
-          <>
-            <Btn variant="ghost" onClick={() => setTarget(null)}>{t('cancel')}</Btn>
-            <Btn loading={busy} onClick={submit} icon="check" disabled={!form.lecture_id}>{t('save')}</Btn>
-          </>
-        }
-      >
-        {lectureList.length ? (
-          <>
-            <Field label={t('lecture')} error={errors?.lecture_id?.[0]}>
-              <select className="select" value={form.lecture_id} onChange={(e) => setForm({ ...form, lecture_id: e.target.value })}>
-                <option value="">{t('selectLecture')}</option>
-                {lectureList.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-              </select>
-            </Field>
-            <Field label={t('date')} error={errors?.date?.[0]}>
-              <input className="input" type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
-            </Field>
-            <Field label={t('status')}>
-              <div className="radio-row">
-                <button type="button" className={`chip ${form.status ? 'on' : ''}`} onClick={() => setForm({ ...form, status: true })}>{t('present')}</button>
-                <button type="button" className={`chip ${!form.status ? 'on' : ''}`} onClick={() => setForm({ ...form, status: false })}>{t('absent')}</button>
-              </div>
-            </Field>
-            {!form.status ? (
-              <Field label={t('reasonOptional')} error={errors?.reason?.[0]}>
-                <textarea className="textarea" value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} placeholder={t('reasonPh')} />
-              </Field>
-            ) : null}
-          </>
-        ) : (
-          <Empty icon="file" title={t('noLecturesYet')} sub={t('uploadLectureFirst')} />
-        )}
-      </Modal>
     </>
   )
 }

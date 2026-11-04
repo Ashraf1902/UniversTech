@@ -5,7 +5,7 @@ import { useI18n } from '../../lib/i18n'
 import { useAsync, useUniversityTimezone } from '../../lib/hooks'
 import { formatDate, formatTime, nextLecture, nowInTimezone, timeToMinutes } from '../../lib/timetable'
 import { Badge, Btn, Empty, I, Reveal, Spinner } from '../../lib/ui'
-import { ProfHero, useMyCourses, useRosterTotals } from './_shared'
+import { ProfHero, totalStudents, useMyCourses } from './_shared'
 
 const QUICK_LINKS = [
   { to: '/app/professor/lectures', icon: 'upload', key: 'uploadLecture' },
@@ -35,7 +35,6 @@ export function ProfessorHome() {
 
   const profile = useAsync(() => request('/api/professor/profile'))
   const { courses, loading: coursesLoading } = useMyCourses()
-  const roster = useRosterTotals(courses)
   const schedule = useAsync(() => request('/api/professor/schedule'))
   const appeals = useAsync(() => request('/api/professor/appeal/get/all?status=pending&page=1'))
   const notifs = useAsync(() => request('/api/professor/notifications?page=1'))
@@ -62,7 +61,7 @@ export function ProfessorHome() {
         stats={[
           { label: t('myCourses'), value: courses.length },
           { label: t('lecturesUploaded'), value: lectureTotal },
-          { label: t('studentsTaught'), value: roster.loading ? '—' : roster.total },
+          { label: t('studentsTaught'), value: coursesLoading ? '—' : totalStudents(courses) },
           { label: t('gradeAppeals'), value: appeals.loading ? '—' : pending.total },
         ]}
         aside={
@@ -179,7 +178,7 @@ export function ProfessorHome() {
                       <strong>{course.course_name}</strong>
                       <span>
                         {course.department?.name || t('general')} · {t('lecturesCount', { n: course.lectures?.length || 0 })}
-                        {roster.counts[course.id] != null ? ` · ${t('studentsCount', { n: roster.counts[course.id] })}` : ''}
+                        {course.students_count != null ? ` · ${t('studentsCount', { n: course.students_count })}` : ''}
                       </span>
                     </div>
                     <Link to={`/app/professor/grades?course=${course.id}`}>
@@ -268,7 +267,7 @@ export function ProfessorHome() {
                       </span>
                     </div>
                     <Badge tone="cy">
-                      {roster.counts[course.id] != null ? t('studentsCount', { n: roster.counts[course.id] }) : '—'}
+                      {course.students_count != null ? t('studentsCount', { n: course.students_count }) : '—'}
                     </Badge>
                   </div>
                 ))}

@@ -15,7 +15,6 @@ export function ProfessorQuizzes() {
   const toast = useToast()
   const quizzes = useAsync(() => (courseId ? request(`/api/quiz/get/all/${courseId}?page=${page}`) : Promise.resolve(null)), [courseId, page])
   const paged = normalizePage(quizzes.data)
-  const activeCourse = courses.find((course) => course.id === courseId)
 
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState({ name: '', due_at: '', max_score: '', pdf: null })
@@ -132,7 +131,8 @@ export function ProfessorQuizzes() {
                   <div className="std-quiz-id">
                     <h3>{quiz.name}</h3>
                     <div className="std-quiz-meta">
-                      <span><I name="book" size={13} />{activeCourse?.course_name || '—'}</span>
+                      <span><I name="book" size={13} />{quiz.course_name || '—'}</span>
+                      {quiz.course_code ? <Badge>{quiz.course_code}</Badge> : null}
                       <span>
                         <I name="clock" size={13} />
                         {quiz.due_at

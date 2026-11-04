@@ -567,6 +567,12 @@ export default {
 
   attendanceTitle: 'Attendance — {name}',
   attendance: 'Attendance',
+  attendanceSheet: 'Class attendance',
+  attendanceSheetSub: 'Mark every student for one lecture, then save the whole class at once. Existing records open ready to edit.',
+  saveAttendance: 'Save attendance',
+  attendanceSaved: 'Attendance saved for {n} students.',
+  editingRecord: 'Editing',
+  existingRecords: '{n} existing',
   studentsAttendanceTitle: 'Students & attendance',
   lecture: 'Lecture',
   present: 'Present',

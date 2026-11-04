@@ -3996,6 +3996,43 @@ html[dir='rtl'] .auth { direction: rtl; }
 .prof-roster-card > .btn { align-self: flex-start; }
 .prof-roster-card .std-scale { margin-top: auto; }
 
+/* ---------- attendance sheet ---------- */
+.prof-sheet { margin-bottom: 22px; }
+.prof-sheet .card-head { margin-bottom: 14px; }
+.prof-sheet-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.prof-sheet-rows {
+  display: flex;
+  flex-direction: column;
+  margin-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+.prof-sheet-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 220px);
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.prof-sheet-student {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.prof-sheet-row .radio-row { margin: 0; }
+.prof-sheet-row .input { min-width: 0; }
+.prof-sheet-blank { display: block; }
+.prof-sheet-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
 /* ---------- quiz submissions ---------- */
 .prof-sub-list {
   display: flex;
@@ -4097,6 +4134,8 @@ html[dir='rtl'] .auth { direction: rtl; }
   .prof-hero.is-wide { grid-template-columns: minmax(0, 1fr); gap: 16px; padding: 20px; }
   .prof-hero .std-hero-ring { place-items: stretch; }
   .prof-roster { grid-template-columns: minmax(0, 1fr); }
+  .prof-sheet-grid { grid-template-columns: minmax(0, 1fr); }
+  .prof-sheet-row { grid-template-columns: minmax(0, 1fr); gap: 8px; }
   .prof-grade-row { grid-template-columns: minmax(0, 1fr) auto; }
   .prof-grade-row .std-grade-id { grid-column: 1; grid-row: 1; }
   .prof-grade-row .std-grade-mark { grid-column: 2; grid-row: 1; }

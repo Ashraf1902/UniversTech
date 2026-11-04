@@ -114,11 +114,11 @@ export function ProfessorAnnouncements() {
                   </div>
 
                   <div className="std-chips">
-                    {row.course?.course_name || row.course_name ? (
-                      <Badge tone="cy">{row.course?.course_name || row.course_name}</Badge>
+                    {row.course_name ? (
+                      <Badge tone="cy">{row.course_name}</Badge>
                     ) : null}
-                    {row.course?.course_code || row.course_code ? (
-                      <Badge>{row.course?.course_code || row.course_code}</Badge>
+                    {row.course_code ? (
+                      <Badge>{row.course_code}</Badge>
                     ) : null}
                     {row.attachment ? (
                       <a href={assetUrl(row.attachment)} target="_blank" rel="noreferrer">

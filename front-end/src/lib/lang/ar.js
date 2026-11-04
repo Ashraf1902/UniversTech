@@ -567,6 +567,12 @@ export default {
 
   attendanceTitle: 'الحضور — {name}',
   attendance: 'الحضور',
+  attendanceSheet: 'حضور المحاضرة',
+  attendanceSheetSub: 'سجّل حضور كل الطلاب لمحاضرة واحدة ثم احفظ الفصل كله مرة واحدة. السجلات الموجودة تُفتح جاهزة للتعديل.',
+  saveAttendance: 'حفظ الحضور',
+  attendanceSaved: 'تم حفظ الحضور لـ {n} طالب.',
+  editingRecord: 'تعديل',
+  existingRecords: '{n} سجل موجود',
   studentsAttendanceTitle: 'الطلاب والحضور',
   lecture: 'المحاضرة',
   present: 'حاضر',

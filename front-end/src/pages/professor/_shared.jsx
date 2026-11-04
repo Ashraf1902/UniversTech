@@ -65,35 +65,37 @@ export function ProfHero({ eyebrow, title, sub, aside, stats, actions, children 
 }
 
 export function useMyCourses() {
-  const { data, loading } = useAsync(() => request('/api/professors/courses'))
+  const { data, loading } = useAsync(async () => {
+    // The API caps per_page at 100; walk any remaining pages so a professor
+    // with a large catalogue is never silently truncated at one page.
+    const first = await request('/api/professors/courses?per_page=100')
+    const firstPage = normalizePage(first)
+
+    if (firstPage.last_page <= 1) return first
+
+    const rest = await Promise.all(
+      Array.from({ length: firstPage.last_page - 1 }, (_, index) =>
+        request(`/api/professors/courses?per_page=100&page=${index + 2}`),
+      ),
+    )
+
+    return {
+      ...first,
+      data: [firstPage.items, ...rest.map((page) => normalizePage(page).items)].flat(),
+    }
+  })
+
   const paged = normalizePage(data)
   return { courses: paged.items, loading, total: paged.total }
 }
 
 /**
- * Real per-course roster sizes. The API only exposes one course at a time,
- * so the count is fetched per owned course (there are never many) instead of
- * inventing a `students_count` field the backend does not return.
+ * Total roster size across the professor's courses. The API returns a
+ * registered-only `students_count` per course, so no extra roster calls are
+ * needed to show the number of students taught.
  */
-export function useRosterTotals(courses) {
-  const key = courses.map((c) => c.id).join(',')
-  const { data, loading } = useAsync(async () => {
-    if (!courses.length) return {}
-    const lists = await Promise.all(
-      courses.map((course) =>
-        request('/api/professors/course/student?course_id=' + course.id).catch(() => []),
-      ),
-    )
-    const map = {}
-    courses.forEach((course, index) => {
-      map[course.id] = Array.isArray(lists[index]) ? lists[index].length : 0
-    })
-    return map
-  }, [key])
-
-  const counts = data || {}
-  const total = Object.values(counts).reduce((sum, n) => sum + n, 0)
-  return { counts, total, loading }
+export function totalStudents(courses) {
+  return courses.reduce((sum, course) => sum + (Number(course.students_count) || 0), 0)
 }
 
 export function CourseSelect({ courses, value, onChange, loading }) {
