@@ -48,7 +48,7 @@ jobs:
       - name: Prepare environment
         run: |
           cp .env.example .env
-          sed -i 's/^DB_HOST=.*/DB_HOST=127.0.0.1/; s/^DB_DATABASE=.*/DB_DATABASE=univars_test/; s/^DB_USERNAME=.*/DB_USERNAME=root/; s/^DB_PASSWORD=.*/DB_PASSWORD=/' .env
+          sed -i 's/^DB_CONNECTION=.*/DB_CONNECTION=mysql/; s/^DB_HOST=.*/DB_HOST=127.0.0.1/; s/^DB_PORT=.*/DB_PORT=3306/; s/^DB_DATABASE=.*/DB_DATABASE=univars_test/; s/^DB_USERNAME=.*/DB_USERNAME=root/; s/^DB_PASSWORD=.*/DB_PASSWORD=/' .env
           php artisan key:generate --force
           php artisan migrate --force
 
