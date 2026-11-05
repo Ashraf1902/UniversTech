@@ -48,7 +48,7 @@ export function AdminAccessRequests() {
           {paged.items.map((row) => (
             <Reveal key={row.id} className="card" style={{ padding: 20 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-                <span className="av" style={{ width: 48, height: 48, borderRadius: 15, background: 'var(--grad)', fontSize: '0.85rem' }}>
+                <span className="admin-avatar">
                   {String(row.name || '?').split(' ').map((w) => w[0]?.toUpperCase()).slice(0, 2).join('') || '?'}
                 </span>
                 <div style={{ flex: 1, minWidth: 180 }}>

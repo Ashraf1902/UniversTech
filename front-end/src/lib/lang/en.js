@@ -152,6 +152,9 @@ export default {
   openSection: 'Open section →',
   homeEmptyTitle: 'No modules assigned',
   homeEmptySub: 'This account has no admin module roles yet. A super admin can assign access from Admins & Roles.',
+  adminAttention: 'Needs attention',
+  adminAttentionSub: 'Requests, appeals and payments waiting for an administrator.',
+  adminAllClear: 'All clear',
 
   signIn: 'Sign in',
   createAccount: 'Create account',

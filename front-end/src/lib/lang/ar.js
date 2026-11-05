@@ -152,6 +152,9 @@ export default {
   openSection: 'افتِح القسم ←',
   homeEmptyTitle: 'لا توجد وحدات مخصصة',
   homeEmptySub: 'هذا الحساب ليس له أدوار وحدات بعد. يمكن لمدير كامل الصلاحيات منح الوصول من صفحة المدراء والأدوار.',
+  adminAttention: 'يحتاج انتباهك',
+  adminAttentionSub: 'طلبات واستئنافات ومدفوعات بانتظار المسؤول.',
+  adminAllClear: 'لا يوجد ما ينتظر',
 
   signIn: 'تسجيل الدخول',
   createAccount: 'إنشاء حساب',

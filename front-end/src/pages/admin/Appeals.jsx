@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { buildQuery, normalizePage, request } from '../../lib/api'
 import { useI18n } from '../../lib/i18n'
 import { useAsync } from '../../lib/hooks'
-import { Badge, Btn, Field, Modal, Pager, Spinner, useToast } from '../../lib/ui'
+import { Badge, Btn, Empty, Field, Modal, Pager, Spinner, useToast } from '../../lib/ui'
 import { Head, useFieldErrors, useOptions } from './_shared'
 
 function AppealStatus({ status }) {
@@ -114,9 +114,7 @@ export function AdminAppeals() {
           <Pager page={paged.page} last={paged.last_page} onPage={setPage} />
         </>
       ) : (
-        <div className="empty">
-          <h3>{t('noAppeals')}</h3>
-        </div>
+        <Empty icon="award" title={t('noAppeals')} />
       )}
 
       <Modal

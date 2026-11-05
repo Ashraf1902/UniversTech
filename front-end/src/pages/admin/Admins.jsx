@@ -149,7 +149,7 @@ setOpen(false)
                   <tr key={row.id}>
                     <td className="cell-main">
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span className="av" style={{ width: 34, height: 34, borderRadius: 11, background: 'var(--grad)', fontSize: '0.75rem' }}>
+                        <span className="admin-avatar is-sm">
                           {String(row.name || '?').split(' ').map((w) => w[0]?.toUpperCase()).slice(0, 2).join('') || '?'}
                         </span>
                         {row.name}

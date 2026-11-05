@@ -3,17 +3,38 @@ import { getFieldErrors, normalizePage, request } from '../../lib/api'
 import { useAsync } from '../../lib/hooks'
 import { useI18n } from '../../lib/i18n'
 import { Btn, CourseLoader, Empty, I, Modal } from '../../lib/ui'
-export function Head({ kicker, title, sub, actions }) {
+/**
+ * Indigo/gold hero shared by every admin screen. Mirrors the student and
+ * professor heroes: a white title (never gradient), optional quick actions,
+ * an optional aside and an optional numeric strip.
+ */
+export function AdminHero({ eyebrow, title, sub, actions, stats, aside, children }) {
   return (
-    <div className="page-head">
-      <div>
-        <span className="kicker">{kicker}</span>
-        <h1>{title}</h1>
-        {sub ? <p style={{ color: 'var(--muted)', marginTop: 8 }}>{sub}</p> : null}
+    <section className={`std-hero admin-hero ${aside ? 'has-aside' : ''}`}>
+      <div className="std-hero-body">
+        <span className="std-eyebrow">{eyebrow}</span>
+        <h1 className="admin-hero-title">{title}</h1>
+        {sub ? <p className="admin-hero-sub">{sub}</p> : null}
+        {children}
+        {actions ? <div className="admin-hero-actions">{actions}</div> : null}
+        {stats?.length ? (
+          <dl className="std-hero-stats">
+            {stats.map((stat) => (
+              <div key={stat.label}>
+                <dt>{stat.label}</dt>
+                <dd>{stat.value}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
       </div>
-      {actions ? <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>{actions}</div> : null}
-    </div>
+      {aside ? <div className="admin-hero-aside">{aside}</div> : null}
+    </section>
   )
+}
+
+export function Head({ kicker, title, sub, actions, stats }) {
+  return <AdminHero eyebrow={kicker} title={title} sub={sub} actions={actions} stats={stats} />
 }
 
 export function useList(path, page = 1, deps = []) {
@@ -84,7 +105,7 @@ export function DataTable({ columns, rows, loading, onEdit, onDelete, onRestore,
   if (!rows.length) return empty || <Empty icon="info" title={t('noRecordsYet')} />
   const hasActions = onEdit || onDelete || onRestore || onPurge
   return (
-    <div className="table-wrap">
+    <div className="table-wrap admin-table">
       <table className="table">
         <thead>
           <tr>
