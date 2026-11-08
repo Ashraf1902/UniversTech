@@ -39,10 +39,12 @@ use Illuminate\Support\Str;
 class DatabaseSeeder extends Seeder
 {
     /**
-     * Password for the NON-ADMIN demo accounts only (professors, students,
-     * access-request applicants). It is never used for administrator accounts.
+     * Environment variable that supplies the password for the NON-ADMIN demo
+     * accounts (professors, students, access-request applicants). When it is
+     * empty the seeder generates a random one and prints it, so no working
+     * demo password is ever committed to the repository.
      */
-    public const DEMO_PASSWORD = 'Demo@12345';
+    public const DEMO_PASSWORD_ENV = 'DEMO_PASSWORD';
 
     /**
      * Environment variable that supplies the demo administrator password.
@@ -106,9 +108,14 @@ class DatabaseSeeder extends Seeder
 
     private bool $adminPasswordFromEnv = true;
 
+    private string $demoPassword = '';
+
+    private bool $demoPasswordFromEnv = true;
+
     public function run(): void
     {
         $this->resolveAdminPassword();
+        $this->resolveDemoPassword();
 
         $this->super = $this->seedAdmins();
         $this->seedLevels();
@@ -148,6 +155,21 @@ class DatabaseSeeder extends Seeder
 
         $this->adminPassword = Str::password(16);
         $this->adminPasswordFromEnv = false;
+    }
+
+    private function resolveDemoPassword(): void
+    {
+        $fromEnv = env(self::DEMO_PASSWORD_ENV);
+
+        if (is_string($fromEnv) && $fromEnv !== '') {
+            $this->demoPassword = $fromEnv;
+            $this->demoPasswordFromEnv = true;
+
+            return;
+        }
+
+        $this->demoPassword = Str::password(16);
+        $this->demoPasswordFromEnv = false;
     }
 
     private function seedAdmins(): Admin
@@ -340,7 +362,7 @@ class DatabaseSeeder extends Seeder
 
         return User::updateOrCreate(['email' => $email], [
             'name' => $name,
-            'password' => Hash::make(self::DEMO_PASSWORD),
+            'password' => Hash::make($this->demoPassword),
             'gender' => $this->userCounter % 2,
             'nationalid' => '302' . str_pad((string) $this->userCounter, 11, '0', STR_PAD_LEFT),
             'phone' => '010' . str_pad((string) $this->userCounter, 8, '0', STR_PAD_LEFT),
@@ -805,7 +827,7 @@ class DatabaseSeeder extends Seeder
         foreach ($requests as $index => [$name, $email, $status, $reason, $deptIndex, $levelIndex]) {
             AccessRequest::updateOrCreate(['email' => $email], [
                 'name' => $name,
-                'password' => Hash::make(self::DEMO_PASSWORD),
+                'password' => Hash::make($this->demoPassword),
                 'phone' => '015' . str_pad((string) ($index + 1), 8, '0', STR_PAD_LEFT),
                 'national_id' => '301' . str_pad((string) ($index + 1), 11, '0', STR_PAD_LEFT),
                 'gender' => true,
@@ -857,7 +879,15 @@ class DatabaseSeeder extends Seeder
         }
 
         $this->command->line('');
-        $this->command->info('Non-admin demo accounts (password: ' . self::DEMO_PASSWORD . '):');
+        $this->command->info(
+            $this->demoPasswordFromEnv
+                ? 'Non-admin demo accounts (password: value of the ' . self::DEMO_PASSWORD_ENV . ' env variable):'
+                : 'Non-admin demo accounts (password: generated, no ' . self::DEMO_PASSWORD_ENV . ' set):'
+        );
+
+        if (! $this->demoPasswordFromEnv) {
+            $this->command->line('  generated password: ' . $this->demoPassword);
+        }
 
         foreach (self::DEMO_ACCOUNTS as [$name, $email, $role]) {
             if ($role === 'professor' || $role === 'student') {

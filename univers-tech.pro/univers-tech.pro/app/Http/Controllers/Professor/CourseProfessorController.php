@@ -15,10 +15,16 @@ class CourseProfessorController extends Controller
 
     public function getProfessorCourses(Request $request)
     {
+        $perPage = max(1, min((int) $request->integer('per_page', 50), 100));
+
         $courses = Course::where('professor_id', $request->user()->id)
             ->with(['department', 'lectures'])
+            ->withCount([
+                'students as students_count' => fn ($query) => $query
+                    ->where('student_courses.status', StudentCourse::STATUS_REGISTERED),
+            ])
             ->orderByDesc('created_at')
-            ->paginate(15);
+            ->paginate($perPage);
 
         return SendResponse(200, 'Courses fetched successfully.', $courses);
     }
